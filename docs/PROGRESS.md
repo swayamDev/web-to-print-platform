@@ -6,11 +6,10 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 7a** (designer): react-konva canvas in mm (scale from container width), trim /
-  bleed / safe guides, text and rect elements drawn from `layoutDocument` (text as glyph paths via
-  `textToPathData` so canvas = PNG = PDF), select / drag / resize / rotate with Transformer, side
-  panel (text, font, size, colour), templates as starting points, save to `designs` (owner RLS),
-  reopen. Phase 7b adds hard print-area clamping and the mobile layout.
+- Start **Phase 7b**: clamp drag/resize/rotate to the print area (dragBoundFunc + transformer
+  boundBoxFunc using the same rules as `validateDocument`), clip to the print area, coalesce typing
+  into one undo step, touch/mobile layout (canvas on top, bottom sheet for the panel), keyboard
+  focus handling, and designer e2e tests at phone size.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -33,7 +32,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 5** — Product page and live configurator
 - [x] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
       verified on Vercel
-- [ ] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
+- [x] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
 - [ ] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
 - [ ] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
 - [ ] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
@@ -173,3 +172,24 @@ next step under **Next up** so work can resume cold.
 - Gotchas: never name the live env file `.env.production.local` (Next loads it at build time); it
   is now `.env.live`. Local e2e uses 2 workers and 30 s assertions because one `next start`
   process plus Supabase in Docker queue requests under load.
+
+### 2026-11-24 — Phase 7a
+
+- Designer at `/design/new` (from "Design online" in the price panel or "Use this template") and
+  `/design/[id]` (owner only; others get 404 via RLS). react-konva stage in millimetres; elements
+  drawn from the shared layout with text as glyph outlines from the print fonts, so the canvas
+  matches the PDF/PNG. Bleed tint, trim line, safe-area guide, red outline on problem elements,
+  "Preview as printed" mode.
+- Select, drag, resize and rotate (Transformer, 45° snaps); side panel for text, font, size, colour
+  swatches + picker, alignment, rotation, layer order, delete; add text / shape; undo/redo
+  (buttons, Ctrl/Cmd+Z/Y); arrow-key nudging; live print check from `validateDocument` and live
+  "shrunk to fit" status.
+- Saving: `saveDesignAction` (Zod, size must match config, config must be orderable, RLS-scoped
+  insert/update, locked designs refused); autosave 2 s after edits; visitors are sent to log in and
+  their draft is restored and saved. `/account/designs` lists, opens and deletes (two-step) designs.
+- Fonts moved to `public/fonts` so the browser loads the same TTFs as the server.
+- `src/domain/design/document.ts` (blank, fit template to size, add/update/move/remove) + 7 tests.
+  6 designer e2e tests; 56 e2e and 80 unit tests pass.
+- Gotcha: in this environment the dev server's HMR socket fails inside the browser pane and pages
+  do not hydrate; use a production build (`pnpm build`, then the "web-prod" preview) to try
+  interactive features.

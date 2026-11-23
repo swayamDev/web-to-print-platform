@@ -51,6 +51,6 @@ export const config = {
   matcher: [
     // Everything except static assets, image optimisation, icons and API routes
     // (API routes authenticate themselves).
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2?)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2?|ttf|otf)$).*)",
   ],
 };

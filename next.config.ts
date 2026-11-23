@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@resvg/resvg-js", "pdf-lib", "@pdf-lib/fontkit", "opentype.js"],
   // The print fonts are read from disk at runtime; make sure they ship with the API functions.
   outputFileTracingIncludes: {
-    "/api/**/*": ["./src/assets/fonts/**/*"],
+    "/api/**/*": ["./public/fonts/**/*"],
   },
   turbopack: {
     rules: {

@@ -102,6 +102,7 @@ async function ProductContent({ params }: Props) {
           allowCustomSize={product.allowCustomSize}
           defaultWidthMm={product.defaultWidthMm}
           defaultHeightMm={product.defaultHeightMm}
+          designTemplateId={product.templates[0]?.id}
           materialDescriptions={Object.fromEntries(
             product.materials.map((m) => [m.slug, m.description]),
           )}
@@ -151,12 +152,20 @@ async function ProductContent({ params }: Props) {
                         <p className="text-muted-foreground text-sm">{template.description}</p>
                       ) : null}
                     </div>
-                    <a
-                      href={`/api/v1/templates/${template.id}/preview?format=pdf`}
-                      className="text-sm underline underline-offset-4"
-                    >
-                      Print-ready PDF
-                    </a>
+                    <div className="flex gap-3 text-sm">
+                      <Link
+                        href={`/design/new?product=${product.slug}&template=${template.id}`}
+                        className="font-medium underline underline-offset-4"
+                      >
+                        Use this template
+                      </Link>
+                      <a
+                        href={`/api/v1/templates/${template.id}/preview?format=pdf`}
+                        className="underline underline-offset-4"
+                      >
+                        Print-ready PDF
+                      </a>
+                    </div>
                   </div>
                 </li>
               ))}

@@ -6,6 +6,7 @@ import { requireUser } from "@/server/auth";
 
 const NAV = [
   { href: "/account", label: "Dashboard", exact: true },
+  { href: "/account/designs", label: "Designs" },
   { href: "/account/profile", label: "Profile" },
 ];
 

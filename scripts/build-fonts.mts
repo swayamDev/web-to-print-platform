@@ -1,6 +1,6 @@
 /**
  * Build the print fonts: convert the OFL-licensed Latin WOFF files shipped by @fontsource into
- * plain TrueType (.ttf) in src/assets/fonts.
+ * plain TrueType (.ttf) in public/fonts (served to the browser, read from disk by the server).
  *
  *   node scripts/build-fonts.mts
  *
@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = join(root, "src", "assets", "fonts");
+const outDir = join(root, "public", "fonts");
 
 const FONTS = [
   { id: "sora-bold", pkg: "@fontsource/sora", file: "sora-latin-700-normal.woff" },

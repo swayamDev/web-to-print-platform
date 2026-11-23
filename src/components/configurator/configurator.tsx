@@ -26,6 +26,8 @@ export type ConfiguratorProps = {
   defaultWidthMm: number;
   defaultHeightMm: number;
   materialDescriptions: Record<string, string | null>;
+  /** Template the designer starts from, if the product has one. */
+  designTemplateId?: string;
 };
 
 type State = {
@@ -377,6 +379,22 @@ export function Configurator(props: ConfiguratorProps) {
       </form>
 
       <PricePanel
+        designHref={
+          quote
+            ? `/design/new?${new URLSearchParams({
+                product: rules.product.slug,
+                ...(props.designTemplateId ? { template: props.designTemplateId } : {}),
+                w: state.width,
+                h: state.height,
+                m: state.materialSlug,
+                q: state.quantity,
+                ...(state.variableData ? { vd: "1" } : {}),
+                ...Object.fromEntries(
+                  Object.entries(state.options).map(([k, v]) => [`opt.${k}`, v]),
+                ),
+              })}`
+            : undefined
+        }
         rules={rules}
         request={request}
         quote={quote}

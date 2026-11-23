@@ -4,7 +4,7 @@ import type { FontMetrics } from "@/domain/design/text";
 import { ptToMm } from "@/domain/design/units";
 
 /**
- * Print fonts. The same TTF files (src/assets/fonts, built by scripts/build-fonts.mts) are used
+ * Print fonts. The same TTF files (public/fonts, built by scripts/build-fonts.mts) are used
  * for measuring, for the PDF and for the PNG, so text fits identically everywhere.
  */
 export const FONT_IDS = ["sora-bold", "inter-semibold", "inter-regular"] as const;

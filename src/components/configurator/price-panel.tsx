@@ -22,6 +22,8 @@ type Props = {
   serverCheck: ServerCheck;
   hasErrors: boolean;
   onPickQuantity: (quantity: number) => void;
+  /** Link into the designer with this exact configuration, when it is valid. */
+  designHref?: string;
 };
 
 /** Live price summary: total incl. tax, breakdown, discount ladder and server confirmation. */
@@ -32,6 +34,7 @@ export function PricePanel({
   serverCheck,
   hasErrors,
   onPickQuantity,
+  designHref,
 }: Props) {
   const currency = rules.settings.currency;
   const money = (minor: number) => formatMinor(minor, currency);
@@ -102,9 +105,16 @@ export function PricePanel({
           <ServerStatus check={serverCheck} money={money} />
 
           <div className="border-paper/15 grid gap-3 border-t pt-4">
+            {designHref ? (
+              <a
+                href={designHref}
+                className="bg-signal text-ink inline-flex h-11 items-center justify-center rounded-md px-4 font-medium"
+              >
+                Design online
+              </a>
+            ) : null}
             <p className="text-paper/70 text-sm">
-              Online ordering opens with the artwork designer. Until then you can save or share this
-              exact quote.
+              Design your artwork and save it to your account. Checkout opens in a later release.
             </p>
             <CopyLinkButton />
           </div>

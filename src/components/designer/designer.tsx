@@ -1,0 +1,541 @@
+"use client";
+
+import { Eye, EyeOff, Redo2, Save, Shapes, Type, Undo2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+
+import {
+  addRect,
+  addText,
+  moveElement,
+  removeElement,
+  updateElement,
+} from "@/domain/design/document";
+import { layoutDocument } from "@/domain/design/layout";
+import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
+import { validateDocument } from "@/domain/design/validate";
+import { formatMinor } from "@/domain/money";
+import { calculatePrice, type PricingRules } from "@/domain/pricing";
+import { formatMm } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { saveDesignAction } from "@/server/actions/designs";
+
+import type { ElementChange } from "./design-canvas";
+import { ElementPanel } from "./element-panel";
+import { usePrintFonts } from "./use-print-fonts";
+
+// Konva needs the browser; never render it on the server.
+const DesignCanvas = dynamic(() => import("./design-canvas").then((m) => m.DesignCanvas), {
+  ssr: false,
+  loading: () => <div className="bg-muted aspect-[3/4] w-full animate-pulse rounded-md" />,
+});
+
+export type DesignerProps = {
+  product: { slug: string; name: string };
+  rules: PricingRules;
+  config: {
+    widthMm: number;
+    heightMm: number;
+    materialSlug: string;
+    quantity: number;
+    options: Record<string, string>;
+    variableData: boolean;
+  };
+  templateId: string | null;
+  initialDocument: DesignDocument;
+  design: { id: string; name: string; isLocked: boolean } | null;
+};
+
+// ---------------------------------------------------------------------------
+// History (undo / redo)
+// ---------------------------------------------------------------------------
+type History = { past: DesignDocument[]; present: DesignDocument; future: DesignDocument[] };
+type HistoryAction =
+  | { type: "commit"; doc: DesignDocument }
+  | { type: "undo" }
+  | { type: "redo" }
+  | { type: "reset"; doc: DesignDocument };
+
+const HISTORY_LIMIT = 50;
+
+function historyReducer(state: History, action: HistoryAction): History {
+  switch (action.type) {
+    case "commit":
+      if (action.doc === state.present) return state;
+      return {
+        past: [...state.past, state.present].slice(-HISTORY_LIMIT),
+        present: action.doc,
+        future: [],
+      };
+    case "undo": {
+      const previous = state.past.at(-1);
+      return previous
+        ? {
+            past: state.past.slice(0, -1),
+            present: previous,
+            future: [state.present, ...state.future],
+          }
+        : state;
+    }
+    case "redo": {
+      const next = state.future[0];
+      return next
+        ? { past: [...state.past, state.present], present: next, future: state.future.slice(1) }
+        : state;
+    }
+    case "reset":
+      return { past: [], present: action.doc, future: [] };
+  }
+}
+
+const DRAFT_KEY = "dh-design-draft";
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "dirty" }
+  | { kind: "saving" }
+  | { kind: "saved"; at: string }
+  | { kind: "error"; message: string };
+
+const isTyping = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable);
+
+/**
+ * The web-to-print designer (PRD p5 §06): template-driven editing in millimetres, with live
+ * print checks. Saves to the customer's account; visitors are asked to log in on first save
+ * and their draft is carried through.
+ */
+export function Designer({
+  product,
+  rules,
+  config,
+  templateId,
+  initialDocument,
+  design,
+}: DesignerProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { fonts, error: fontError } = usePrintFonts();
+
+  const [history, dispatch] = useReducer(historyReducer, {
+    past: [],
+    present: initialDocument,
+    future: [],
+  });
+  const doc = history.present;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [designId, setDesignId] = useState(design?.id ?? null);
+  const [name, setName] = useState(
+    design?.name ?? `${product.name} ${formatMm(config.widthMm)}×${formatMm(config.heightMm)} mm`,
+  );
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
+  const locked = design?.isLocked ?? false;
+
+  const commit = useCallback(
+    (next: DesignDocument) => {
+      dispatch({ type: "commit", doc: next });
+      setSaveState({ kind: "dirty" });
+    },
+    [dispatch],
+  );
+
+  // Live layout and print checks, from the same code the server uses.
+  const layout = fonts ? layoutDocument(doc, {}, (id) => fonts.get(id)?.metrics) : null;
+  const issues = layout ? validateDocument(doc, layout) : [];
+  const issueIds = new Set(issues.map((i) => i.elementId));
+  const selected = doc.elements.find((e) => e.id === selectedId) ?? null;
+  const priced = calculatePrice(rules, { productSlug: product.slug, ...config });
+
+  // ---------------------------------------------------------------------------
+  // Saving
+  // ---------------------------------------------------------------------------
+  const save = useCallback(
+    async (documentToSave: DesignDocument, nameToSave: string) => {
+      setSaveState({ kind: "saving" });
+      const result = await saveDesignAction({
+        designId,
+        productSlug: product.slug,
+        templateId,
+        name: nameToSave.trim() || product.name,
+        config,
+        document: documentToSave,
+      });
+      if (result.status === "login-required") {
+        // Keep the draft so it survives signing up or logging in.
+        try {
+          localStorage.setItem(
+            DRAFT_KEY,
+            JSON.stringify({
+              productSlug: product.slug,
+              templateId,
+              config,
+              name: nameToSave,
+              document: documentToSave,
+            }),
+          );
+        } catch {
+          /* storage unavailable: the user can still save after logging in, from scratch */
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set("restore", "1");
+        router.push(`/login?next=${encodeURIComponent(url.pathname + url.search)}`);
+        return;
+      }
+      if (result.status === "error") {
+        setSaveState({ kind: "error", message: result.message });
+        return;
+      }
+      if (!designId) {
+        setDesignId(result.id);
+        // Give the design its own address without reloading the editor.
+        window.history.replaceState(null, "", `/design/${result.id}`);
+      }
+      setSaveState({ kind: "saved", at: result.savedAt });
+    },
+    [designId, product.slug, product.name, templateId, config, router],
+  );
+
+  // Restore a draft carried through login (?restore=1), then save it to the account.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || searchParams.get("restore") !== "1") return;
+    // Read the draft from browser storage (an external store) in a callback, then save it.
+    const timer = setTimeout(() => {
+      restored.current = true;
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw) as { productSlug: string; name: string; document: unknown };
+        const parsed = designDocumentSchema.safeParse(draft.document);
+        if (draft.productSlug !== product.slug || !parsed.success) return;
+        localStorage.removeItem(DRAFT_KEY);
+        dispatch({ type: "reset", doc: parsed.data });
+        setName(draft.name);
+        void save(parsed.data, draft.name);
+      } catch {
+        /* ignore unreadable drafts */
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [searchParams, product.slug, save]);
+
+  // Autosave saved designs a moment after the last change.
+  useEffect(() => {
+    if (!designId || locked || saveState.kind !== "dirty") return;
+    const timer = setTimeout(() => void save(doc, name), 2000);
+    return () => clearTimeout(timer);
+  }, [designId, locked, saveState.kind, doc, name, save]);
+
+  // ---------------------------------------------------------------------------
+  // Editing
+  // ---------------------------------------------------------------------------
+  const change = (id: string, patch: ElementChange | Record<string, unknown>) =>
+    commit(updateElement(doc, id, patch));
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (isTyping(event.target)) return;
+      const mod = event.ctrlKey || event.metaKey;
+      if (mod && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        dispatch({ type: event.shiftKey ? "redo" : "undo" });
+        setSaveState({ kind: "dirty" });
+      } else if (mod && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        dispatch({ type: "redo" });
+        setSaveState({ kind: "dirty" });
+      } else if (
+        selected &&
+        !selected.locked &&
+        (event.key === "Delete" || event.key === "Backspace")
+      ) {
+        event.preventDefault();
+        commit(removeElement(doc, selected.id));
+        setSelectedId(null);
+      } else if (selected && !selected.locked && event.key.startsWith("Arrow")) {
+        event.preventDefault();
+        const step = event.shiftKey ? 5 : 1;
+        const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+        const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+        commit(updateElement(doc, selected.id, { x: selected.x + dx, y: selected.y + dy }));
+      } else if (event.key === "Escape") {
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [doc, selected, commit]);
+
+  const statusText =
+    saveState.kind === "saving"
+      ? "Saving…"
+      : saveState.kind === "saved"
+        ? `Saved ${new Date(saveState.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+        : saveState.kind === "dirty"
+          ? designId
+            ? "Unsaved changes"
+            : "Not saved yet"
+          : saveState.kind === "error"
+            ? saveState.message
+            : designId
+              ? "All changes saved"
+              : "Not saved yet";
+
+  return (
+    <div className="grid gap-4">
+      {/* Toolbar ------------------------------------------------------------- */}
+      <div className="bg-card flex flex-wrap items-center gap-2 rounded-xl border p-2">
+        <label htmlFor="design-name" className="sr-only">
+          Design name
+        </label>
+        <input
+          id="design-name"
+          value={name}
+          maxLength={120}
+          onChange={(e) => {
+            setName(e.target.value);
+            setSaveState({ kind: "dirty" });
+          }}
+          className="hover:border-border focus-visible:border-ring focus-visible:ring-ring/50 h-9 min-w-0 flex-1 basis-48 rounded-md border-transparent bg-transparent px-2 font-medium outline-none focus-visible:ring-3"
+        />
+        <div className="flex flex-wrap items-center gap-1">
+          <ToolButton
+            label="Add text"
+            disabled={locked || previewMode}
+            onClick={() => {
+              const result = addText(doc);
+              commit(result.doc);
+              setSelectedId(result.id);
+            }}
+          >
+            <Type className="size-4" /> <span className="max-sm:sr-only">Text</span>
+          </ToolButton>
+          <ToolButton
+            label="Add shape"
+            disabled={locked || previewMode}
+            onClick={() => {
+              const result = addRect(doc);
+              commit(result.doc);
+              setSelectedId(result.id);
+            }}
+          >
+            <Shapes className="size-4" /> <span className="max-sm:sr-only">Shape</span>
+          </ToolButton>
+          <ToolButton
+            label="Undo"
+            disabled={history.past.length === 0}
+            onClick={() => dispatch({ type: "undo" })}
+          >
+            <Undo2 className="size-4" />
+          </ToolButton>
+          <ToolButton
+            label="Redo"
+            disabled={history.future.length === 0}
+            onClick={() => dispatch({ type: "redo" })}
+          >
+            <Redo2 className="size-4" />
+          </ToolButton>
+          <ToolButton
+            label={previewMode ? "Show guides" : "Preview as printed"}
+            pressed={previewMode}
+            onClick={() => {
+              setPreviewMode((v) => !v);
+              setSelectedId(null);
+            }}
+          >
+            {previewMode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            <span className="max-sm:sr-only">{previewMode ? "Guides" : "Preview"}</span>
+          </ToolButton>
+          <button
+            type="button"
+            onClick={() => void save(doc, name)}
+            disabled={locked || saveState.kind === "saving"}
+            className="bg-primary text-primary-foreground inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium disabled:opacity-50"
+          >
+            <Save className="size-4" aria-hidden="true" /> Save
+          </button>
+        </div>
+        <p
+          className={cn(
+            "w-full px-2 text-xs sm:w-auto",
+            saveState.kind === "error" ? "text-destructive" : "text-muted-foreground",
+          )}
+          role="status"
+          data-testid="save-status"
+        >
+          {statusText}
+        </p>
+      </div>
+
+      {locked ? (
+        <p className="bg-muted rounded-lg px-4 py-3 text-sm">
+          This design is locked because a proof of it was approved. It can be reordered as it is.
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        {/* Canvas --------------------------------------------------------------- */}
+        <div className="bg-mm-grid grid min-w-0 gap-3 rounded-xl border p-4">
+          {fontError ? (
+            <p className="text-destructive text-sm">
+              The design fonts could not load. Please reload the page.
+            </p>
+          ) : fonts && layout ? (
+            <DesignCanvas
+              doc={doc}
+              layout={layout}
+              fonts={fonts}
+              selectedId={selectedId}
+              issueIds={issueIds}
+              previewMode={previewMode || locked}
+              onSelect={setSelectedId}
+              onChange={change}
+            />
+          ) : (
+            <div
+              className="bg-muted aspect-[3/4] w-full animate-pulse rounded-md"
+              aria-label="Loading fonts"
+            />
+          )}
+          {!previewMode ? (
+            <p className="spec-label text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+              <span>
+                <span className="bg-signal/30 mr-1.5 inline-block size-2.5 align-middle" /> Bleed
+                (trimmed off)
+              </span>
+              <span>
+                <span className="border-ink mr-1.5 inline-block size-2.5 border align-middle" />{" "}
+                Trim {formatMm(doc.trim.w)} × {formatMm(doc.trim.h)} mm
+              </span>
+              <span>
+                <span className="border-signal mr-1.5 inline-block size-2.5 border border-dashed align-middle" />{" "}
+                Safe area
+              </span>
+            </p>
+          ) : null}
+        </div>
+
+        {/* Side panel ------------------------------------------------------------ */}
+        <aside className="grid content-start gap-4">
+          <section className="bg-card rounded-xl border p-4" aria-label="Selected element">
+            {selected ? (
+              <ElementPanel
+                element={selected}
+                laidOut={layout?.items.find((i) => i.id === selected.id)}
+                onChange={(patch) => change(selected.id, patch)}
+                onDelete={() => {
+                  commit(removeElement(doc, selected.id));
+                  setSelectedId(null);
+                }}
+                onMove={(direction) => commit(moveElement(doc, selected.id, direction))}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Select something on the page to edit it, or add text or a shape. Drag to move; use
+                the handles to resize and rotate. Arrow keys nudge by 1 mm (Shift: 5 mm).
+              </p>
+            )}
+          </section>
+
+          <section
+            className={cn(
+              "rounded-xl border p-4",
+              issues.length ? "border-destructive/40 bg-destructive/5" : "bg-card",
+            )}
+            aria-label="Print check"
+            data-testid="print-check"
+          >
+            <p className="spec-label text-muted-foreground mb-2">Print check</p>
+            {!layout ? (
+              <p className="text-muted-foreground text-sm">Checking…</p>
+            ) : issues.length === 0 ? (
+              <p className="text-success text-sm font-medium">
+                Ready to print: everything is inside the print area.
+              </p>
+            ) : (
+              <ul className="grid gap-2 text-sm">
+                {issues.map((issue, index) => (
+                  <li key={`${issue.elementId}-${issue.code}-${index}`}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(issue.elementId)}
+                      className="text-destructive text-left underline-offset-4 hover:underline"
+                    >
+                      {issue.message}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section
+            className="bg-card grid gap-2 rounded-xl border p-4 text-sm"
+            aria-label="Order summary"
+          >
+            <p className="spec-label text-muted-foreground">Your order</p>
+            <p>
+              {product.name} · {formatMm(config.widthMm)} × {formatMm(config.heightMm)} mm ·{" "}
+              {rules.materials.find((m) => m.slug === config.materialSlug)?.name}
+            </p>
+            {priced.ok ? (
+              <p className="num font-mono">
+                {config.quantity.toLocaleString("en-GB")} items ·{" "}
+                {formatMinor(priced.quote.totalGrossMinor, priced.quote.currency)} incl.{" "}
+                {priced.quote.taxLabel}
+              </p>
+            ) : null}
+            <Link
+              href={`/p/${product.slug}?${new URLSearchParams({
+                w: String(config.widthMm),
+                h: String(config.heightMm),
+                m: config.materialSlug,
+                q: String(config.quantity),
+              })}`}
+              className="underline underline-offset-4"
+            >
+              Change size, material or quantity
+            </Link>
+            <p className="text-muted-foreground text-xs">
+              Ordering opens with checkout; for now your design is saved to your account.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ToolButton({
+  label,
+  onClick,
+  disabled,
+  pressed,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm disabled:opacity-40",
+        pressed ? "border-ink bg-ink text-paper" : "bg-background hover:border-ink",
+      )}
+    >
+      {children}
+    </button>
+  );
+}

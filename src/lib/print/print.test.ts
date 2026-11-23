@@ -58,7 +58,7 @@ beforeAll(() => {
   for (const id of FONT_IDS) {
     fonts.set(
       id,
-      loadFont(id, new Uint8Array(readFileSync(join(root, "src/assets/fonts", `${id}.ttf`)))),
+      loadFont(id, new Uint8Array(readFileSync(join(root, "public/fonts", `${id}.ttf`)))),
     );
   }
 });

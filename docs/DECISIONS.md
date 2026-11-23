@@ -147,3 +147,9 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-28 Template previews are public:** `/api/v1/templates/:id/preview` renders active templates
   with sample text (PNG with guides, or a print-ready PDF). Templates are public catalogue data;
   the route is rate limited (30/min per IP).
+- **D-29 Templates at other sizes:** a template designed at one size is fitted to the configured
+  size by scaling positions and boxes per axis and type by the smaller factor; shapes that ran into
+  the bleed keep reaching it. Bleed and safe margin always come from the product.
+- **D-30 Visitors can design; saving needs an account:** on first save a visitor is sent to log in
+  or sign up, the draft is kept in the browser and saved to their account automatically on return.
+  Drafts may be saved with print issues; issues block proofs and checkout, not saving.

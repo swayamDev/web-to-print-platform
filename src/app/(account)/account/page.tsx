@@ -76,6 +76,11 @@ async function AccountDashboard() {
                 : "Designs you save in the designer will appear here."}
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Link href="/account/designs" className={buttonVariants({ variant: "outline" })}>
+              View designs
+            </Link>
+          </CardContent>
         </Card>
       </div>
 

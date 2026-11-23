@@ -13,7 +13,7 @@ import { layoutToSvg } from "@/lib/print/svg";
 
 /**
  * Server-side print rendering (PRD p6 §07: heavy processing runs on the server). Fonts are read
- * from src/assets/fonts, which next.config.ts traces into the serverless bundle.
+ * from public/fonts, which next.config.ts traces into the serverless bundle.
  */
 
 let fontsPromise: Promise<Map<string, LoadedFont>> | null = null;
@@ -22,7 +22,7 @@ export function loadPrintFonts(): Promise<Map<string, LoadedFont>> {
   fontsPromise ??= (async () => {
     const entries = await Promise.all(
       FONT_IDS.map(async (id) => {
-        const bytes = await readFile(join(process.cwd(), "src", "assets", "fonts", `${id}.ttf`));
+        const bytes = await readFile(join(process.cwd(), "public", "fonts", `${id}.ttf`));
         return [id, loadFont(id, new Uint8Array(bytes))] as const;
       }),
     );
