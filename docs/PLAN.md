@@ -66,7 +66,7 @@ total_gross  = subtotal_net + tax                         # shown to the custome
 `webhook_events`, `proof_versions`, `proof_events` (insert-only), `merge_jobs`,
 `production_files`, `order_status_history`, `notifications`, `audit_logs`, `gallery_items`.
 
-Storage buckets: `public` (catalogue images), `uploads` (per-user folder), `proofs`
+Storage buckets: `catalogue` (public: product, template and gallery images), `uploads` (per-user folder), `proofs`
 (signed URLs after an ownership check), `production` (admin only).
 
 ## Testing

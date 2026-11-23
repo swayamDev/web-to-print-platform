@@ -38,6 +38,15 @@ pnpm dev                     # http://localhost:3000
 | `pnpm test`      | Unit and integration tests (Vitest)                                                   |
 | `pnpm test:e2e`  | End-to-end tests (Playwright; run `pnpm exec playwright install chromium` once first) |
 | `pnpm format`    | Format with Prettier                                                                  |
+| `pnpm db:start`  | Start local Supabase (needs Docker)                                                   |
+| `pnpm db:reset`  | Rebuild the local database from migrations and seed                                   |
+| `pnpm db:test`   | Database tests: access rules and order pipeline (pgTAP)                               |
+| `pnpm db:types`  | Regenerate `src/types/db.ts` from the local database                                  |
+
+## Database
+
+Schema, security rules and seed data live in [`supabase/`](supabase/). Locally, Supabase runs on
+ports 553xx (API `http://127.0.0.1:55321`, Studio `http://127.0.0.1:55323`).
 
 ## Environment variables
 

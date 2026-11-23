@@ -7,13 +7,16 @@ next step under **Next up** so work can resume cold.
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
 - Install Playwright browsers once (`pnpm exec playwright install chromium`) and run `pnpm test:e2e`.
-- Start **Phase 1**: Supabase CLI, schema migrations, RLS, storage policies, seed.
+- Start **Phase 2**: `@supabase/ssr` clients (browser, server, service-role in `src/server`),
+  middleware, login / signup / reset / logout, `requireUser` / `requireAdmin`, admin seed script,
+  `/account` and `/admin` shells. Copy local keys from `pnpm exec supabase status` into `.env.local`.
+- Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Phases
 
 - [x] **Phase 0** — Repository and tooling (Next.js, TypeScript strict, Tailwind, shadcn/ui,
       ESLint, Prettier, Vitest, Playwright, docs)
-- [ ] **Phase 1** — Supabase schema, RLS, storage buckets and policies, seed data, generated types
+- [x] **Phase 1** — Supabase schema, RLS, storage buckets and policies, seed data, generated types
 - [ ] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
 - [ ] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
       new Supabase project, env vars, daily keep-alive cron)
@@ -44,3 +47,18 @@ next step under **Next up** so work can resume cold.
 - Added folder skeleton, `.env.example`, `docs/DECISIONS.md` (D-01 to D-20), `docs/PLAN.md`.
 - First domain module: `src/domain/money.ts` with tests.
 - Gotchas: Playwright browsers are not installed yet.
+
+### 2026-11-24 — Phase 1
+
+- Migrations in `supabase/migrations/`: core schema (23 tables), functions and triggers (profile
+  creation, `is_admin()`, order state machine + approval gate, status timeline, `transition_order()`,
+  immutable proof/history/audit logs, design locking, invoice numbers, rate limiting), RLS and
+  grants, storage buckets (`catalogue`, `uploads`, `proofs`, `production`).
+- Seed: settings (GBP, 20% VAT, 100 CSV rows), 6 divisions, 17 materials, 6 products, global tiers
+  100/250/500, 6 templates. All prices are sample values.
+- 24 pgTAP tests pass (`pnpm db:test`): visitor/customer/admin access, no direct order writes,
+  no self-promotion to admin, production files hidden from customers, pipeline guards.
+- Types generated to `src/types/db.ts` (`pnpm db:types`).
+- Gotchas: local Supabase uses ports **553xx** (API 55321, DB 55322, Studio 55323, mail 55324)
+  because another local Supabase project uses the defaults. New tables need explicit grants and
+  policies: default privileges for `anon`/`authenticated` are revoked.
