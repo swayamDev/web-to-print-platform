@@ -1,7 +1,19 @@
 -- Database tests: access rules (RLS + grants) and the order pipeline guards.
 -- Run with: pnpm exec supabase test db
 begin;
+-- Run as the database owner (the hosted test runner logs in with a restricted role).
+set local role postgres;
 create extension if not exists pgtap with schema extensions;
+-- Hosted projects may already have pgTAP in another schema: put that schema on the path.
+select set_config(
+  'search_path',
+  coalesce(
+    (select quote_ident(n.nspname) from pg_extension e
+     join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
+    'extensions'
+  ) || ', public, extensions',
+  true
+);
 
 select plan(24);
 
@@ -9,9 +21,9 @@ select plan(24);
 -- Fixtures (as the database owner)
 -- ---------------------------------------------------------------------------
 insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-0000000000a1', 'customer-a@test.local'),
-  ('00000000-0000-0000-0000-0000000000b2', 'customer-b@test.local'),
-  ('00000000-0000-0000-0000-0000000000ad', 'admin@test.local');
+  ('00000000-0000-0000-0000-0000000000a1', 'pgtap-customer-a@example.test'),
+  ('00000000-0000-0000-0000-0000000000b2', 'pgtap-customer-b@example.test'),
+  ('00000000-0000-0000-0000-0000000000ad', 'pgtap-admin@example.test');
 
 update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000ad';
 
@@ -53,7 +65,7 @@ select throws_ok(
   'visitors cannot read profiles'
 );
 
-reset role;
+set local role postgres;
 
 -- ---------------------------------------------------------------------------
 -- Customer A
@@ -114,7 +126,7 @@ select throws_ok(
   'a customer cannot read payment webhook records'
 );
 
-reset role;
+set local role postgres;
 
 -- ---------------------------------------------------------------------------
 -- Admin
@@ -131,7 +143,7 @@ select isnt_empty(
   'an admin can see production files in storage'
 );
 
-reset role;
+set local role postgres;
 
 -- ---------------------------------------------------------------------------
 -- Pipeline guards (as the server would run them)

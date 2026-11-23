@@ -15,10 +15,14 @@ Supabase, so the database must exist first.
    ```bash
    pnpm exec supabase login
    pnpm exec supabase link --project-ref <your-project-ref>
-   pnpm exec supabase db push --include-seed
+   pnpm exec supabase db push --remote --include-seed
    ```
 
    `<your-project-ref>` is the id in the project URL (`https://supabase.com/dashboard/project/<ref>`).
+   Supabase CLI v3 targets the local database unless you pass `--remote`.
+
+   Optional: prove the live security rules with the database tests (they run inside a transaction
+   that is rolled back): `pnpm exec supabase test db --remote --yes`.
 
 3. **Authentication → Sign In / Providers → Email**: turn **Confirm email** off (DECISIONS D-11) and
    set the minimum password length to **8**.
@@ -89,4 +93,4 @@ node --env-file=.env.production.local scripts/seed-users.mts
 ## Changing the schema later
 
 Add a migration in `supabase/migrations/`, test with `pnpm db:reset && pnpm db:test`, then
-`pnpm exec supabase db push`. Never edit the live database by hand.
+`pnpm exec supabase db push --remote`. Never edit the live database by hand.
