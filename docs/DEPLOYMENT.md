@@ -1,0 +1,92 @@
+# Deployment
+
+The PRD requires a **new Vercel account** and a **new Supabase project**, not personal or existing
+ones, with environment variables configured in the host and never committed (p10 §15).
+
+Total time: about 30 minutes. Do the steps in order: the Vercel build reads the catalogue from
+Supabase, so the database must exist first.
+
+## 1. Supabase project (new)
+
+1. Sign up at supabase.com with a fresh account (or a new organisation) and create a project.
+   Choose the region closest to your users, and save the database password somewhere safe.
+2. From this repository, link and push the schema and seed data:
+
+   ```bash
+   pnpm exec supabase login
+   pnpm exec supabase link --project-ref <your-project-ref>
+   pnpm exec supabase db push --include-seed
+   ```
+
+   `<your-project-ref>` is the id in the project URL (`https://supabase.com/dashboard/project/<ref>`).
+
+3. **Authentication → Sign In / Providers → Email**: turn **Confirm email** off (DECISIONS D-11) and
+   set the minimum password length to **8**.
+4. **Authentication → URL Configuration** (after step 3 below gives you the URL):
+   - Site URL: `https://<your-app>.vercel.app`
+   - Redirect URLs: `https://<your-app>.vercel.app/**`
+5. **Project Settings → API Keys**: copy the **publishable** key and a **secret** key.
+
+## 2. GitHub repository
+
+Create an empty repository named `web-to-print-platform`, then push:
+
+```bash
+git remote add origin https://github.com/<you>/web-to-print-platform.git
+git push -u origin main
+```
+
+## 3. Vercel project (new account)
+
+1. Sign up at vercel.com with a fresh account (Hobby plan is enough).
+2. **Add New → Project**, import the GitHub repository. Framework preset: Next.js (detected).
+3. Add these **Environment Variables** (Production and Preview):
+
+   | Name                                   | Value                                                 |
+   | -------------------------------------- | ----------------------------------------------------- |
+   | `APP_URL`                              | `https://<your-app>.vercel.app` (no trailing slash)   |
+   | `NEXT_PUBLIC_SUPABASE_URL`             | `https://<your-project-ref>.supabase.co`              |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable key from step 1.5                         |
+   | `SUPABASE_SECRET_KEY`                  | secret key from step 1.5 — mark as **Sensitive**      |
+   | `CRON_SECRET`                          | a long random string (e.g. `openssl rand -base64 32`) |
+
+4. Deploy. If `APP_URL` was a guess, correct it after the first deploy and redeploy, then finish
+   Supabase step 1.4.
+
+The daily cron in `vercel.json` calls `/api/cron/keepalive` so the free Supabase project does not
+pause between evaluator visits.
+
+## 4. Test accounts on the live database
+
+Create `.env.production.local` (ignored by git) with the live values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_SECRET_KEY=<secret key>
+TEST_CUSTOMER_EMAIL=<customer email>
+TEST_CUSTOMER_PASSWORD=<strong password>
+TEST_ADMIN_EMAIL=<admin email>
+TEST_ADMIN_PASSWORD=<strong password>
+```
+
+Then run:
+
+```bash
+node --env-file=.env.production.local scripts/seed-users.mts
+```
+
+## 5. Smoke test
+
+- Home page shows the six division tiles; a division page and a product page load.
+- Sign up a new account, log out, log in with the customer test account.
+- Log in as admin and open `/admin`; as the customer, `/admin` returns 404.
+- Keep-alive responds: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.vercel.app/api/cron/keepalive`
+  returns `{"ok":true,...}`, and without the header returns 401.
+- Run the end-to-end tests against the live site:
+  `E2E_BASE_URL=https://<your-app>.vercel.app pnpm test:e2e` (with the live test-account values
+  in your environment). Note: the password-reset test needs Mailpit, so it only runs locally.
+
+## Changing the schema later
+
+Add a migration in `supabase/migrations/`, test with `pnpm db:reset && pnpm db:test`, then
+`pnpm exec supabase db push`. Never edit the live database by hand.

@@ -11,7 +11,7 @@ import { ORDER_STATUS_LABELS } from "@/domain/order-status";
 import { requireUser } from "@/server/auth";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
-export const metadata: Metadata = { title: "My account · Digital Heroes Print" };
+export const metadata: Metadata = { title: "My account" };
 
 export default function AccountDashboardPage() {
   // Data is read at request time, so it streams in behind a placeholder (Cache Components).

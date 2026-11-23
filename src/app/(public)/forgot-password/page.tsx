@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ForgotPasswordForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
 
-export const metadata: Metadata = { title: "Reset password · Digital Heroes Print" };
+export const metadata: Metadata = { title: "Reset password" };
 
 export default function ForgotPasswordPage() {
   return (

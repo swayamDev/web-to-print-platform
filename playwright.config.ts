@@ -15,10 +15,13 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // Local Supabase Auth (password hashing in Docker) saturates with many parallel logins,
+  // so keep concurrency modest.
+  workers: 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
-  // The dev server compiles each route on first visit, which can take several seconds.
+  // Generous because a reused dev server compiles each route on first visit.
   expect: { timeout: 15_000 },
   timeout: 60_000,
   use: {
@@ -29,13 +32,14 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
-  // Start the dev server automatically unless testing a deployed URL.
+  // Test a production build (fast and close to what is deployed) unless a deployed URL is
+  // given. A dev server already running on the port is reused instead.
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: "pnpm dev",
+        command: "pnpm build && pnpm start",
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 300_000,
       },
 });

@@ -119,3 +119,7 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-20 Adobe Illustrator uploads** are accepted only when saved with PDF compatibility (the
   file starts with `%PDF`); they are then handled as PDF. Older PostScript-only `.ai` files are
   rejected with instructions to re-save.
+- **D-21 Not-found for catalogue pages:** division and product pages stream, so an unknown slug
+  shows the branded "Page not found" page (marked noindex) with HTTP 200 rather than a 404 status.
+  The alternative (`dynamicParams = false`) would hide divisions an admin adds until the next
+  deploy, breaking PRD p9 §14. The admin area still returns a real 404 to non-admins (via the proxy).

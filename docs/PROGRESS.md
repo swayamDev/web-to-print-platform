@@ -6,9 +6,10 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 3**: design system (tokens, fonts, accent colour), public shell and home hub of six
-  equal tiles from the database, division pages; then the **first deploy** (new Vercel account, new
-  Supabase project, env vars, `pnpm seed:users` against it, daily keep-alive cron).
+- **Finish Phase 3: first deploy.** Needs the user: new Supabase project, GitHub repo, new Vercel
+  account. Follow `docs/DEPLOYMENT.md` step by step, then run the smoke test there.
+- Then **Phase 4**: pricing engine in `src/domain/pricing.ts` (decimal maths, all-units tiers, tax,
+  line-level rounding) with table-driven tests, plus `POST /api/v1/price`.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Phases
@@ -17,8 +18,8 @@ next step under **Next up** so work can resume cold.
       ESLint, Prettier, Vitest, Playwright, docs)
 - [x] **Phase 1** — Supabase schema, RLS, storage buckets and policies, seed data, generated types
 - [x] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
-- [ ] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
-      new Supabase project, env vars, daily keep-alive cron)
+- [~] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
+  new Supabase project, env vars, daily keep-alive cron)
 - [ ] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
 - [ ] **Phase 5** — Product page and live configurator
 - [ ] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
@@ -82,3 +83,25 @@ next step under **Next up** so work can resume cold.
   or the database must sit inside `<Suspense>` in the page itself, or Next logs "uncached data"
   / "Date.now()" errors. Pattern: sync page → `<Suspense fallback={<PageSkeleton />}>` → async
   content. Playwright needs local Supabase running and `pnpm seed:users` done first.
+
+### 2026-11-24 — Phase 3 (deploy pending)
+
+- Design system in `src/app/globals.css`: paper/ink/signal-orange tokens (ink text on orange for
+  AA contrast), Sora headings, Inter body, JetBrains Mono specs; `.spec-label`, `.num`,
+  `.bg-mm-grid` and `.crop-marks` utilities; reduced-motion respected.
+- Header (registration-mark logo, no-JS products menu, streamed account links), footer, skip link,
+  branded 404 page.
+- Home: hero with a CSS sample proof (trim, bleed, safe area, dimensions), six equal-weight division
+  tiles from the database, "how it works". Division pages (`/d/[division]`) and product spec pages
+  (`/p/[product]`) with sizes, materials, options, bleed/DPI and templates. Product pages say
+  plainly that online configuration and pricing are still to come (Phase 5).
+- Catalogue reads in `src/server/catalogue.ts` use `"use cache"` + `cacheTag("catalogue")` with a
+  cookie-less client, so public pages prerender.
+- Keep-alive cron: `/api/cron/keepalive` (Bearer CRON_SECRET, timing-safe) + `vercel.json` daily.
+- `docs/DEPLOYMENT.md`: step-by-step for the new Supabase project, GitHub, new Vercel account,
+  env vars, live test accounts and smoke test.
+- Playwright now tests a **production build** (`pnpm build && pnpm start`) with 3 workers; 24 tests
+  pass (catalogue browsing, 404s, no sideways scroll, all auth flows) at phone and desktop sizes.
+- Gotchas: local Supabase auth rate limits were raised in `config.toml` (tests hit the default
+  30 sign-ins / 5 min and 2 emails / hour); login and signup now say "Too many attempts" on a 429
+  instead of "incorrect password". If the dev server serves stale CSS, delete `.next`.

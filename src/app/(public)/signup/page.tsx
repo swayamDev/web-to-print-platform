@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { SignupForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
 
-export const metadata: Metadata = { title: "Create account · Digital Heroes Print" };
+export const metadata: Metadata = { title: "Create account" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 

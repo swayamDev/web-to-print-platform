@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { ProfileForm } from "@/components/account/profile-form";
 import { requireUser } from "@/server/auth";
 
-export const metadata: Metadata = { title: "Profile · Digital Heroes Print" };
+export const metadata: Metadata = { title: "Profile" };
 
 export default function ProfilePage() {
   // Data is read at request time, so it streams in behind a placeholder (Cache Components).

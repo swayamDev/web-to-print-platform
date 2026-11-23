@@ -31,6 +31,13 @@ const text = (formData: FormData, name: string) => {
   return typeof value === "string" ? value : "";
 };
 
+const TOO_MANY_ATTEMPTS = "Too many attempts. Please wait a few minutes and try again.";
+
+/** Supabase Auth rejects bursts of sign-ins and sign-ups per IP with HTTP 429. */
+function isRateLimited(error: { status?: number; code?: string }) {
+  return error.status === 429 || error.code === "over_request_rate_limit";
+}
+
 // -----------------------------------------------------------------------------
 // Login
 // -----------------------------------------------------------------------------
@@ -46,6 +53,9 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error && isRateLimited(error)) {
+    return { status: "error", message: TOO_MANY_ATTEMPTS, values };
+  }
   if (error || !data.user) {
     // Same message for unknown email and wrong password, so accounts cannot be probed.
     return { status: "error", message: "Email or password is incorrect.", values };
@@ -90,6 +100,9 @@ export async function signupAction(_prev: FormState, formData: FormData): Promis
     }
     if (error.code === "weak_password") {
       return { status: "error", fieldErrors: { password: error.message }, values };
+    }
+    if (isRateLimited(error)) {
+      return { status: "error", message: TOO_MANY_ATTEMPTS, values };
     }
     return {
       status: "error",

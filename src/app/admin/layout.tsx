@@ -6,7 +6,7 @@ import { SectionNav } from "@/components/layout/section-nav";
 import { requireAdmin } from "@/server/auth";
 
 export const metadata: Metadata = {
-  title: "Admin · Digital Heroes Print",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 

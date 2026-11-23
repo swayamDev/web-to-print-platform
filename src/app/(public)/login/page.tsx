@@ -6,7 +6,7 @@ import { LoginForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FormMessage } from "@/components/forms/form-parts";
 
-export const metadata: Metadata = { title: "Log in · Digital Heroes Print" };
+export const metadata: Metadata = { title: "Log in" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
