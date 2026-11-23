@@ -123,3 +123,13 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   shows the branded "Page not found" page (marked noindex) with HTTP 200 rather than a 404 status.
   The alternative (`dynamicParams = false`) would hide divisions an admin adds until the next
   deploy, breaking PRD p9 §14. The admin area still returns a real 404 to non-admins (via the proxy).
+- **D-22 Rounding:** prices are computed in exact decimals (decimal.js). The discounted line total
+  is rounded to whole pence/paise **once**, half-up, then tax is computed on the net subtotal and
+  rounded half-up. Per-unit prices are never rounded first (that overcharges small items: 25 stickers
+  at 0.06764 is 169p, not 0.07 × 25 = 175p). The displayed discount is list minus line, so the
+  breakdown always adds up exactly.
+- **D-23 Orientation** is derived from the entered size (wider than tall = landscape; a square counts
+  as portrait) and checked against the product's allowed orientations. It is never taken as input,
+  so a request cannot claim one orientation with the other's dimensions.
+- **D-24 Setup fees and option add-ons:** setup fees are per order line (not per unit) and are not
+  discounted; option add-ons are per unit and are discounted with the rest of the unit price.

@@ -6,8 +6,10 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Then **Phase 4**: pricing engine in `src/domain/pricing.ts` (decimal maths, all-units tiers, tax,
-  line-level rounding) with table-driven tests, plus `POST /api/v1/price`.
+- Start **Phase 5**: product page configurator (size presets + custom size, material, options,
+  quantity with tier hints, CSV toggle) using `calculatePrice` in the browser for instant prices,
+  confirmed by `POST /api/v1/price`; mobile sticky price bar; "order N more and save" nudge.
+  Replace the "pricing is being added" notice on product pages.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -26,7 +28,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
 - [x] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
       new Supabase project, env vars, daily keep-alive cron)
-- [ ] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
+- [x] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
 - [ ] **Phase 5** — Product page and live configurator
 - [ ] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
       verified on Vercel
@@ -123,3 +125,15 @@ next step under **Next up** so work can resume cold.
   `scripts/cleanup-e2e-users.mts` removes throwaway test accounts.
 - Not yet verified live: password-reset email delivery (Supabase's built-in mailer is rate-limited;
   custom SMTP comes with email notifications) and the daily cron run (check Vercel → Cron Jobs).
+
+### 2026-11-24 — Phase 4
+
+- `src/domain/pricing.ts`: pure engine (decimal.js, half-up line rounding, all-units tiers,
+  product-specific tiers override global, setup fee, option add-ons, variable-data fee, tax from
+  settings, derived orientation, next-tier preview) + `priceRequestSchema` (Zod).
+- 27 table-driven unit tests, including the plan's worked examples (100 stickers £16.20, 99 = £17.82
+  price cliff, 500 race numbers £343.78), tier boundaries, INR/GST, rounding and validation.
+- `src/server/pricing.ts` loads rules from the database (numerics as text, cached with tag
+  "catalogue"); `POST /api/v1/price` with a 4 KB body cap and a Postgres-backed per-IP rate limit
+  (120/min, `src/server/rate-limit.ts`). 6 API end-to-end tests, including ignoring client prices.
+- Decisions D-22 (rounding), D-23 (orientation), D-24 (setup fees and add-ons).
