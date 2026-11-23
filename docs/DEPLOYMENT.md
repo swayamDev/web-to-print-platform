@@ -57,6 +57,8 @@ git push -u origin main
 4. Deploy. If `APP_URL` was a guess, correct it after the first deploy and redeploy, then finish
    Supabase step 1.4.
 
+`vercel.json` pins serverless functions to `bom1` (Mumbai), the same region as the Supabase
+project (`ap-south-1`); if you create the database elsewhere, change it to the nearest Vercel region.
 The daily cron in `vercel.json` calls `/api/cron/keepalive` so the free Supabase project does not
 pause between evaluator visits.
 
