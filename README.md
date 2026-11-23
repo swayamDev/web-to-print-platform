@@ -55,4 +55,14 @@ hosting dashboard in production. They are never committed.
 
 ## Test accounts
 
-Added once the app is deployed.
+`pnpm seed:users` creates a customer and an admin account from the `TEST_*` values in your env
+file. Credentials for the deployed site will be listed here at submission.
+
+## Running the end-to-end tests
+
+```bash
+pnpm db:start                          # local Supabase (Docker)
+pnpm seed:users                        # test accounts
+pnpm exec playwright install chromium  # once
+pnpm test:e2e
+```

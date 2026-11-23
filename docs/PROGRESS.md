@@ -6,10 +6,9 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Install Playwright browsers once (`pnpm exec playwright install chromium`) and run `pnpm test:e2e`.
-- Start **Phase 2**: `@supabase/ssr` clients (browser, server, service-role in `src/server`),
-  middleware, login / signup / reset / logout, `requireUser` / `requireAdmin`, admin seed script,
-  `/account` and `/admin` shells. Copy local keys from `pnpm exec supabase status` into `.env.local`.
+- Start **Phase 3**: design system (tokens, fonts, accent colour), public shell and home hub of six
+  equal tiles from the database, division pages; then the **first deploy** (new Vercel account, new
+  Supabase project, env vars, `pnpm seed:users` against it, daily keep-alive cron).
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Phases
@@ -17,7 +16,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 0** — Repository and tooling (Next.js, TypeScript strict, Tailwind, shadcn/ui,
       ESLint, Prettier, Vitest, Playwright, docs)
 - [x] **Phase 1** — Supabase schema, RLS, storage buckets and policies, seed data, generated types
-- [ ] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
+- [x] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
 - [ ] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
       new Supabase project, env vars, daily keep-alive cron)
 - [ ] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
@@ -62,3 +61,24 @@ next step under **Next up** so work can resume cold.
 - Gotchas: local Supabase uses ports **553xx** (API 55321, DB 55322, Studio 55323, mail 55324)
   because another local Supabase project uses the defaults. New tables need explicit grants and
   policies: default privileges for `anon`/`authenticated` are revoked.
+
+### 2026-11-24 — Phase 2
+
+- Supabase clients: browser (`src/lib/supabase/client.ts`), server as the user
+  (`src/server/supabase/server.ts`), secret-key admin client (`src/server/supabase/admin.ts`).
+  Env validated with Zod (`src/lib/env.ts`, `src/server/env.ts`). Keys are the new-style
+  publishable / secret keys.
+- `src/proxy.ts` (Next 16's renamed middleware): refreshes the session, redirects signed-out users
+  from /account, /admin, /reset-password to login, and returns a real 404 for non-admins on /admin.
+  `requireUser()` / `requireAdmin()` in `src/server/auth.ts` remain the security boundary.
+- Pages: login, signup, forgot password, reset password (via `/auth/callback` email link),
+  logout; account dashboard (profile status, saved-design count, recent orders) and profile
+  editing; admin overview (revenue, customer count, orders per pipeline stage). All live data.
+- `pnpm seed:users` creates the customer and admin test accounts from env values.
+- Tests: 12 unit tests (auth schemas, open-redirect guard, money); 18 Playwright tests at phone and
+  desktop sizes (signup, validation, wrong password, redirect-and-return, profile update, customer
+  blocked from admin with 404, admin login, full password reset via Mailpit).
+- Gotchas: **Cache Components is on** (`next.config.ts`): anything reading cookies, the session
+  or the database must sit inside `<Suspense>` in the page itself, or Next logs "uncached data"
+  / "Date.now()" errors. Pattern: sync page → `<Suspense fallback={<PageSkeleton />}>` → async
+  content. Playwright needs local Supabase running and `pnpm seed:users` done first.
