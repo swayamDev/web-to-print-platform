@@ -2,7 +2,7 @@
  * Delete throwaway accounts created by end-to-end tests (emails starting with "e2e-" or
  * "reset-"), e.g. after running the signup test against the live site.
  *
- *   node --env-file=.env.production.local scripts/cleanup-e2e-users.mts
+ *   node --env-file=.env.live scripts/cleanup-e2e-users.mts
  *
  * Only users with no orders are removed (orders keep their customer for accounting).
  */

@@ -3,7 +3,7 @@
  * (PRD p10 §15). Safe to run repeatedly.
  *
  *   pnpm seed:users                   # uses .env.local (local Supabase)
- *   node --env-file=.env.production.local scripts/seed-users.mts   # hosted project
+ *   node --env-file=.env.live scripts/seed-users.mts   # hosted project
  *
  * Reads: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY,
  *        TEST_CUSTOMER_EMAIL / _PASSWORD, TEST_ADMIN_EMAIL / _PASSWORD.

@@ -23,7 +23,8 @@ files that the server generates (p6 §07).
   proofs, payments, files) go only through server code.
 - **The design document is the single source of truth**: JSON in millimetres. The browser canvas
   (react-konva), the PDF renderer (pdf-lib) and the PNG renderer (resvg) all draw from the same
-  computed layout, using the same font files.
+  computed layout (`src/domain/design/layout.ts`), using the same font files and the same glyph
+  placement (`src/lib/print/fonts.ts`).
 
 ## Key rules
 

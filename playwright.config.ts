@@ -15,14 +15,15 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
-  // Local Supabase Auth (password hashing in Docker) saturates with many parallel logins,
-  // so keep concurrency modest.
-  workers: 3,
+  // Locally one `next start` process serves every request on a single thread (plus Supabase in
+  // Docker), so heavy parallelism queues requests; deployed sites scale per request.
+  workers: process.env.E2E_BASE_URL ? 4 : 2,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
-  // Generous because a reused dev server compiles each route on first visit.
-  expect: { timeout: 15_000 },
+  // Generous locally: Supabase Auth and Postgres run in Docker and slow down when several test
+  // workers sign in at once (live runs finish the same flows in seconds).
+  expect: { timeout: process.env.E2E_BASE_URL ? 15_000 : 30_000 },
   timeout: 60_000,
   use: {
     baseURL,

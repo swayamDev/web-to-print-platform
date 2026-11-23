@@ -64,7 +64,8 @@ pause between evaluator visits.
 
 ## 4. Test accounts on the live database
 
-Create `.env.production.local` (ignored by git) with the live values:
+Create `.env.live` (ignored by git) with the live values. Do not call it `.env.production.local`:
+Next.js loads that name automatically during `pnpm build` and would mix live and local keys.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
@@ -78,7 +79,7 @@ TEST_ADMIN_PASSWORD=<strong password>
 Then run:
 
 ```bash
-node --env-file=.env.production.local scripts/seed-users.mts
+node --env-file=.env.live scripts/seed-users.mts
 ```
 
 ## 5. Smoke test
@@ -92,7 +93,7 @@ node --env-file=.env.production.local scripts/seed-users.mts
   the tests that create accounts (password reset needs the local Mailpit):
   `E2E_BASE_URL=https://<your-app>.vercel.app pnpm exec playwright test --grep-invert "sign up, lands|reset a forgotten password"`
 - If you do run the signup test live, remove its throwaway account afterwards:
-  `node --env-file=.env.production.local scripts/cleanup-e2e-users.mts`
+  `node --env-file=.env.live scripts/cleanup-e2e-users.mts`
 
 ## Changing the schema later
 

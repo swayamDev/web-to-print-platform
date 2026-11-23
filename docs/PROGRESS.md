@@ -6,10 +6,11 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 6** (render spike): DesignDocument Zod schema, `layoutDocument`, `fitText`
-  (opentype.js) and `validateDocument` in `src/domain`; self-hosted OFL fonts (sora-bold,
-  inter-semibold, inter-regular); pdf-lib PDF and resvg PNG renderers in `src/server/render`;
-  preflight tests; **verify on Vercel** that the native PNG renderer works in `bom1`.
+- Start **Phase 7a** (designer): react-konva canvas in mm (scale from container width), trim /
+  bleed / safe guides, text and rect elements drawn from `layoutDocument` (text as glyph paths via
+  `textToPathData` so canvas = PNG = PDF), select / drag / resize / rotate with Transformer, side
+  panel (text, font, size, colour), templates as starting points, save to `designs` (owner RLS),
+  reopen. Phase 7b adds hard print-area clamping and the mobile layout.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -18,7 +19,7 @@ next step under **Next up** so work can resume cold.
 - Database: Supabase project `yxnqzqrcjwxunwxuivqm` (`ap-south-1`, free tier)
 - Repository: https://github.com/swayamDev/web-to-print-platform (public; pushes to `main` deploy)
 - Live test accounts: `customer.demo@example.com`, `admin.demo@example.com`; passwords in the
-  gitignored `.env.production.local` (share privately at submission)
+  gitignored `.env.live` (share privately at submission)
 
 ## Phases
 
@@ -30,7 +31,7 @@ next step under **Next up** so work can resume cold.
       new Supabase project, env vars, daily keep-alive cron)
 - [x] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
 - [x] **Phase 5** — Product page and live configurator
-- [ ] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
+- [x] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
       verified on Vercel
 - [ ] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
 - [ ] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
@@ -152,3 +153,23 @@ next step under **Next up** so work can resume cold.
 - Fixed two narrow-screen overflows (header logo, calculator select); the no-sideways-scroll test
   now runs at 360 px. 8 new configurator end-to-end tests; 47 pass locally.
 - Ordering is not open yet: the price panel says so until the designer and checkout exist.
+
+### 2026-11-24 — Phase 6
+
+- `src/domain/design`: DesignDocument v1 schema (Zod), units (mm/pt/px/DPI), single-line text
+  fitting (tracking first, then size, never below the minimum; reports overflow and missing glyphs),
+  `layoutDocument` (absolute page geometry shared by all renderers), `validateDocument` (print
+  areas with rotation, bleed allowance, safe area). `src/domain/files.ts`: production file names.
+- `src/lib/print`: font loading + shared glyph placement (opentype.js), SVG with text as outlines,
+  PNG via resvg with exact pixel size and pHYs DPI, PDF via pdf-lib with MediaBox/BleedBox/TrimBox,
+  subset-embedded fonts, character spacing, rotation, fixed dates for deterministic output.
+- `src/server/render`: loads fonts from disk (traced into the bundle via next.config.ts),
+  `renderDesign` validates then renders. `GET /api/v1/templates/:id/preview` (PNG or PDF), shown on
+  product pages as server-rendered template previews with a print-ready PDF link.
+- Tests: 23 domain tests (fitting, layout, validation incl. rotation, file names) + 11 preflight tests
+  on real output (seed templates valid; A5 bib PDF boxes 154×216 mm with 3 mm trim inset; embedded
+  FontFile2; pdf.js extracts the text; byte-identical re-render; PNG 1819×2551 px @ 300 DPI; pixel
+  checks for band colour, bleed and ink). 3 render e2e tests. 50 e2e tests pass locally.
+- Gotchas: never name the live env file `.env.production.local` (Next loads it at build time); it
+  is now `.env.live`. Local e2e uses 2 workers and 30 s assertions because one `next start`
+  process plus Supabase in Docker queue requests under load.

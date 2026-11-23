@@ -1,9 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Native / Node-only print libraries: load them from node_modules at runtime instead of
+  // bundling (resvg ships a platform-specific .node binary).
+  serverExternalPackages: ["@resvg/resvg-js", "pdf-lib", "@pdf-lib/fontkit", "opentype.js"],
+  // The print fonts are read from disk at runtime; make sure they ship with the API functions.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./src/assets/fonts/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {

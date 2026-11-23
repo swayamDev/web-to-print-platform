@@ -136,3 +136,14 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-25 Configurator state in the URL:** the full configuration is kept in the query string so a
   quote can be shared, bookmarked, and resumed after signing up. The default quantity is 100 where
   the product allows it (it shows the first discount tier), otherwise the product minimum.
+- **D-26 Text shaping:** one glyph per character, advance widths plus tracking, **no kerning and
+  no ligatures**, in every renderer (fitting engine, PDF, PNG and later the canvas). Identical glyph
+  placement everywhere matters more for print than kerning: what is approved is what is printed.
+  (opentype.js's own shaping also fails on Inter's substitution tables.) Text fitting is single-line
+  per placeholder; multi-line text boxes are a later enhancement.
+- **D-27 Fonts:** three OFL fonts (Sora Bold, Inter SemiBold, Inter Regular), converted once from
+  Fontsource's Latin WOFF files to TTF (`scripts/build-fonts.mts`) and committed with their licences.
+  Characters outside the Latin subset are reported as "cannot print" rather than silently replaced.
+- **D-28 Template previews are public:** `/api/v1/templates/:id/preview` renders active templates
+  with sample text (PNG with guides, or a print-ready PDF). Templates are public catalogue data;
+  the route is rate limited (30/min per IP).

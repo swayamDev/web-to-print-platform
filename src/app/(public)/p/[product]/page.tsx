@@ -129,13 +129,35 @@ async function ProductContent({ params }: Props) {
         {product.templates.length > 0 ? (
           <aside className="bg-card grid content-start gap-3 rounded-xl border p-6">
             <h2 className="text-base font-semibold">Templates for this product</h2>
-            <ul className="grid gap-3">
+            <p className="text-muted-foreground text-sm">
+              Rendered on our print server at true size, with trim (black), bleed (orange tint) and
+              the safe area (dashed) marked.
+            </p>
+            <ul className="grid gap-4">
               {product.templates.map((template) => (
-                <li key={template.id}>
-                  <p className="font-medium">{template.name}</p>
-                  {template.description ? (
-                    <p className="text-muted-foreground text-sm">{template.description}</p>
-                  ) : null}
+                <li key={template.id} className="grid gap-2">
+                  {/* Server-rendered PNG of the template; same engine as proofs and print files. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- dynamic server render, not a static asset */}
+                  <img
+                    src={`/api/v1/templates/${template.id}/preview?format=png&dpi=96`}
+                    alt={`${template.name} template preview`}
+                    loading="lazy"
+                    className="bg-muted max-h-72 w-auto max-w-full self-start rounded-md border object-contain"
+                  />
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{template.name}</p>
+                      {template.description ? (
+                        <p className="text-muted-foreground text-sm">{template.description}</p>
+                      ) : null}
+                    </div>
+                    <a
+                      href={`/api/v1/templates/${template.id}/preview?format=pdf`}
+                      className="text-sm underline underline-offset-4"
+                    >
+                      Print-ready PDF
+                    </a>
+                  </div>
                 </li>
               ))}
             </ul>
