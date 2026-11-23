@@ -88,9 +88,11 @@ node --env-file=.env.production.local scripts/seed-users.mts
 - Log in as admin and open `/admin`; as the customer, `/admin` returns 404.
 - Keep-alive responds: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.vercel.app/api/cron/keepalive`
   returns `{"ok":true,...}`, and without the header returns 401.
-- Run the end-to-end tests against the live site:
-  `E2E_BASE_URL=https://<your-app>.vercel.app pnpm test:e2e` (with the live test-account values
-  in your environment). Note: the password-reset test needs Mailpit, so it only runs locally.
+- Run the end-to-end tests against the live site with the live test-account values loaded, skipping
+  the tests that create accounts (password reset needs the local Mailpit):
+  `E2E_BASE_URL=https://<your-app>.vercel.app pnpm exec playwright test --grep-invert "sign up, lands|reset a forgotten password"`
+- If you do run the signup test live, remove its throwaway account afterwards:
+  `node --env-file=.env.production.local scripts/cleanup-e2e-users.mts`
 
 ## Changing the schema later
 

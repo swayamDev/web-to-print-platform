@@ -6,11 +6,17 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- **Finish Phase 3: first deploy.** Needs the user: new Supabase project, GitHub repo, new Vercel
-  account. Follow `docs/DEPLOYMENT.md` step by step, then run the smoke test there.
 - Then **Phase 4**: pricing engine in `src/domain/pricing.ts` (decimal maths, all-units tiers, tax,
   line-level rounding) with table-driven tests, plus `POST /api/v1/price`.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
+
+## Live
+
+- Site: https://web-to-print-platform-phi.vercel.app (Vercel Hobby, functions in `bom1`)
+- Database: Supabase project `yxnqzqrcjwxunwxuivqm` (`ap-south-1`, free tier)
+- Repository: https://github.com/swayamDev/web-to-print-platform (public; pushes to `main` deploy)
+- Live test accounts: `customer.demo@example.com`, `admin.demo@example.com`; passwords in the
+  gitignored `.env.production.local` (share privately at submission)
 
 ## Phases
 
@@ -18,8 +24,8 @@ next step under **Next up** so work can resume cold.
       ESLint, Prettier, Vitest, Playwright, docs)
 - [x] **Phase 1** — Supabase schema, RLS, storage buckets and policies, seed data, generated types
 - [x] **Phase 2** — Auth and roles (login, signup, reset, guards, admin seed, account/admin shells)
-- [~] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
-  new Supabase project, env vars, daily keep-alive cron)
+- [x] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
+      new Supabase project, env vars, daily keep-alive cron)
 - [ ] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
 - [ ] **Phase 5** — Product page and live configurator
 - [ ] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
@@ -105,3 +111,15 @@ next step under **Next up** so work can resume cold.
 - Gotchas: local Supabase auth rate limits were raised in `config.toml` (tests hit the default
   30 sign-ins / 5 min and 2 emails / hour); login and signup now say "Too many attempts" on a 429
   instead of "incorrect password". If the dev server serves stale CSS, delete `.next`.
+
+### 2026-11-24 — Phase 3 deploy
+
+- New Supabase project created; 5 migrations + seed pushed with `supabase db push --remote
+--include-seed`; all 24 pgTAP tests pass against it (`supabase test db --remote --yes`).
+- Public GitHub repo created and pushed (history scanned: no secrets). New Vercel account deploys
+  `main`; 5 env vars set (secret key and cron secret marked Sensitive).
+- Functions pinned to `bom1` next to the database (they defaulted to `iad1`; live logins timed out).
+- Live test accounts created with `seed-users.mts`; 21 live E2E tests + live signup pass;
+  `scripts/cleanup-e2e-users.mts` removes throwaway test accounts.
+- Not yet verified live: password-reset email delivery (Supabase's built-in mailer is rate-limited;
+  custom SMTP comes with email notifications) and the daily cron run (check Vercel → Cron Jobs).

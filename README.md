@@ -4,7 +4,9 @@ A web-to-print storefront and production console for a print house with six divi
 labels & stickers, race & event numbers, MTB boards, stamps, trophies and laser-cut work.
 Built for the Digital Heroes Level 2 assessment.
 
-> **Status:** early development. See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+**Live site:** https://web-to-print-platform-phi.vercel.app
+
+> **Status:** in development. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for what is built so far.
 
 ## Documentation
 
@@ -56,7 +58,8 @@ hosting dashboard in production. They are never committed.
 ## Test accounts
 
 `pnpm seed:users` creates a customer and an admin account from the `TEST_*` values in your env
-file. Credentials for the deployed site will be listed here at submission.
+file. Credentials for the live site are shared privately with the submission, not in this public
+repository.
 
 ## Running the end-to-end tests
 
