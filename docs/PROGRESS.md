@@ -6,10 +6,10 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 5**: product page configurator (size presets + custom size, material, options,
-  quantity with tier hints, CSV toggle) using `calculatePrice` in the browser for instant prices,
-  confirmed by `POST /api/v1/price`; mobile sticky price bar; "order N more and save" nudge.
-  Replace the "pricing is being added" notice on product pages.
+- Start **Phase 6** (render spike): DesignDocument Zod schema, `layoutDocument`, `fitText`
+  (opentype.js) and `validateDocument` in `src/domain`; self-hosted OFL fonts (sora-bold,
+  inter-semibold, inter-regular); pdf-lib PDF and resvg PNG renderers in `src/server/render`;
+  preflight tests; **verify on Vercel** that the native PNG renderer works in `bom1`.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -29,7 +29,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 3** — Design system, public shell, home hub, **first deploy** (new Vercel account,
       new Supabase project, env vars, daily keep-alive cron)
 - [x] **Phase 4** — Pricing engine (pure, decimal maths, tiers, tax, rounding) + price API + tests
-- [ ] **Phase 5** — Product page and live configurator
+- [x] **Phase 5** — Product page and live configurator
 - [ ] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
       verified on Vercel
 - [ ] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
@@ -137,3 +137,18 @@ next step under **Next up** so work can resume cold.
   "catalogue"); `POST /api/v1/price` with a 4 KB body cap and a Postgres-backed per-IP rate limit
   (120/min, `src/server/rate-limit.ts`). 6 API end-to-end tests, including ignoring client prices.
 - Decisions D-22 (rounding), D-23 (orientation), D-24 (setup fees and add-ons).
+
+### 2026-11-24 — Phase 5
+
+- Product pages now open with the configurator (`src/components/configurator`): size presets and
+  custom width × height with rotate, material cards, option cards with per-item add-ons, CSV
+  personalisation toggle, quantity stepper with quick chips. Prices instantly in the browser with
+  the shared engine; the server confirms after 350 ms ("Price confirmed with current rates", or a
+  warning if rates changed). Breakdown, tier ladder (price each at every break), "order N more and
+  pay less" hint for the all-units price cliff, copy-link button, fixed price bar on phones.
+- Configuration lives in the URL (`?w=&h=&m=&q=&vd=1&opt.<key>=`) so quotes can be shared and
+  survive login.
+- Home page "Price it in seconds" calculator for every product, handing over to the configurator.
+- Fixed two narrow-screen overflows (header logo, calculator select); the no-sideways-scroll test
+  now runs at 360 px. 8 new configurator end-to-end tests; 47 pass locally.
+- Ordering is not open yet: the price panel says so until the designer and checkout exist.

@@ -2,9 +2,11 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { DivisionHub } from "@/components/home/division-hub";
+import { QuickPrice, type QuickPriceProduct } from "@/components/home/quick-price";
 import { SampleProof } from "@/components/home/sample-proof";
 import { buttonVariants } from "@/components/ui/button";
-import { getDivisions } from "@/server/catalogue";
+import { getDivisions, getDivisionWithProducts, getProductDetail } from "@/server/catalogue";
+import { loadPricingRules } from "@/server/pricing";
 
 const STEPS = [
   {
@@ -25,9 +27,37 @@ const STEPS = [
   },
 ];
 
-/** Home: hero, the six-division hub, and how ordering works. Fully prerendered. */
-export default async function HomePage() {
+/** One quick-price entry per product, in division order (all cached catalogue reads). */
+async function loadQuickPriceProducts(): Promise<QuickPriceProduct[]> {
   const divisions = await getDivisions();
+  const withProducts = await Promise.all(divisions.map((d) => getDivisionWithProducts(d.slug)));
+  const entries = await Promise.all(
+    withProducts.flatMap((division) =>
+      (division?.products ?? []).map(async (p) => {
+        const [detail, rules] = await Promise.all([
+          getProductDetail(p.slug),
+          loadPricingRules(p.slug),
+        ]);
+        if (!detail || !rules) return null;
+        return {
+          rules,
+          divisionName: division!.name,
+          presets: detail.sizePresets,
+          defaultWidthMm: detail.defaultWidthMm,
+          defaultHeightMm: detail.defaultHeightMm,
+        } satisfies QuickPriceProduct;
+      }),
+    ),
+  );
+  return entries.filter((e): e is QuickPriceProduct => e !== null);
+}
+
+/** Home: hero, the six-division hub, instant price calculator and how ordering works. */
+export default async function HomePage() {
+  const [divisions, quickPriceProducts] = await Promise.all([
+    getDivisions(),
+    loadQuickPriceProducts(),
+  ]);
 
   return (
     <main>
@@ -88,6 +118,22 @@ export default async function HomePage() {
             </p>
           </div>
           <DivisionHub divisions={divisions} />
+        </div>
+      </section>
+
+      <section aria-labelledby="price-heading" className="bg-mm-grid border-t">
+        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-14">
+          <div className="grid gap-2">
+            <p className="spec-label text-muted-foreground">Instant price</p>
+            <h2 id="price-heading" className="text-3xl font-semibold">
+              Price it in seconds
+            </h2>
+            <p className="text-muted-foreground max-w-xl">
+              No quote forms and no waiting: prices include VAT and volume discounts apply
+              automatically.
+            </p>
+          </div>
+          <QuickPrice products={quickPriceProducts} />
         </div>
       </section>
 

@@ -32,12 +32,13 @@ test("a visitor can browse from a hub tile to a product specification", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Race & Event Numbers");
 
   await page.getByRole("link", { name: /Race Numbers[\s\S]*View product/ }).click();
-  await expect(page).toHaveURL(/\/p\/race-numbers$/);
+  // The configurator adds the chosen configuration to the query string.
+  await expect(page).toHaveURL(/\/p\/race-numbers(\?.*)?$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Race Numbers");
   // Scope to the spec section: Next keeps the previous page mounted (hidden) for back/forward.
   const specs = page.getByRole("region", { name: "Specification" });
   await expect(specs.getByText("100–297 mm")).toBeVisible();
-  await expect(specs.getByText("Tyvek")).toBeVisible();
+  await expect(page.getByLabel("Tyvek")).toBeChecked(); // default material in the configurator
   await expect(page.getByText("Personalise each item from a CSV")).toBeVisible();
 });
 
@@ -50,8 +51,10 @@ test("unknown divisions and products show the not-found page", async ({ page }) 
   }
 });
 
-test("the page never scrolls sideways", async ({ page }) => {
-  for (const path of ["/", "/d/laser-cut", "/p/custom-stamps", "/login"]) {
+test("the page never scrolls sideways, down to a 360 px phone", async ({ page, isMobile }) => {
+  // The smallest common phone width; the Pixel 7 profile alone (412 px) hid a header overflow.
+  if (isMobile) await page.setViewportSize({ width: 360, height: 780 });
+  for (const path of ["/", "/d/laser-cut", "/p/custom-stamps", "/p/race-numbers", "/login"]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

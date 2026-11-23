@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { Configurator } from "@/components/configurator/configurator";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMm } from "@/lib/format";
 import { getDivisions, getDivisionWithProducts, getProductDetail } from "@/server/catalogue";
+import { loadPricingRules } from "@/server/pricing";
 
 type Props = { params: Promise<{ product: string }> };
 
@@ -33,8 +35,9 @@ export default function ProductPage({ params }: Props) {
 }
 
 async function ProductContent({ params }: Props) {
-  const product = await getProductDetail((await params).product);
-  if (!product) notFound();
+  const slug = (await params).product;
+  const [product, rules] = await Promise.all([getProductDetail(slug), loadPricingRules(slug)]);
+  if (!product || !rules) notFound();
 
   const specs: { label: string; value: string }[] = [
     {
@@ -92,8 +95,21 @@ async function ProductContent({ params }: Props) {
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        <section aria-labelledby="specs-heading" className="grid content-start gap-6">
+      <section aria-label="Configure and price">
+        <Configurator
+          rules={rules}
+          presets={product.sizePresets}
+          allowCustomSize={product.allowCustomSize}
+          defaultWidthMm={product.defaultWidthMm}
+          defaultHeightMm={product.defaultHeightMm}
+          materialDescriptions={Object.fromEntries(
+            product.materials.map((m) => [m.slug, m.description]),
+          )}
+        />
+      </section>
+
+      <div className="grid gap-8 border-t pt-10 lg:grid-cols-[1.35fr_1fr]">
+        <section aria-labelledby="specs-heading" className="grid content-start gap-4">
           <h2 id="specs-heading" className="text-xl font-semibold">
             Specification
           </h2>
@@ -105,87 +121,29 @@ async function ProductContent({ params }: Props) {
               </div>
             ))}
           </dl>
+          <p className="text-muted-foreground text-sm">
+            Prices are sample rates for this demonstration and include {rules.settings.taxLabel}.
+          </p>
+        </section>
 
-          {product.sizePresets.length > 0 ? (
-            <div className="grid gap-2">
-              <h3 className="text-base font-semibold">Popular sizes</h3>
-              <ul className="flex flex-wrap gap-2">
-                {product.sizePresets.map((preset) => (
-                  <li
-                    key={preset.label}
-                    className="num bg-card rounded-md border px-3 py-1.5 font-mono text-sm"
-                  >
-                    {preset.label}
-                  </li>
-                ))}
-              </ul>
-              {product.allowCustomSize ? (
-                <p className="text-muted-foreground text-sm">
-                  Or any custom size within the ranges above.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-2">
-            <h3 className="text-base font-semibold">Materials</h3>
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {product.materials.map((material) => (
-                <li key={material.slug} className="bg-card rounded-lg border p-3">
-                  <p className="font-medium">
-                    {material.name}
-                    {material.isDefault ? (
-                      <span className="spec-label text-muted-foreground ml-2">Default</span>
-                    ) : null}
-                  </p>
-                  {material.description ? (
-                    <p className="text-muted-foreground text-sm">{material.description}</p>
+        {product.templates.length > 0 ? (
+          <aside className="bg-card grid content-start gap-3 rounded-xl border p-6">
+            <h2 className="text-base font-semibold">Templates for this product</h2>
+            <ul className="grid gap-3">
+              {product.templates.map((template) => (
+                <li key={template.id}>
+                  <p className="font-medium">{template.name}</p>
+                  {template.description ? (
+                    <p className="text-muted-foreground text-sm">{template.description}</p>
                   ) : null}
                 </li>
               ))}
             </ul>
-          </div>
-
-          {product.options.map((option) => (
-            <div key={option.key} className="grid gap-2">
-              <h3 className="text-base font-semibold">{option.label}</h3>
-              <ul className="flex flex-wrap gap-2">
-                {option.values.map((value) => (
-                  <li key={value.value} className="bg-card rounded-md border px-3 py-1.5 text-sm">
-                    {value.label}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-
-        <aside className="grid content-start gap-4">
-          <div className="bg-ink text-paper grid gap-3 rounded-xl p-6">
-            <p className="spec-label text-paper/60">Price and order</p>
-            <p className="text-paper/85 text-sm">
-              Online configuration with an instant price is being added to this page. It will price
-              your exact size, material and quantity, including volume discounts.
-            </p>
-          </div>
-
-          {product.templates.length > 0 ? (
-            <div className="bg-card grid gap-3 rounded-xl border p-6">
-              <h2 className="text-base font-semibold">Start from a template</h2>
-              <ul className="grid gap-3">
-                {product.templates.map((template) => (
-                  <li key={template.id}>
-                    <p className="font-medium">{template.name}</p>
-                    {template.description ? (
-                      <p className="text-muted-foreground text-sm">{template.description}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </aside>
+          </aside>
+        ) : null}
       </div>
+      {/* Room for the fixed price bar on phones. */}
+      <div className="h-16 lg:hidden" aria-hidden="true" />
     </>
   );
 }

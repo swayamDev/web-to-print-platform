@@ -133,3 +133,6 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   so a request cannot claim one orientation with the other's dimensions.
 - **D-24 Setup fees and option add-ons:** setup fees are per order line (not per unit) and are not
   discounted; option add-ons are per unit and are discounted with the rest of the unit price.
+- **D-25 Configurator state in the URL:** the full configuration is kept in the query string so a
+  quote can be shared, bookmarked, and resumed after signing up. The default quantity is 100 where
+  the product allows it (it shows the first discount tier), otherwise the product minimum.

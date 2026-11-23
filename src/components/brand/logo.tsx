@@ -21,7 +21,9 @@ export function Logo() {
       <RegistrationMark className="size-6 transition-transform duration-300 group-hover:rotate-90" />
       <span className="font-heading text-[0.95rem] leading-none font-semibold tracking-tight whitespace-nowrap">
         Digital Heroes
-        <span className="spec-label text-muted-foreground ml-1.5 align-middle">Print</span>
+        <span className="spec-label text-muted-foreground ml-1.5 align-middle max-sm:hidden">
+          Print
+        </span>
       </span>
     </Link>
   );
