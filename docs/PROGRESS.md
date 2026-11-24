@@ -6,8 +6,8 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- **Live setup for checkout (needs the user):** apply migration `20261124120000_order_design_snapshot`
-  to the live database (`supabase db push --remote`), add `STRIPE_SECRET_KEY` and the webhook endpoint
+- **Live setup for checkout (needs the user):** the order migration is applied to the live database
+  (2026-11-24, 24 pgTAP tests pass). Still to do: add `STRIPE_SECRET_KEY` and the webhook endpoint
   - `STRIPE_WEBHOOK_SECRET` in Vercel, and SMTP settings (docs/DEPLOYMENT.md §6–7).
 - Then **Phase 10** (proofs): generate proof v1 (watermarked PNG + PDF with guides) from the order's
   `design_snapshot`, `proof_versions` with snapshot hash, customer approve / request changes (only the
