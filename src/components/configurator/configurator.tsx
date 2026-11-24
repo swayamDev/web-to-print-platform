@@ -148,15 +148,15 @@ export function Configurator(props: ConfiguratorProps) {
     Number(price) === 0 ? "Included" : `+${formatMajor(price, currency)} each`;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-start">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,1fr)] lg:items-start lg:gap-6">
       <form
-        className="grid gap-6"
+        className="bg-card grid min-w-0 gap-5 border p-3 sm:p-5 lg:p-6"
         onSubmit={(event) => event.preventDefault()}
         aria-label={`Configure ${rules.product.name}`}
       >
         {/* Size ------------------------------------------------------------- */}
-        <fieldset className="grid gap-3">
-          <legend className="spec-label text-muted-foreground mb-3">01 · Size</legend>
+        <fieldset className="border-border grid min-w-0 gap-3 border-b pb-4 last:border-b-0 last:pb-0">
+          <legend className="mb-2 text-base font-semibold">01 · Size</legend>
           {presets.length > 0 ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Popular sizes">
               {presets.map((preset) => {
@@ -184,7 +184,7 @@ export function Configurator(props: ConfiguratorProps) {
           ) : null}
 
           {allowCustomSize ? (
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-wrap items-end gap-2">
               <NumberField
                 id="width"
                 label="Width (mm)"
@@ -225,8 +225,8 @@ export function Configurator(props: ConfiguratorProps) {
         </fieldset>
 
         {/* Material ---------------------------------------------------------- */}
-        <fieldset className="grid gap-2">
-          <legend className="spec-label text-muted-foreground mb-3">02 · Material</legend>
+        <fieldset className="border-border grid min-w-0 gap-2 border-b pb-4 last:border-b-0 last:pb-0">
+          <legend className="mb-2 text-base font-semibold">02 · Material</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {rules.materials.map((material) => (
               <ChoiceCard
@@ -247,8 +247,11 @@ export function Configurator(props: ConfiguratorProps) {
 
         {/* Options ----------------------------------------------------------- */}
         {rules.options.map((option, index) => (
-          <fieldset key={option.key} className="grid gap-2">
-            <legend className="spec-label text-muted-foreground mb-3">
+          <fieldset
+            key={option.key}
+            className="border-border grid min-w-0 gap-2 border-b pb-4 last:border-b-0 last:pb-0"
+          >
+            <legend className="mb-2 text-base font-semibold">
               {String(index + 3).padStart(2, "0")} · {option.label}
             </legend>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -269,11 +272,11 @@ export function Configurator(props: ConfiguratorProps) {
 
         {/* Personalisation --------------------------------------------------- */}
         {rules.product.supportsVariableData ? (
-          <fieldset className="grid gap-2">
-            <legend className="spec-label text-muted-foreground mb-3">
+          <fieldset className="border-border grid min-w-0 gap-2 border-b pb-4 last:border-b-0 last:pb-0">
+            <legend className="mb-2 text-base font-semibold">
               {String(rules.options.length + 3).padStart(2, "0")} · Personalise
             </legend>
-            <label className="bg-card has-[:checked]:border-ink flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+            <label className="bg-card has-[:checked]:border-ink has-[:checked]:bg-signal/10 flex cursor-pointer items-start gap-3 rounded-lg border p-3">
               <input
                 type="checkbox"
                 className="accent-signal mt-1 size-4"
@@ -283,9 +286,8 @@ export function Configurator(props: ConfiguratorProps) {
               <span className="grid gap-0.5">
                 <span className="font-medium">Different name and number on every item</span>
                 <span className="text-muted-foreground text-sm">
-                  Upload a CSV of entries in the designer: one design is printed per row, so the
-                  quantity is your number of rows. {perUnitLabel(rules.product.variableDataUnitFee)}
-                  .
+                  Upload a spreadsheet saved as CSV in the editor. Each row creates one item.{" "}
+                  {perUnitLabel(rules.product.variableDataUnitFee)}.
                 </span>
               </span>
             </label>
@@ -293,8 +295,8 @@ export function Configurator(props: ConfiguratorProps) {
         ) : null}
 
         {/* Quantity ---------------------------------------------------------- */}
-        <fieldset className="grid gap-3">
-          <legend className="spec-label text-muted-foreground mb-3">
+        <fieldset className="border-border grid min-w-0 gap-3 border-b pb-4 last:border-b-0 last:pb-0">
+          <legend className="mb-2 text-base font-semibold">
             {String(rules.options.length + (rules.product.supportsVariableData ? 4 : 3)).padStart(
               2,
               "0",
@@ -349,7 +351,11 @@ export function Configurator(props: ConfiguratorProps) {
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 pt-6" role="group" aria-label="Quick quantities">
+            <div
+              className="flex flex-wrap gap-2 sm:pt-6"
+              role="group"
+              aria-label="Quick quantities"
+            >
               {quantityChips.map((q) => (
                 <button
                   key={q}
@@ -435,7 +441,7 @@ function NumberField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error ? true : undefined}
         aria-describedby={`${id}-help`}
-        className="num bg-card aria-invalid:border-destructive focus-visible:ring-ring/50 h-10 w-28 rounded-md border px-3 font-mono outline-none focus-visible:ring-3"
+        className="num bg-card aria-invalid:border-destructive focus-visible:ring-ring/50 h-11 w-24 rounded-md border px-3 font-mono outline-none focus-visible:ring-3 sm:w-28"
       />
       <p
         id={`${id}-help`}

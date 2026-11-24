@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { DivisionIcon } from "@/components/brand/division-icon";
+import { StorefrontImage } from "@/components/brand/storefront-image";
 import { Configurator } from "@/components/configurator/configurator";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMm } from "@/lib/format";
@@ -26,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function ProductPage({ params }: Props) {
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-10">
+    <main className="mx-auto grid w-full max-w-7xl gap-7 px-4 py-6 sm:px-6 lg:gap-9 lg:px-8 lg:py-9">
       <Suspense fallback={<PageSkeleton />}>
         <ProductContent params={params} />
       </Suspense>
@@ -76,23 +78,34 @@ async function ProductContent({ params }: Props) {
         <span aria-current="page">{product.name}</span>
       </nav>
 
-      <header className="grid gap-3">
-        <h1 className="text-4xl font-semibold">{product.name}</h1>
-        {product.shortDescription ? (
-          <p className="text-muted-foreground max-w-2xl text-lg">{product.shortDescription}</p>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          {product.supportsVariableData ? (
-            <span className="spec-label bg-signal/15 rounded-full px-3 py-1">
-              Personalise each item from a CSV
-            </span>
+      <header className="bg-card grid items-center gap-4 overflow-hidden border md:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
+        <div className="grid justify-items-start gap-3 p-4 sm:p-6 lg:p-8">
+          <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <DivisionIcon slug={product.division.slug} className="size-5" />
+            {product.division.name}
+          </p>
+          <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl">{product.name}</h1>
+          {product.shortDescription ? (
+            <p className="text-muted-foreground max-w-2xl">{product.shortDescription}</p>
           ) : null}
-          {product.mirrorOutput ? (
-            <span className="spec-label bg-muted rounded-full px-3 py-1">
-              Produced mirrored for stamping
-            </span>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {product.supportsVariableData ? (
+              <span className="bg-signal/20 rounded-sm px-2 py-1 text-xs font-medium">
+                Personalise each item from a CSV
+              </span>
+            ) : null}
+            {product.mirrorOutput ? (
+              <span className="bg-muted rounded-sm px-2 py-1 text-xs font-medium">
+                Produced mirrored for stamping
+              </span>
+            ) : null}
+          </div>
         </div>
+        <StorefrontImage
+          slug={product.division.slug}
+          sizes="(max-width: 767px) 100vw, 46vw"
+          className="aspect-[2.3] self-stretch md:aspect-auto md:min-h-52"
+        />
       </header>
 
       <section aria-label="Configure and price">

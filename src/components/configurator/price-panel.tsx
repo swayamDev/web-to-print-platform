@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Link2, Loader2, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, Link2, Loader2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 
 import { formatMinor } from "@/domain/money";
@@ -10,7 +10,7 @@ import {
   type PriceRequest,
   type PricingRules,
 } from "@/domain/pricing";
-import { formatMajor, formatPercent } from "@/lib/format";
+import { formatMajor, formatMm, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { ServerCheck } from "./use-server-price";
@@ -38,15 +38,16 @@ export function PricePanel({
 }: Props) {
   const currency = rules.settings.currency;
   const money = (minor: number) => formatMinor(minor, currency);
+  const material = rules.materials.find((entry) => entry.slug === request?.materialSlug);
 
   return (
     <section
       id="price-summary"
       aria-labelledby="price-heading"
-      className="bg-ink text-paper scroll-mt-20 rounded-xl p-6 lg:sticky lg:top-20"
+      className="bg-ink text-paper border-signal scroll-mt-20 border-t-4 p-4 sm:p-6 lg:sticky lg:top-20"
     >
-      <h2 id="price-heading" className="spec-label text-paper/60">
-        Your price
+      <h2 id="price-heading" className="text-paper/80 text-sm font-semibold">
+        Price summary
       </h2>
 
       {quote ? (
@@ -55,7 +56,7 @@ export function PricePanel({
             <p
               key={quote.totalGrossMinor}
               data-testid="price-total"
-              className="font-heading num animate-in fade-in slide-in-from-bottom-1 text-4xl font-semibold duration-200"
+              className="font-heading num motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 text-4xl font-bold duration-200"
             >
               {money(quote.totalGrossMinor)}
             </p>
@@ -65,13 +66,34 @@ export function PricePanel({
             </p>
           </div>
 
+          {request && material ? (
+            <p className="text-paper/80 font-mono text-xs leading-relaxed">
+              {formatMm(request.widthMm)} × {formatMm(request.heightMm)} mm · {material.name}
+            </p>
+          ) : null}
+
           {quote.tier ? (
             <p className="bg-signal text-ink w-fit rounded-full px-3 py-1 text-sm font-medium">
               Volume discount: {formatPercent(quote.tier.percentOff)} off every item
             </p>
           ) : null}
 
-          <NextTierHint quote={quote} money={money} onPickQuantity={onPickQuantity} />
+          <div className="grid gap-2">
+            {designHref ? (
+              <a
+                href={designHref}
+                className="bg-signal text-ink inline-flex min-h-11 items-center justify-between gap-2 rounded-md px-4 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Design online
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </a>
+            ) : null}
+            <p className="text-paper/80 text-xs">
+              Edit a template or upload artwork in the editor. You’ll review a proof before
+              production.
+            </p>
+            <ServerStatus check={serverCheck} money={money} />
+          </div>
 
           <dl className="border-paper/15 grid gap-1.5 border-t pt-4 text-sm">
             <Row
@@ -102,20 +124,8 @@ export function PricePanel({
             onPickQuantity={onPickQuantity}
           />
 
-          <ServerStatus check={serverCheck} money={money} />
-
-          <div className="border-paper/15 grid gap-3 border-t pt-4">
-            {designHref ? (
-              <a
-                href={designHref}
-                className="bg-signal text-ink inline-flex h-11 items-center justify-center rounded-md px-4 font-medium"
-              >
-                Design online
-              </a>
-            ) : null}
-            <p className="text-paper/70 text-sm">
-              Design your artwork online, then order and pay securely with Stripe.
-            </p>
+          <NextTierHint quote={quote} money={money} onPickQuantity={onPickQuantity} />
+          <div className="border-paper/15 border-t pt-4">
             <CopyLinkButton />
           </div>
         </div>
