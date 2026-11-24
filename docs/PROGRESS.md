@@ -5,8 +5,10 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
-- Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
+- Phase 14 live: apply `20261124210000_admin_console.sql` (`pnpm exec supabase db push --remote`),
+  push, then as admin on the live site: search the queue, complete DH-2026-000023, upload a
+  corrected proof on a fresh test order, and check the users page.
+- Then **Phase 15** (admin product/template management, reports, Xero CSV export).
 
 ## Live
 
@@ -36,7 +38,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 11** — Production file generation, storage layout, secure admin download
 - [x] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
 - [x] **Phase 13** — Customer dashboard, invoices, one-click reorder
-- [ ] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
+- [x] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
 - [ ] **Phase 15** — Admin product/template management, reports, Xero CSV export
 - [ ] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
 - [ ] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
@@ -380,3 +382,31 @@ next step under **Next up** so work can resume cold.
   was approved automatically with the original's exact snapshot hash, logged as
   `approved_via_reorder`; print files unlocked; confirmation and approval emails sent; invoice
   INV-2026-000003 issued with "Reorder of DH-2026-000007".
+
+### 2026-11-24 — Phase 14
+
+- Migration `20261124210000_admin_console.sql`: `assert_admin`, `admin_user_directory` (search by
+  email, name or company with order counts and paid totals; emails come from `auth.users`),
+  `admin_set_role` (audited; never your own role, never the last admin, serialised) and
+  `admin_order_action` (complete from production; cancel before production with a required reason;
+  archive/unarchive finished orders; audited, actor recorded on the timeline). All service-role
+  only and each re-checks the admin role. 18 pgTAP tests (83 total).
+- `/admin/orders`: queue with stage tabs (plus "Approved, needs files"), active/archived/everything,
+  search by order number or customer name/company/email, pagination; filters live in the URL
+  (`src/domain/admin-queue.ts`, 5 tests). Overview stage counts link into it.
+- Job detail: customer card (email, phone, invoice, original order of a reorder), pipeline actions
+  (Mark complete / Cancel with reason / Archive), timeline with actor and note, full proof history
+  with sources, staff activity from the audit log. Completion and cancellation email the customer.
+- Corrected proofs (`source = admin_upload`): staff upload a PDF/AI/SVG/PNG/JPEG through a one-time
+  signed URL into the customer's folder; it is inspected like any upload, placed as full-page
+  artwork on the order's page size and becomes the next proof version for the customer to approve
+  (not for CSV orders). Audited with an optional note.
+- `/admin/users` and `/admin/users/[id]`: search, role filter, orders per user, role change with
+  history.
+- Fixes: the section nav can shrink inside grid layouts; on phones under 400 px with the Admin
+  link, the header shows the logo mark without the wordmark (it overflowed at 360 px). Stripe
+  redirects in e2e wait for navigation, not Stripe's full page load.
+- Tests: 164 unit, 83 database, e2e `admin.spec.ts` (6: queue filters and search, customers
+  blocked, complete + email + archive, cancel with reason + email, staff proof upload → v2 pending,
+  user search + role change + self-protection). Full local run: all pass except the
+  password-reset test when run on a second port (its email links to APP_URL :3000).

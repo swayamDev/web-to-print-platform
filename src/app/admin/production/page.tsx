@@ -11,7 +11,6 @@ export const metadata: Metadata = { title: "Production" };
 
 /**
  * Production queue: approved proofs waiting for print files, and jobs in production.
- * (The full admin order queue with filters arrives with the admin console.)
  */
 export default function ProductionPage() {
   return (

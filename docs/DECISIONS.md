@@ -197,3 +197,11 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-46 Invoices** are generated on request from the order as recorded at payment, never stored
   or re-priced; the invoice date is the payment date (tax point). The demo company has no VAT
   number, so none is printed.
+- **D-47 Admin pipeline actions:** admins can complete a job in production, cancel a job before
+  production (a reason is required and emailed; refunds stay manual, D-16) and archive finished
+  jobs. Jobs in production are not cancelled from the console: the print run has started.
+- **D-48 Corrected proofs from staff** replace the artwork with one uploaded file placed as
+  full-page artwork; the customer still approves it like any proof. Not offered for CSV orders,
+  where the data, not one file, would need correcting.
+- **D-49 Role safety:** role changes run in one locked database function that refuses changes to
+  your own role and demoting the last admin, and writes the audit row in the same transaction.

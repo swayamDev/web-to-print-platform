@@ -11,7 +11,7 @@ export type NavItem = { href: string; label: string; exact?: boolean };
 export function SectionNav({ items, label }: { items: NavItem[]; label: string }) {
   const pathname = usePathname();
   return (
-    <nav aria-label={label} className="-mx-4 overflow-x-auto px-4">
+    <nav aria-label={label} className="-mx-4 min-w-0 overflow-x-auto px-4">
       <ul className="flex gap-1 border-b text-sm">
         {items.map((item) => {
           const active = item.exact

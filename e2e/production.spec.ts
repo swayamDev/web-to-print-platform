@@ -151,7 +151,7 @@ test("the admin header fits a 360 px phone without sideways scrolling", async ({
   test.skip(!adminUser.email, "admin test account not configured");
   await page.setViewportSize({ width: 360, height: 780 });
   await logIn(page, adminUser);
-  for (const path of ["/admin", "/admin/production", "/"]) {
+  for (const path of ["/admin", "/admin/orders", "/admin/production", "/admin/users", "/"]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

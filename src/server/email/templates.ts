@@ -110,3 +110,46 @@ export function orderInProductionEmail(input: {
     html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
   };
 }
+
+export function orderCompletedEmail(input: {
+  customerName: string | null;
+  orderNumber: string;
+  orderUrl: string;
+}): EmailContent {
+  const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
+  const paragraphs = [
+    greeting,
+    `Order ${input.orderNumber} is complete: it has been printed exactly as you approved it.`,
+    "Your invoice is on the order page, and you can reorder it there in one click.",
+  ];
+  const title = `Order ${input.orderNumber} is complete`;
+  return {
+    subject: title,
+    text: `${paragraphs.join("\n\n")}\n\nView your order: ${input.orderUrl}\n`,
+    html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
+  };
+}
+
+export function orderCancelledEmail(input: {
+  customerName: string | null;
+  orderNumber: string;
+  reason: string;
+  paid: boolean;
+  orderUrl: string;
+}): EmailContent {
+  const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
+  const paragraphs = [
+    greeting,
+    `Order ${input.orderNumber} has been cancelled. Reason: ${input.reason}`,
+    input.paid
+      ? "If you paid for it, we will refund the payment to your card; please allow a few days for it to appear."
+      : "Nothing was charged for this order.",
+    "Reply to this email if you have any questions.",
+  ];
+  const title = `Order ${input.orderNumber} cancelled`;
+  return {
+    subject: title,
+    text: `${paragraphs.join("\n\n")}\n\nView your order: ${input.orderUrl}\n`,
+    html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
+  };
+}

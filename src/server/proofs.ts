@@ -380,7 +380,7 @@ function fail(code: string, detail?: string): GenerateProofOutcome {
 
 const orderUrl = (id: string) => `${serverEnv().APP_URL}/account/orders/${id}`;
 
-async function customerContact(userId: string) {
+export async function customerContact(userId: string) {
   const admin = createSupabaseAdminClient();
   const [{ data: profile }, { data: authUser }] = await Promise.all([
     admin.from("profiles").select("full_name").eq("id", userId).single(),

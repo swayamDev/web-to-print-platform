@@ -537,7 +537,64 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "approve_proof":
+            "admin_order_action":
+{ Args: { "p_action": string,"p_actor": string,"p_note"?: string,"p_order_id": string }; Returns: {
+              "approved_proof_id": string | null,
+"archived_at": string | null,
+"billing_details": NonNullable<Json>,
+"cancelled_at": string | null,
+"checkout_session_id": string | null,
+"created_at": string,
+"currency": string,
+"customer_id": string,
+"discount_minor": number,
+"files_unlocked_at": string | null,
+"id": string,
+"invoice_number": string | null,
+"order_number": string,
+"paid_at": string | null,
+"payment_provider": string | null,
+"pricing_snapshot": NonNullable<Json>,
+"reorder_confirmation": Json | null,
+"reorder_of_order_id": string | null,
+"status": Database["public"]['Enums']["order_status"],
+"subtotal_net_minor": number,
+"tax_minor": number,
+"tax_rate": number,
+"total_gross_minor": number,
+"updated_at": string,
+"xero_invoice_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"admin_set_role":
+{ Args: { "p_actor": string,"p_role": Database["public"]['Enums']["user_role"],"p_target": string }; Returns: {
+              "company_name": string | null,
+"created_at": string,
+"full_name": string | null,
+"id": string,
+"marketing_opt_in": boolean,
+"organization_id": string | null,
+"phone": string | null,
+"role": Database["public"]['Enums']["user_role"],
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "profiles"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"admin_user_directory":
+{ Args: { "p_actor": string,"p_limit"?: number,"p_offset"?: number,"p_query"?: string,"p_role"?: Database["public"]['Enums']["user_role"] }; Returns: {
+              "company_name": string,"created_at": string,"email": string,"full_name": string,"id": string,"last_order_at": string,"order_count": number,"paid_total_minor": number,"phone": string,"role": Database["public"]['Enums']["user_role"],"total_count": number
+            }[]
+                           },
+"approve_proof":
 { Args: { "p_actor_id": string,"p_ip"?: unknown,"p_order_id": string,"p_user_agent"?: string,"p_version": number,"p_version_id": string }; Returns: {
               "config_snapshot": NonNullable<Json>,
 "created_at": string,
@@ -583,6 +640,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"assert_admin":
+{ Args: { "p_actor": string }; Returns: undefined
+                           },
 "check_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
                            },

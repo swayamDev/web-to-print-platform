@@ -19,7 +19,8 @@ export function Logo() {
       aria-label="Digital Heroes Print, home"
     >
       <RegistrationMark className="size-6 transition-transform duration-300 group-hover:rotate-90" />
-      <span className="font-heading text-[0.95rem] leading-none font-semibold tracking-tight whitespace-nowrap">
+      {/* On narrow phones with the extra Admin link, the mark alone (the link keeps its label). */}
+      <span className="font-heading text-[0.95rem] leading-none font-semibold tracking-tight whitespace-nowrap max-[400px]:group-has-[[data-admin-link]]/header:hidden">
         Digital Heroes
         <span className="spec-label text-muted-foreground ml-1.5 align-middle max-sm:hidden">
           Print

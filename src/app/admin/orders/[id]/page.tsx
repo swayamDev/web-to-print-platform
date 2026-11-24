@@ -3,12 +3,16 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import Link from "next/link";
+
+import { AdminProofUpload, OrderPipelineActions } from "@/components/admin/admin-controls";
 import { GenerateFilesButton } from "@/components/admin/generate-files-button";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMinor, type CurrencyCode } from "@/domain/money";
 import { orderStatusLabel } from "@/domain/order-status";
 import { requireAdmin } from "@/server/auth";
 import { signProofFiles } from "@/server/proofs";
+import { createSupabaseAdminClient } from "@/server/supabase/admin";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 export const metadata: Metadata = { title: "Order (admin)" };
@@ -39,11 +43,13 @@ async function AdminOrder({ params }: Props) {
   const { data: order } = await supabase
     .from("orders")
     .select(
-      `id, order_number, status, currency, total_gross_minor, paid_at, approved_proof_id,
-       files_unlocked_at, customer:profiles!orders_customer_id_fkey(full_name, company_name),
-       order_items(description, quantity, product:products(name, output_dpi, mirror_output)),
-       proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_png_path),
+      `id, order_number, status, currency, total_gross_minor, paid_at, approved_proof_id, customer_id,
+       files_unlocked_at, archived_at, cancelled_at, invoice_number, reorder_of_order_id, created_at,
+       customer:profiles!orders_customer_id_fkey(full_name, company_name, phone),
+       order_items(description, quantity, is_variable_data, product:products(name, output_dpi, mirror_output)),
+       proof_versions!proof_versions_order_id_fkey(id, version, status, source, snapshot_hash, proof_png_path, created_at),
        proof_events(proof_version_id, action, ip, comment, created_at),
+       order_status_history(from_status, to_status, note, created_at, actor:profiles(full_name)),
        production_files(id, kind, row_index, storage_path, bytes, sha256, width_px, height_px, dpi, created_at),
        merge_jobs(row_count, processed_count, status)`,
     )
@@ -52,6 +58,25 @@ async function AdminOrder({ params }: Props) {
   if (!order) notFound();
 
   const item = order.order_items[0];
+  // Sign-in email (auth.users) and this order's audit trail, for staff only.
+  const [{ data: authUser }, { data: audit }] = await Promise.all([
+    createSupabaseAdminClient().auth.admin.getUserById(order.customer_id),
+    supabase
+      .from("audit_logs")
+      .select("id, action, diff, created_at, actor:profiles(full_name)")
+      .eq("entity_type", "order")
+      .eq("entity_id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+  const history = [...order.order_status_history].sort((a, b) =>
+    a.created_at.localeCompare(b.created_at),
+  );
+  const versions = [...order.proof_versions].sort((a, b) => b.version - a.version);
+  const canUploadProof =
+    (order.status === "artwork" || order.status === "proof") &&
+    !order.approved_proof_id &&
+    !item?.is_variable_data;
   const approved = order.proof_versions.find((v) => v.id === order.approved_proof_id);
   const approval = order.proof_events.find(
     (e) =>
@@ -79,8 +104,7 @@ async function AdminOrder({ params }: Props) {
           <p className="spec-label text-muted-foreground">Order</p>
           <h1 className="num font-mono text-2xl font-semibold">{order.order_number}</h1>
           <p className="text-muted-foreground text-sm">
-            {item?.description} · {order.customer?.full_name ?? "Customer"}
-            {order.customer?.company_name ? `, ${order.customer.company_name}` : ""} ·{" "}
+            {item?.description} ·{" "}
             {formatMinor(order.total_gross_minor, order.currency as CurrencyCode)}
           </p>
         </div>
@@ -89,7 +113,69 @@ async function AdminOrder({ params }: Props) {
           data-testid="admin-order-status"
         >
           {orderStatusLabel(order.status, Boolean(order.approved_proof_id))}
+          {order.archived_at ? " · archived" : ""}
         </span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section
+          className="bg-card grid content-start gap-3 rounded-xl border p-5"
+          aria-labelledby="customer-heading"
+        >
+          <h2 id="customer-heading" className="text-base font-semibold">
+            Customer
+          </h2>
+          <dl className="grid gap-1.5 text-sm">
+            <Row label="Name" value={order.customer?.full_name ?? "—"} />
+            <Row label="Company" value={order.customer?.company_name ?? "—"} />
+            <Row label="Email" value={authUser.user?.email ?? "—"} />
+            <Row label="Phone" value={order.customer?.phone ?? "—"} />
+            <Row label="Ordered" value={new Date(order.created_at).toLocaleString("en-GB")} />
+            <Row
+              label="Paid"
+              value={
+                order.paid_at
+                  ? `${new Date(order.paid_at).toLocaleString("en-GB")} · ${order.invoice_number}`
+                  : "Not yet"
+              }
+            />
+          </dl>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <Link
+              href={`/admin/users/${order.customer_id}`}
+              className="underline underline-offset-4"
+            >
+              Customer and their orders
+            </Link>
+            {order.invoice_number ? (
+              <a href={`/api/v1/invoices/${order.id}`} className="underline underline-offset-4">
+                Invoice
+              </a>
+            ) : null}
+            {order.reorder_of_order_id ? (
+              <Link
+                href={`/admin/orders/${order.reorder_of_order_id}`}
+                className="underline underline-offset-4"
+              >
+                Original order
+              </Link>
+            ) : null}
+          </div>
+        </section>
+        <section
+          className="bg-card grid content-start gap-3 rounded-xl border p-5"
+          aria-labelledby="actions-heading"
+          data-testid="pipeline-actions"
+        >
+          <h2 id="actions-heading" className="text-base font-semibold">
+            Pipeline
+          </h2>
+          <OrderPipelineActions
+            orderId={order.id}
+            status={order.status}
+            archived={Boolean(order.archived_at)}
+          />
+        </section>
       </div>
 
       <section
@@ -139,6 +225,23 @@ async function AdminOrder({ params }: Props) {
         ) : null}
       </section>
 
+      {canUploadProof ? (
+        <section
+          className="bg-card grid gap-3 rounded-xl border p-5"
+          aria-labelledby="correct-heading"
+        >
+          <h2 id="correct-heading" className="text-base font-semibold">
+            Upload a corrected proof
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Fixed the artwork for the customer? Upload the finished file: it is checked like any
+            upload, placed on the {item?.product?.name ?? "product"} page and sent to the customer
+            as the next proof version to approve.
+          </p>
+          <AdminProofUpload orderId={order.id} />
+        </section>
+      ) : null}
+
       <section className="bg-card grid gap-3 rounded-xl border p-5" aria-labelledby="files-heading">
         <h2 id="files-heading" className="text-base font-semibold">
           Print files
@@ -166,9 +269,115 @@ async function AdminOrder({ params }: Props) {
           </details>
         ) : null}
       </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section
+          className="bg-card grid content-start gap-3 rounded-xl border p-5"
+          aria-labelledby="timeline-heading"
+        >
+          <h2 id="timeline-heading" className="text-base font-semibold">
+            Timeline
+          </h2>
+          <ol className="grid gap-2 text-sm" data-testid="admin-timeline">
+            {history.map((h, i) => (
+              <li key={i} className="grid gap-0.5 border-l-2 pl-3">
+                <span>
+                  {orderStatusLabel(h.to_status)} · {new Date(h.created_at).toLocaleString("en-GB")}
+                </span>
+                <span className="text-muted-foreground">
+                  {h.actor?.full_name ?? "System"}
+                  {h.note ? ` — ${h.note}` : ""}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section
+          className="bg-card grid content-start gap-3 rounded-xl border p-5"
+          aria-labelledby="proofs-heading"
+        >
+          <h2 id="proofs-heading" className="text-base font-semibold">
+            Proof history
+          </h2>
+          {versions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No proofs yet.</p>
+          ) : (
+            <ol className="grid gap-2 text-sm" data-testid="admin-proof-history">
+              {versions.map((v) => (
+                <li key={v.id} className="grid gap-0.5 border-l-2 pl-3">
+                  <span>
+                    v{v.version} · {PROOF_STATUS[v.status] ?? v.status} · {PROOF_SOURCE[v.source]}
+                  </span>
+                  {order.proof_events
+                    .filter((e) => e.proof_version_id === v.id)
+                    .map((e, i) => (
+                      <span key={i} className="text-muted-foreground">
+                        {e.action === "changes_requested" ? "Changes requested" : "Approved"}{" "}
+                        {new Date(e.created_at).toLocaleString("en-GB")}
+                        {e.comment ? `: “${e.comment}”` : ""}
+                      </span>
+                    ))}
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      </div>
+
+      {audit && audit.length > 0 ? (
+        <section
+          className="bg-card grid gap-3 rounded-xl border p-5"
+          aria-labelledby="audit-heading"
+        >
+          <h2 id="audit-heading" className="text-base font-semibold">
+            Staff activity
+          </h2>
+          <ol className="grid gap-1.5 text-sm" data-testid="admin-audit">
+            {audit.map((a) => (
+              <li key={a.id} className="flex flex-wrap justify-between gap-x-4">
+                <span>
+                  {AUDIT_LABEL[a.action] ?? a.action}
+                  {auditNote(a.diff) ? ` — ${auditNote(a.diff)}` : ""}
+                </span>
+                <span className="text-muted-foreground">
+                  {a.actor?.full_name ?? "Admin"} · {new Date(a.created_at).toLocaleString("en-GB")}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
     </div>
   );
 }
+
+const auditNote = (diff: unknown) =>
+  typeof diff === "object" && diff && "note" in diff && typeof diff.note === "string"
+    ? diff.note
+    : null;
+
+const PROOF_STATUS: Record<string, string> = {
+  pending: "waiting for the customer",
+  approved: "approved",
+  changes_requested: "changes requested",
+  superseded: "replaced",
+};
+
+const PROOF_SOURCE: Record<string, string> = {
+  customer_edit: "from the customer's design",
+  admin_upload: "uploaded by staff",
+  reorder: "reorder",
+};
+
+const AUDIT_LABEL: Record<string, string> = {
+  "production.started": "Print files generated, production started",
+  "production.regenerated": "Print files regenerated",
+  "proof.admin_upload": "Corrected proof uploaded",
+  "order.complete": "Marked complete",
+  "order.cancel": "Cancelled",
+  "order.archive": "Archived",
+  "order.unarchive": "Unarchived",
+};
 
 type FileInfo = {
   id: string;

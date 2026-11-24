@@ -68,7 +68,7 @@ test.describe("customer dashboard", () => {
     await expect(button).toBeDisabled(); // the artwork confirmation comes first
     await section.getByRole("checkbox").check();
     await button.click();
-    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 });
+    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000, waitUntil: "commit" });
 
     // The new order is linked to the original and carries the customer's confirmation.
     const db = admin();

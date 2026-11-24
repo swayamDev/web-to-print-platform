@@ -106,7 +106,7 @@ test.describe("checkout and payment", () => {
     await expect(page.getByTestId("print-check")).toContainText("Ready to print");
     await page.getByRole("button", { name: "Order now" }).click();
     if (process.env.STRIPE_SECRET_KEY) {
-      await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 });
+      await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000, waitUntil: "commit" });
     } else {
       await expect(page.getByTestId("order-error")).toContainText(
         "Online payment is not configured",

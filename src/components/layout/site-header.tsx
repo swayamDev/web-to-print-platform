@@ -15,7 +15,7 @@ import { getDivisions } from "@/server/catalogue";
 export function SiteHeader() {
   return (
     <header className="bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="group/header mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
         <Logo />
         <div className="flex items-center gap-1">
           <ProductsMenu />
@@ -82,7 +82,11 @@ async function AccountNav() {
   return (
     <nav aria-label="Account" className="flex items-center gap-1">
       {user.profile.role === "admin" ? (
-        <Link href="/admin" className={buttonVariants({ variant: "ghost", className: TIGHT })}>
+        <Link
+          href="/admin"
+          data-admin-link
+          className={buttonVariants({ variant: "ghost", className: TIGHT })}
+        >
           Admin
         </Link>
       ) : null}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/layout/page-skeleton";
@@ -65,9 +66,14 @@ async function AdminOverview() {
         </h2>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           {ORDER_STATUSES.map((status) => (
-            <li key={status} className="rounded-lg border p-3">
-              <p className="text-muted-foreground text-xs">{ORDER_STATUS_LABELS[status]}</p>
-              <p className="text-xl font-semibold tabular-nums">{counts[status]}</p>
+            <li key={status}>
+              <Link
+                href={`/admin/orders?status=${status}`}
+                className="hover:border-ink block rounded-lg border p-3 transition-colors"
+              >
+                <p className="text-muted-foreground text-xs">{ORDER_STATUS_LABELS[status]}</p>
+                <p className="text-xl font-semibold tabular-nums">{counts[status]}</p>
+              </Link>
             </li>
           ))}
         </ul>
