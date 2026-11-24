@@ -234,3 +234,8 @@ next step under **Next up** so work can resume cold.
 - Tests: 18 upload-rule tests, 4 image render tests (placement in both outputs, vector PDF, DPI
   rules, missing upload), 6 placement tests; 7 upload e2e tests. 121 unit + 71 e2e pass.
 - Gotcha: don't use `require.resolve` in server code (Turbopack rewrites it to a module id).
+- Gotcha: pdf.js loads `@napi-rs/canvas` with a dynamic require the bundle tracer can't follow, so
+  on Vercel PDF previews failed ("could not be drawn") until `src/lib/print/rasterize.ts` imported
+  it statically and passed its own canvas factory. Verified live: 10/10 upload + render e2e pass.
+- Live e2e runs that save designs or upload files leave data in the demo customer account; clean it
+  up afterwards (designs, asset rows and storage objects created since the run started).
