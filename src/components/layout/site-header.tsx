@@ -1,8 +1,8 @@
-import { Menu } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { Logo } from "@/components/brand/logo";
+import { ProductDisclosure } from "@/components/layout/product-disclosure";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionUser } from "@/server/auth";
 import { logoutAction } from "@/server/actions/auth";
@@ -14,15 +14,18 @@ import { getDivisions } from "@/server/catalogue";
  */
 export function SiteHeader() {
   return (
-    <header className="bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="group/header mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
+    <header className="bg-card sticky top-0 z-40 border-b">
+      <div className="group/header mx-auto flex h-14 w-full max-w-[96rem] items-center justify-between gap-1 px-4 sm:gap-3 md:px-8">
         <Logo />
-        <div className="flex items-center gap-1">
+        <nav aria-label="Catalogue" className="flex items-center gap-1 md:gap-4">
           <ProductsMenu />
-          <Suspense fallback={<div className="bg-muted h-8 w-32 animate-pulse rounded-md" />}>
-            <AccountNav />
-          </Suspense>
-        </div>
+          <Link href="/gallery" className={buttonVariants({ variant: "ghost", className: "hidden md:inline-flex" })}>
+            Gallery
+          </Link>
+        </nav>
+        <Suspense fallback={<div className="bg-muted h-8 w-28 motion-safe:animate-pulse rounded-md" aria-hidden="true" />}>
+          <AccountNav />
+        </Suspense>
       </div>
     </header>
   );
@@ -32,14 +35,7 @@ export function SiteHeader() {
 async function ProductsMenu() {
   const divisions = await getDivisions();
   return (
-    <details className="group relative">
-      <summary
-        className={`${buttonVariants({ variant: "ghost", className: TIGHT })} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
-      >
-        <Menu className="size-4 md:hidden" aria-hidden="true" />
-        <span className="max-md:sr-only">Products</span>
-      </summary>
-      <div className="bg-popover absolute right-0 mt-2 w-64 rounded-lg border p-1 shadow-lg md:left-0">
+    <ProductDisclosure>
         <ul>
           {divisions.map((division) => (
             <li key={division.id}>
@@ -64,8 +60,7 @@ async function ProductsMenu() {
             <span className="spec-label text-muted-foreground">Work</span>
           </Link>
         </div>
-      </div>
-    </details>
+    </ProductDisclosure>
   );
 }
 

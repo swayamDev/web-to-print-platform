@@ -1,25 +1,21 @@
 import Link from "next/link";
 
-import { RegistrationMark } from "@/components/brand/logo";
+import { Logo } from "@/components/brand/logo";
 import { getDivisions } from "@/server/catalogue";
 
 export async function SiteFooter() {
   const divisions = await getDivisions();
   return (
-    <footer className="bg-ink text-paper mt-16">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.5fr_1fr_1fr]">
-        <div className="grid content-start gap-3">
-          <div className="flex items-center gap-2">
-            <RegistrationMark className="size-6" />
-            <span className="font-heading font-semibold">Digital Heroes Print</span>
-          </div>
-          <p className="text-paper/70 max-w-sm text-sm">
-            Six print divisions, one platform. Configure, design, proof and order — then reorder in
-            one click.
+    <footer className="bg-ink text-paper mt-12">
+      <div className="mx-auto grid w-full max-w-[96rem] grid-cols-2 gap-x-4 gap-y-8 px-4 py-10 md:grid-cols-[1.5fr_1fr_1fr] md:gap-10 md:px-8 md:py-14">
+        <div className="col-span-2 grid content-start justify-items-start gap-3 md:col-span-1">
+          <Logo reversed />
+          <p className="text-paper/80 max-w-sm">
+            Custom print. Clear pricing. Proof before production.
           </p>
         </div>
         <nav aria-label="Product divisions" className="grid content-start gap-2">
-          <p className="spec-label text-paper/50">Divisions</p>
+          <p className="font-semibold">Products</p>
           <ul className="grid gap-1.5 text-sm">
             {divisions.map((d) => (
               <li key={d.id}>
@@ -31,7 +27,7 @@ export async function SiteFooter() {
           </ul>
         </nav>
         <nav aria-label="More" className="grid content-start gap-2">
-          <p className="spec-label text-paper/50">More</p>
+          <p className="font-semibold">More</p>
           <ul className="grid gap-1.5 text-sm">
             <li>
               <Link href="/gallery" className="text-paper/80 hover:text-signal">
@@ -52,7 +48,7 @@ export async function SiteFooter() {
         </nav>
       </div>
       <div className="border-paper/10 border-t">
-        <p className="spec-label text-paper/50 mx-auto w-full max-w-6xl px-4 py-4">
+        <p className="text-paper/75 mx-auto w-full max-w-[96rem] px-4 py-4 text-xs md:px-8">
           Demonstration platform · prices are sample values · no real orders are fulfilled
         </p>
       </div>
