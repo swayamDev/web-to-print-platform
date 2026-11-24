@@ -22,6 +22,16 @@ async function canvasPoint(page: Page, xMm: number, yMm: number) {
   return { x: box.x + (xMm / PAGE_MM.w) * box.width, y: box.y + (yMm / PAGE_MM.h) * box.height };
 }
 
+/** Drag from one page-mm point to another with real pointer movements. */
+async function drag(page: Page, from: [number, number], to: [number, number]) {
+  const a = await canvasPoint(page, ...from);
+  const b = await canvasPoint(page, ...to);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 10 });
+  await page.mouse.up();
+}
+
 async function openRaceTemplate(page: Page) {
   await page.goto("/p/race-numbers");
   await page.getByRole("link", { name: "Design online" }).click();
@@ -37,8 +47,6 @@ async function selectName(page: Page) {
 }
 
 test.describe("designer", () => {
-  test.skip(({ isMobile }) => isMobile, "the touch layout arrives in Phase 7b");
-
   test("opens from the configurator with the template at the configured size", async ({ page }) => {
     await openRaceTemplate(page);
     await expect(page.getByText("Trim 148 × 210 mm")).toBeVisible();
@@ -58,21 +66,55 @@ test.describe("designer", () => {
     await expect(page.getByTestId("print-check")).toContainText("does not fit");
   });
 
-  test("dragging artwork off the print area is flagged, and undo puts it back", async ({
+  test("dragging stops at the edge: artwork cannot be dragged off the print area", async ({
     page,
   }) => {
     await openRaceTemplate(page);
     await selectName(page);
-    const from = await canvasPoint(page, 77, 159);
-    const to = await canvasPoint(page, 10, 159);
-    await page.mouse.move(from.x, from.y);
-    await page.mouse.down();
-    await page.mouse.move(to.x, to.y, { steps: 8 });
-    await page.mouse.up();
-    await expect(page.getByTestId("print-check")).toContainText("outside the printable area");
+    // On phones the panel slides up from the bottom: scroll the name up above it first.
+    const start = await canvasPoint(page, 77, 159);
+    await page.evaluate((dy) => window.scrollBy(0, dy), Math.max(0, start.y - 200));
+    const visible = await canvasPoint(page, 77, 159);
+    const hit = await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.tagName,
+      visible,
+    );
+    expect(hit, "the name should be visible above the panel").toBe("CANVAS");
+    await drag(page, [77, 159], [-40, 240]); // far past the bottom-left corner of the page
+    await expect(page.getByRole("button", { name: "Undo" })).toBeEnabled(); // it did move…
+    await expect(page.getByTestId("print-check")).toContainText("Ready to print"); // …but stayed inside
+  });
 
-    await page.getByRole("button", { name: "Undo" }).click();
+  test("resizing stops at the edge too", async ({ page, isMobile }) => {
+    test.skip(isMobile, "transformer handles are small targets for synthetic touches");
+    await openRaceTemplate(page);
+    await selectName(page);
+    // The name box is x 8–140 mm; its right-middle handle sits at x 143, y 159 (page mm).
+    await drag(page, [143, 159], [200, 159]);
     await expect(page.getByTestId("print-check")).toContainText("Ready to print");
+  });
+
+  test("a burst of typing is undone in one step", async ({ page }) => {
+    await openRaceTemplate(page);
+    await selectName(page);
+    const field = page.getByLabel("Text", { exact: true });
+    await field.fill("");
+    await field.pressSequentially("PRIYA SHAH", { delay: 20 });
+    await expect(field).toHaveValue("PRIYA SHAH");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(field).toHaveValue("ALEX MORGAN");
+  });
+
+  test("on phones the element panel opens as a bottom sheet", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "phone layout only");
+    await openRaceTemplate(page);
+    await selectName(page);
+    const sheet = page.getByTestId("selected-panel");
+    await expect(sheet).toHaveCSS("position", "fixed");
+    await expect(sheet.getByLabel("Text", { exact: true })).toBeInViewport();
+    await sheet.getByRole("button", { name: "Done" }).click();
+    await expect(page.getByTestId("element-panel")).toHaveCount(0);
+    await expect(sheet).not.toHaveCSS("position", "fixed");
   });
 
   test("adds and deletes text and shapes", async ({ page }) => {
@@ -89,7 +131,9 @@ test.describe("designer", () => {
 
   test("a visitor saves after logging in, then reopens the design from the account", async ({
     page,
+    isMobile,
   }) => {
+    test.skip(isMobile, "account flow does not depend on the viewport");
     await openRaceTemplate(page);
     await selectName(page);
     const name = `RUNNER ${Date.now() % 100000}`;
@@ -114,7 +158,8 @@ test.describe("designer", () => {
     await expect(page.getByLabel("Text", { exact: true })).toHaveValue(name);
   });
 
-  test("a design can only be opened by its owner", async ({ page, browser }) => {
+  test("a design can only be opened by its owner", async ({ page, browser, isMobile }) => {
+    test.skip(isMobile, "access rules do not depend on the viewport");
     // Customer saves a design.
     await page.goto("/login");
     await page.getByLabel("Email").fill(customer.email);

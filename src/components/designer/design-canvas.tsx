@@ -4,6 +4,7 @@ import type Konva from "konva";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Group, Layer, Path, Rect, Stage, Transformer } from "react-konva";
 
+import { clampCenter, fitsWithinLimits } from "@/domain/design/constraints";
 import type { DesignLayout } from "@/domain/design/layout";
 import type { DesignDocument, DesignElement } from "@/domain/design/schema";
 import { textToPathData, type LoadedFont } from "@/lib/print/fonts";
@@ -43,6 +44,8 @@ export function DesignCanvas({
   const transformerRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef(new Map<string, Konva.Group>());
   const [box, setBox] = useState({ width: 0, height: 0 });
+  // Bigger handles for fingers than for a mouse pointer.
+  const [coarsePointer] = useState(() => window.matchMedia("(pointer: coarse)").matches);
 
   // Fit the page into the available space (width, and at most ~70% of the viewport height).
   useEffect(() => {
@@ -158,6 +161,12 @@ export function DesignCanvas({
                   offsetY={cy}
                   rotation={el.rotation ?? 0}
                   draggable={!locked}
+                  // Dragging stops at the edge of the element's print area (or the safe area for text),
+                  // using the same limits as the server-side check.
+                  dragBoundFunc={(pos) => {
+                    const c = clampCenter(doc, el, pos.x / scale - b, pos.y / scale - b);
+                    return { x: (c.cx + b) * scale, y: (c.cy + b) * scale };
+                  }}
                   listening={!locked}
                   onMouseDown={() => onSelect(item.id)}
                   onTap={() => onSelect(item.id)}
@@ -242,18 +251,35 @@ export function DesignCanvas({
               ref={transformerRef}
               rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
               rotationSnapTolerance={4}
-              anchorSize={10}
+              anchorSize={coarsePointer ? 18 : 10}
               anchorCornerRadius={2}
               borderStroke="#ff4d00"
               anchorStroke="#ff4d00"
               keepRatio={false}
               ignoreStroke
-              boundBoxFunc={(oldBox, newBox) =>
-                Math.abs(newBox.width) < MIN_SIZE_MM * scale ||
-                Math.abs(newBox.height) < MIN_SIZE_MM * scale
-                  ? oldBox
-                  : newBox
-              }
+              boundBoxFunc={(oldBox, newBox) => {
+                if (
+                  Math.abs(newBox.width) < MIN_SIZE_MM * scale ||
+                  Math.abs(newBox.height) < MIN_SIZE_MM * scale
+                ) {
+                  return oldBox;
+                }
+                // Refuse any resize or rotation that would push the element out of its limits.
+                const el = selectedId ? elements.get(selectedId) : undefined;
+                if (!el) return newBox;
+                const w = newBox.width / scale;
+                const h = newBox.height / scale;
+                const cos = Math.cos(newBox.rotation);
+                const sin = Math.sin(newBox.rotation);
+                const cx =
+                  (newBox.x + (newBox.width / 2) * cos - (newBox.height / 2) * sin) / scale - b;
+                const cy =
+                  (newBox.y + (newBox.width / 2) * sin + (newBox.height / 2) * cos) / scale - b;
+                const rotation = (newBox.rotation * 180) / Math.PI;
+                return fitsWithinLimits(doc, el, { x: cx - w / 2, y: cy - h / 2, w, h, rotation })
+                  ? newBox
+                  : oldBox;
+              }}
             />
           </Layer>
         </Stage>

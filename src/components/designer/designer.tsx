@@ -13,6 +13,7 @@ import {
   removeElement,
   updateElement,
 } from "@/domain/design/document";
+import { constrainGeometry } from "@/domain/design/constraints";
 import { layoutDocument } from "@/domain/design/layout";
 import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
 import { validateDocument } from "@/domain/design/validate";
@@ -24,6 +25,7 @@ import { saveDesignAction } from "@/server/actions/designs";
 
 import type { ElementChange } from "./design-canvas";
 import { ElementPanel } from "./element-panel";
+import { historyReducer, initialHistory } from "./history";
 import { usePrintFonts } from "./use-print-fonts";
 
 // Konva needs the browser; never render it on the server.
@@ -47,48 +49,6 @@ export type DesignerProps = {
   initialDocument: DesignDocument;
   design: { id: string; name: string; isLocked: boolean } | null;
 };
-
-// ---------------------------------------------------------------------------
-// History (undo / redo)
-// ---------------------------------------------------------------------------
-type History = { past: DesignDocument[]; present: DesignDocument; future: DesignDocument[] };
-type HistoryAction =
-  | { type: "commit"; doc: DesignDocument }
-  | { type: "undo" }
-  | { type: "redo" }
-  | { type: "reset"; doc: DesignDocument };
-
-const HISTORY_LIMIT = 50;
-
-function historyReducer(state: History, action: HistoryAction): History {
-  switch (action.type) {
-    case "commit":
-      if (action.doc === state.present) return state;
-      return {
-        past: [...state.past, state.present].slice(-HISTORY_LIMIT),
-        present: action.doc,
-        future: [],
-      };
-    case "undo": {
-      const previous = state.past.at(-1);
-      return previous
-        ? {
-            past: state.past.slice(0, -1),
-            present: previous,
-            future: [state.present, ...state.future],
-          }
-        : state;
-    }
-    case "redo": {
-      const next = state.future[0];
-      return next
-        ? { past: [...state.past, state.present], present: next, future: state.future.slice(1) }
-        : state;
-    }
-    case "reset":
-      return { past: [], present: action.doc, future: [] };
-  }
-}
 
 const DRAFT_KEY = "dh-design-draft";
 type SaveState =
@@ -119,11 +79,7 @@ export function Designer({
   const searchParams = useSearchParams();
   const { fonts, error: fontError } = usePrintFonts();
 
-  const [history, dispatch] = useReducer(historyReducer, {
-    past: [],
-    present: initialDocument,
-    future: [],
-  });
+  const [history, dispatch] = useReducer(historyReducer, initialDocument, initialHistory);
   const doc = history.present;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
@@ -135,8 +91,8 @@ export function Designer({
   const locked = design?.isLocked ?? false;
 
   const commit = useCallback(
-    (next: DesignDocument) => {
-      dispatch({ type: "commit", doc: next });
+    (next: DesignDocument, key?: string) => {
+      dispatch({ type: "commit", doc: next, key, at: Date.now() });
       setSaveState({ kind: "dirty" });
     },
     [dispatch],
@@ -232,8 +188,26 @@ export function Designer({
   // ---------------------------------------------------------------------------
   // Editing
   // ---------------------------------------------------------------------------
-  const change = (id: string, patch: ElementChange | Record<string, unknown>) =>
-    commit(updateElement(doc, id, patch));
+  /**
+   * Apply a change to one element. Position, size and rotation changes are kept inside the
+   * element's print area (constrainGeometry); a change that cannot fit at all is ignored.
+   * `key` merges rapid edits to one field into a single undo step.
+   */
+  const change = useCallback(
+    (id: string, patch: ElementChange | Record<string, unknown>, key?: string) => {
+      const el = doc.elements.find((e) => e.id === id);
+      if (!el) return;
+      const geometryKeys = ["x", "y", "w", "h", "rotation"] as const;
+      let next = patch as Record<string, unknown>;
+      if (geometryKeys.some((k) => k in patch)) {
+        const geometry = constrainGeometry(doc, el, patch as ElementChange);
+        if (!geometry) return;
+        next = { ...patch, ...geometry };
+      }
+      commit(updateElement(doc, id, next), key);
+    },
+    [doc, commit],
+  );
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -260,14 +234,15 @@ export function Designer({
         const step = event.shiftKey ? 5 : 1;
         const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
         const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
-        commit(updateElement(doc, selected.id, { x: selected.x + dx, y: selected.y + dy }));
+        // Nudges stop at the edge of the print area like dragging does.
+        change(selected.id, { x: selected.x + dx, y: selected.y + dy }, `${selected.id}:nudge`);
       } else if (event.key === "Escape") {
         setSelectedId(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [doc, selected, commit]);
+  }, [doc, selected, commit, change]);
 
   const statusText =
     saveState.kind === "saving"
@@ -418,14 +393,41 @@ export function Designer({
           ) : null}
         </div>
 
+        {/* Phones: room to scroll the canvas up above the bottom sheet while it is open. */}
+        {selected ? <div aria-hidden="true" className="h-[45vh] lg:hidden" /> : null}
+
         {/* Side panel ------------------------------------------------------------ */}
         <aside className="grid content-start gap-4">
-          <section className="bg-card rounded-xl border p-4" aria-label="Selected element">
+          <section
+            aria-label="Selected element"
+            data-testid="selected-panel"
+            className={cn(
+              "bg-card rounded-xl border p-4",
+              // Phones: the panel becomes a bottom sheet so the canvas stays visible above it.
+              selected &&
+                "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:max-h-[45vh] max-lg:overflow-y-auto max-lg:rounded-b-none max-lg:pb-[max(1rem,env(safe-area-inset-bottom))] max-lg:shadow-[0_-16px_40px_-20px_rgb(18_18_18/0.45)]",
+            )}
+          >
+            {selected ? (
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="bg-ink text-paper mb-3 w-full rounded-md py-2 text-sm font-medium lg:hidden"
+              >
+                Done
+              </button>
+            ) : null}
             {selected ? (
               <ElementPanel
                 element={selected}
                 laidOut={layout?.items.find((i) => i.id === selected.id)}
-                onChange={(patch) => change(selected.id, patch)}
+                onChange={(patch) =>
+                  change(
+                    selected.id,
+                    patch,
+                    `${selected.id}:${Object.keys(patch).sort().join(",")}`,
+                  )
+                }
                 onDelete={() => {
                   commit(removeElement(doc, selected.id));
                   setSelectedId(null);
@@ -434,8 +436,9 @@ export function Designer({
               />
             ) : (
               <p className="text-muted-foreground text-sm">
-                Select something on the page to edit it, or add text or a shape. Drag to move; use
-                the handles to resize and rotate. Arrow keys nudge by 1 mm (Shift: 5 mm).
+                Tap or click something on the page to edit it, or add text or a shape. Drag to move;
+                use the handles to resize and rotate. Everything stops at the edge of the print area
+                (text at the safe line). Arrow keys nudge by 1 mm (Shift: 5 mm).
               </p>
             )}
           </section>

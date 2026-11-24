@@ -6,10 +6,10 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 7b**: clamp drag/resize/rotate to the print area (dragBoundFunc + transformer
-  boundBoxFunc using the same rules as `validateDocument`), clip to the print area, coalesce typing
-  into one undo step, touch/mobile layout (canvas on top, bottom sheet for the panel), keyboard
-  focus handling, and designer e2e tests at phone size.
+- Start **Phase 8** (artwork uploads): signed upload URLs to the `uploads` bucket, server-side
+  validation by magic bytes (PNG/JPEG, SVG sanitised, PDF page size, `.ai` only if PDF-compatible),
+  effective-DPI warnings (D-14), `assets` rows, logos placed into image elements in the designer
+  (rendered on canvas, in PDF and PNG), and an "upload finished artwork" path for whole designs.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -33,7 +33,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 6** — Render spike: design document schema, layout, text fitting, server PDF and PNG,
       verified on Vercel
 - [x] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
-- [ ] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
+- [x] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
 - [ ] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
 - [ ] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
 - [ ] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
@@ -193,3 +193,20 @@ next step under **Next up** so work can resume cold.
 - Gotcha: in this environment the dev server's HMR socket fails inside the browser pane and pages
   do not hydrate; use a production build (`pnpm build`, then the "web-prod" preview) to try
   interactive features.
+
+### 2026-11-24 — Phase 7b
+
+- Print-area constraints are now enforced while editing (PRD p5 §06), not just reported:
+  `src/domain/design/constraints.ts` (`limitsFor`, `clampCenter`, `fitsWithinLimits`,
+  `constrainGeometry`) uses the same boundaries as `validateDocument` (print area, bleed allowance,
+  safe area for text, rotation-aware). The canvas clamps drags (`dragBoundFunc`) and refuses
+  resizes/rotations that would leave the area (Transformer `boundBoxFunc`); nudges and the rotation
+  field go through `constrainGeometry`. Server validation stays as the backstop. 7 tests, including
+  one proving every constrained result passes `validateDocument`.
+- Undo history moved to `src/components/designer/history.ts`: rapid edits to one field (typing,
+  number scrubbing, nudges) merge into one undo step (1.2 s window). 4 tests.
+- Phones: the element panel is a bottom sheet (45vh) with a Done button; scroll room under the
+  canvas keeps elements reachable above it; larger handles for coarse pointers.
+- Designer e2e tests now also run at phone size; new tests for drag/resize clamping, one-step undo of
+  typing and the bottom sheet. 93 unit and 64 e2e tests pass.
+- Not done: clipping to ellipse print areas (no ellipse templates yet; validation still covers them).

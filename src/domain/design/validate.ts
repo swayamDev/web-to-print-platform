@@ -20,7 +20,7 @@ export type DesignIssue = {
   message: string;
 };
 
-type Box = { minX: number; minY: number; maxX: number; maxY: number };
+export type Box = { minX: number; minY: number; maxX: number; maxY: number };
 const EPS = 0.01; // mm
 
 function cornersOf(el: DesignElement) {
@@ -35,7 +35,8 @@ function cornersOf(el: DesignElement) {
   ].map(([px, py]) => rotatePoint(px!, py!, cx, cy, rotation));
 }
 
-function allowedBox(area: PrintArea, doc: DesignDocument): Box {
+/** Where shapes in an area may go: the area, extended into the bleed where it meets the trim. */
+export function allowedBox(area: PrintArea, doc: DesignDocument): Box {
   const box = { minX: area.x, minY: area.y, maxX: area.x + area.w, maxY: area.y + area.h };
   if (!area.allowBleed) return box;
   const b = doc.bleed;
