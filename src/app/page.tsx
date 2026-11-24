@@ -1,6 +1,8 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCheck, FilePenLine, Printer, Ruler, WalletCards } from "lucide-react";
 import Link from "next/link";
 
+import { RegistrationMark } from "@/components/brand/logo";
+import { StorefrontImage } from "@/components/brand/storefront-image";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { DivisionHub } from "@/components/home/division-hub";
 import { QuickPrice, type QuickPriceProduct } from "@/components/home/quick-price";
@@ -13,23 +15,20 @@ import { loadPricingRules } from "@/server/pricing";
 const STEPS = [
   {
     title: "Configure",
-    body: "Any size within the product's limits, your material, orientation and quantity. Volume discounts apply automatically.",
+    body: "Choose the size, material and quantity. See the price including VAT.",
+    Icon: Ruler,
   },
+  { title: "Add artwork", body: "Design online or upload finished artwork.", Icon: FilePenLine },
+  { title: "Pay", body: "Review the order and complete checkout.", Icon: WalletCards },
   {
-    title: "Design",
-    body: "Edit a template or upload finished artwork. Guides show trim, bleed and the safe area, so nothing unprintable gets through.",
+    title: "Approve proof",
+    body: "Check the latest version or request changes.",
+    Icon: CheckCheck,
   },
-  {
-    title: "Approve the proof",
-    body: "Every revision is saved as a new version. Request changes, or approve the exact version that will be printed.",
-  },
-  {
-    title: "We print",
-    body: "Approval unlocks print-ready files for production. Track the job, download your invoice, reorder in one click.",
-  },
+  { title: "Production", body: "Staff generate files from the approved proof.", Icon: Printer },
 ];
 
-/** One quick-price entry per product, in division order (all cached catalogue reads). */
+/** Load catalogue presets and the same pricing rules used by the product configurator. */
 async function loadQuickPriceProducts(): Promise<QuickPriceProduct[]> {
   const divisions = await getDivisions();
   const withProducts = await Promise.all(divisions.map((d) => getDivisionWithProducts(d.slug)));
@@ -54,143 +53,134 @@ async function loadQuickPriceProducts(): Promise<QuickPriceProduct[]> {
   return entries.filter((e): e is QuickPriceProduct => e !== null);
 }
 
-/** Home: hero, the six-division hub, instant price calculator and how ordering works. */
+const shell = "mx-auto w-full max-w-[96rem] px-4 md:px-8 lg:px-12";
+
 export default async function HomePage() {
   const [divisions, quickPriceProducts, gallery] = await Promise.all([
     getDivisions(),
     loadQuickPriceProducts(),
     getGallery(),
   ]);
-  // One piece per division for the teaser.
   const showcase = gallery
     .filter((item, i) => gallery.findIndex((g) => g.division.slug === item.division.slug) === i)
     .slice(0, 6);
 
   return (
     <main>
-      <section className="bg-mm-grid border-b">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-14 md:grid-cols-[1.25fr_1fr] md:py-20">
-          <div className="grid gap-6">
-            <p className="spec-label text-muted-foreground">
-              Web-to-print · {divisions.length} divisions · one platform
-            </p>
-            <h1 className="text-[2.6rem] leading-[1.02] font-semibold sm:text-6xl">
-              Custom print,
-              <br />
-              <span className="decoration-signal underline decoration-[0.09em] underline-offset-[0.14em] [text-decoration-skip-ink:none]">
-                made to measure.
-              </span>
-            </h1>
-            <p className="text-muted-foreground max-w-xl text-lg">
-              Labels, race numbers, MTB boards, stamps, trophies and laser-cut work. Set your size,
-              see the price instantly, design inside the print area and approve a proof before
-              anything is made.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="#products"
-                className={buttonVariants({ size: "lg", className: "h-11 px-5" })}
-              >
-                Browse products
-                <ArrowRight aria-hidden="true" />
-              </Link>
-              <Link
-                href="/signup"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "lg",
-                  className: "h-11 px-5",
-                })}
-              >
-                Create an account
-              </Link>
-            </div>
-          </div>
-          <SampleProof />
+      <section className="bg-ink grid text-white md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="grid content-center justify-items-start gap-4 px-4 pt-7 pb-5 md:py-12 md:pl-8 lg:gap-6 lg:pl-[max(3rem,calc((100vw-90rem)/2))]">
+          <h1 className="font-display text-[clamp(2rem,7.7vw,4rem)] leading-[0.98] tracking-[-0.045em] md:text-[clamp(2.15rem,5.2vw,6.2rem)]">
+            Make it.
+            <br />
+            Check it.
+            <br />
+            Print it.
+          </h1>
+          <p className="text-paper max-w-[39ch] lg:text-xl">
+            Custom print across {divisions.length} divisions. See the price before you order and
+            approve a proof before production.
+          </p>
+          <Link href="#quote" className={buttonVariants({ size: "lg", className: "h-11 px-4" })}>
+            Get a price <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
+        <div className="relative min-w-0">
+          <StorefrontImage
+            hero
+            sizes="(max-width: 767px) 100vw, 55vw"
+            className="aspect-[1.85] md:aspect-auto md:h-full md:min-h-[22rem] lg:min-h-[32rem]"
+          />
+          <RegistrationMark className="motion-reveal text-signal pointer-events-none absolute top-[7%] right-[7%] size-10 sm:size-14 lg:size-20" />
         </div>
       </section>
 
-      <section id="products" aria-labelledby="products-heading" className="scroll-mt-20">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-14">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="grid gap-2">
-              <p className="spec-label text-muted-foreground">The range</p>
-              <h2 id="products-heading" className="text-3xl font-semibold">
-                Choose a division
-              </h2>
-            </div>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Every product is configured, not picked from a list of sizes — one product covers
-              every dimension it can be made in.
-            </p>
-          </div>
-          <DivisionHub divisions={divisions} />
-        </div>
-      </section>
-
-      <section aria-labelledby="price-heading" className="bg-mm-grid border-t">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-14">
+      <section id="quote" aria-labelledby="price-heading" className="bg-signal scroll-mt-16">
+        <div
+          className={`${shell} grid items-center gap-4 py-7 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-8 lg:py-10`}
+        >
           <div className="grid gap-2">
-            <p className="spec-label text-muted-foreground">Instant price</p>
-            <h2 id="price-heading" className="text-3xl font-semibold">
-              Price it in seconds
+            <h2 id="price-heading" className="text-3xl font-bold md:text-5xl">
+              Price your print.
             </h2>
-            <p className="text-muted-foreground max-w-xl">
-              No quote forms and no waiting: prices include VAT and volume discounts apply
-              automatically.
-            </p>
+            <p className="text-ink/85">See the total with VAT and any volume discount.</p>
           </div>
-          <QuickPrice products={quickPriceProducts} />
+          {quickPriceProducts.length ? (
+            <QuickPrice products={quickPriceProducts} />
+          ) : (
+            <p className="bg-card border p-4">No products are available to price right now.</p>
+          )}
         </div>
       </section>
 
-      {showcase.length > 0 ? (
-        <section aria-labelledby="gallery-heading">
-          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="grid gap-2">
-                <p className="spec-label text-muted-foreground">Gallery</p>
-                <h2 id="gallery-heading" className="text-3xl font-semibold">
-                  Made on this platform
-                </h2>
-              </div>
-              <Link
-                href="/gallery"
-                className={buttonVariants({ variant: "outline", className: "group" })}
-              >
-                See all work
-                <ArrowRight
-                  aria-hidden="true"
-                  className="transition-transform group-hover:translate-x-0.5"
-                />
-              </Link>
-            </div>
-            <GalleryGrid items={showcase} />
-          </div>
-        </section>
-      ) : null}
+      <section id="products" aria-labelledby="products-heading" className="scroll-mt-16">
+        <div className={`${shell} grid gap-5 py-9 md:gap-8 md:py-16`}>
+          <h2 id="products-heading" className="text-3xl font-bold md:text-5xl">
+            Find your product.
+          </h2>
+          {divisions.length ? (
+            <DivisionHub divisions={divisions} />
+          ) : (
+            <p className="text-muted-foreground border border-dashed p-6">
+              No divisions are available right now.
+            </p>
+          )}
+        </div>
+      </section>
 
-      <section aria-labelledby="how-heading" className="bg-card border-y">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
-          <div className="grid gap-2">
-            <p className="spec-label text-muted-foreground">How it works</p>
-            <h2 id="how-heading" className="text-3xl font-semibold">
-              From quote to finished job
-            </h2>
-          </div>
-          <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step, index) => (
-              <li key={step.title} className="border-ink grid content-start gap-2 border-t-2 pt-4">
-                <span className="spec-label text-signal-text">
-                  Step {String(index + 1).padStart(2, "0")}
-                </span>
-                <h3 className="text-lg font-semibold">{step.title}</h3>
-                <p className="text-muted-foreground text-sm">{step.body}</p>
+      <section aria-labelledby="how-heading" className="border-t">
+        <div className={`${shell} grid gap-6 py-9 md:py-16`}>
+          <h2 id="how-heading" className="text-3xl font-bold md:text-5xl">
+            From spec to press.
+          </h2>
+          <ol className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            {STEPS.map(({ title, body, Icon }) => (
+              <li
+                key={title}
+                className="border-signal border-t-2 pt-3 last:col-span-2 md:last:col-span-1"
+              >
+                <Icon className="mb-2 size-5" aria-hidden="true" />
+                <h3 className="font-bold">{title}</h3>
+                <p className="text-muted-foreground mt-1 text-sm">{body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
+
+      <section aria-labelledby="proof-heading" className="bg-muted border-t">
+        <div className={`${shell} grid items-center gap-7 py-9 md:grid-cols-2 md:py-16`}>
+          <div className="bg-ink grid place-items-center p-5 sm:p-8">
+            <SampleProof />
+          </div>
+          <div className="grid justify-items-start gap-4">
+            <h2 id="proof-heading" className="text-3xl font-bold md:text-5xl">
+              Check the proof.
+              <br />
+              Then we print.
+            </h2>
+            <p className="text-muted-foreground max-w-xl">
+              Trim is the finished edge. Bleed extends beyond it to avoid white edges, and the safe
+              area keeps key artwork inside the cut. Approve your proof when it is ready, or request
+              another version.
+            </p>
+            <Link
+              href="/gallery"
+              className={buttonVariants({ variant: "outline", size: "lg", className: "h-11" })}
+            >
+              Browse sample designs <ArrowRight aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {showcase.length > 0 ? (
+        <section aria-labelledby="gallery-heading" className={`${shell} grid gap-6 py-9 md:py-14`}>
+          <h2 id="gallery-heading" className="text-3xl font-bold">
+            Made on this platform
+          </h2>
+          <GalleryGrid items={showcase} />
+        </section>
+      ) : null}
     </main>
   );
 }

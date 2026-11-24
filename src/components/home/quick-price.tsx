@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { formatMinor } from "@/domain/money";
 import { calculatePrice, type PricingRules } from "@/domain/pricing";
-import { formatMajor, formatPercent } from "@/lib/format";
+import { formatMajor, formatMm, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type QuickPriceProduct = {
@@ -69,8 +69,8 @@ export function QuickPrice({ products }: { products: QuickPriceProduct[] }) {
   })}`;
 
   return (
-    <div className="bg-card grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 rounded-xl border p-5 shadow-[0_24px_60px_-32px_rgb(18_18_18/0.35)] md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:p-6">
-      <div className="grid min-w-0 content-start gap-4">
+    <div className="bg-card grid min-w-0 gap-3 rounded-lg border p-3 sm:p-5">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(5rem,.38fr)] content-start gap-3">
         <div className="grid gap-1.5">
           <label htmlFor="quick-product" className="text-sm font-medium">
             Product
@@ -86,7 +86,7 @@ export function QuickPrice({ products }: { products: QuickPriceProduct[] }) {
                 setQuantityText(String(next.rules.product.minQty));
               }
             }}
-            className="bg-background focus-visible:ring-ring/50 h-10 w-full min-w-0 rounded-md border px-3 outline-none focus-visible:ring-3"
+            className="border-input bg-card focus-visible:ring-ring/50 h-10 w-full min-w-0 rounded-md border px-3 outline-none focus-visible:ring-3"
           >
             {products.map((p) => (
               <option key={p.rules.product.slug} value={p.rules.product.slug}>
@@ -96,7 +96,7 @@ export function QuickPrice({ products }: { products: QuickPriceProduct[] }) {
           </select>
         </div>
 
-        <div className="grid gap-1.5">
+        <div className="col-span-2 row-start-2 grid gap-1.5">
           <span className="text-sm font-medium" id="quick-size-label">
             Size
           </span>
@@ -127,42 +127,46 @@ export function QuickPrice({ products }: { products: QuickPriceProduct[] }) {
             inputMode="numeric"
             value={quantityText}
             onChange={(event) => setQuantityText(event.target.value)}
-            className="num bg-background focus-visible:ring-ring/50 h-10 w-32 rounded-md border px-3 font-mono outline-none focus-visible:ring-3"
+            className="num border-input bg-card focus-visible:ring-ring/50 h-10 w-full min-w-0 rounded-md border px-3 font-mono outline-none focus-visible:ring-3"
           />
         </div>
       </div>
 
+      {material ? (
+        <p className="text-muted-foreground font-mono text-xs">
+          {material.name} · {formatMm(size.width_mm)} × {formatMm(size.height_mm)} mm
+        </p>
+      ) : null}
       <div
-        className="bg-ink text-paper grid content-between gap-4 rounded-lg p-5"
+        className="grid min-w-0 gap-3 border-t pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
         aria-live="polite"
       >
         {quote ? (
           <div className="grid gap-1">
-            <p className="spec-label text-paper/60">Instant price</p>
             <p
               key={quote.totalGrossMinor}
               data-testid="quick-price-total"
-              className="font-heading num animate-in fade-in slide-in-from-bottom-1 text-3xl font-semibold duration-200"
+              className="font-heading num motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 text-3xl font-semibold duration-200"
             >
               {formatMinor(quote.totalGrossMinor, quote.currency)}
             </p>
-            <p className="text-paper/70 text-sm">
+            <p className="text-muted-foreground text-sm">
               {formatMajor(quote.unitGrossDisplay, quote.currency)} each · incl. {quote.taxLabel}
             </p>
             {quote.tier ? (
-              <p className="text-signal text-sm font-medium">
+              <p className="text-success text-sm font-medium">
                 {formatPercent(quote.tier.percentOff)} volume discount applied
               </p>
             ) : null}
           </div>
         ) : (
-          <p className="text-paper/80 text-sm" role="status">
+          <p className="text-destructive text-sm" role="status">
             {error}
           </p>
         )}
         <Link
           href={configureHref}
-          className="bg-signal text-ink inline-flex w-fit items-center gap-2 rounded-md px-4 py-2 text-sm font-medium"
+          className="border-ink hover:bg-paper focus-visible:outline-ring inline-flex min-h-11 w-fit items-center gap-2 rounded-md border px-3 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           Configure in full
           <ArrowRight className="size-4" aria-hidden="true" />

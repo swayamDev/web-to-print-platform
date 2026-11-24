@@ -5,7 +5,9 @@ import { expect, test } from "@playwright/test";
 test("home page shows the six-division hub", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Digital Heroes Print/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Custom print");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    /Make it\.\s*Check it\.\s*Print it\./,
+  );
 
   const hub = page.locator("#products ul").first();
   await expect(hub.getByRole("link")).toHaveCount(6);

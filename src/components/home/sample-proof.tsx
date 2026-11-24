@@ -1,64 +1,26 @@
-/**
- * Decorative hero illustration: a race-number proof with trim, bleed and safe-area guides
- * and dimension call-outs, drawn in HTML/CSS. Mirrors the seeded "Classic Bib" template.
- */
+/** Illustrative guide diagram based on the seeded Classic Bib's 148 × 210 mm trim and 3 mm bleed. */
 export function SampleProof() {
   return (
-    <figure className="relative mx-auto w-full max-w-[19rem]" aria-label="Sample race-number proof">
-      {/* Width call-out */}
-      <div className="spec-label text-muted-foreground mb-2 flex items-center gap-2">
-        <span className="bg-muted-foreground/50 h-px flex-1" />
-        148 mm
-        <span className="bg-muted-foreground/50 h-px flex-1" />
-      </div>
-
-      <div className="flex gap-2">
-        {/* Bleed area (outer) */}
-        <div className="bg-signal/15 crop-marks relative aspect-[154/216] flex-1 p-[1.9%] shadow-[0_24px_60px_-24px_rgb(18_18_18/0.35)]">
-          {/* Trim (the finished bib) */}
-          <div className="outline-ink/70 relative flex h-full flex-col overflow-hidden bg-white outline outline-1">
-            <div className="bg-signal text-ink grid h-[15%] place-items-center">
-              <span className="font-heading text-[0.8rem] font-bold tracking-wide">
-                CITY 10K 2026
-              </span>
-            </div>
-            <div className="grid flex-1 place-items-center">
-              <span className="font-heading num text-[4.6rem] leading-none font-bold tracking-tighter">
-                1234
-              </span>
-            </div>
-            <div className="pb-[14%] text-center">
-              <span className="text-[0.95rem] font-semibold tracking-[0.12em]">ALEX MORGAN</span>
-            </div>
-            <p className="text-muted-foreground absolute bottom-[4%] w-full text-center text-[0.55rem]">
-              Pin at all four corners
-            </p>
-            {/* Safe area guide */}
-            <div className="border-signal pointer-events-none absolute inset-[2%] border border-dashed" />
-          </div>
-        </div>
-        {/* Height call-out */}
-        <div className="spec-label text-muted-foreground flex flex-col items-center gap-2 [writing-mode:vertical-rl]">
-          <span className="bg-muted-foreground/50 w-px flex-1" />
-          210 mm
-          <span className="bg-muted-foreground/50 w-px flex-1" />
+    <figure
+      className="text-paper grid w-full max-w-[14rem] gap-4"
+      aria-label="Illustrative race bib proof"
+    >
+      <div className="bg-bleed relative mx-auto grid aspect-[154/216] w-[min(100%,10rem)] p-[3px]">
+        <div className="text-ink border-ink relative grid place-content-center gap-2 border bg-white px-4 text-center">
+          <div className="border-safe-area pointer-events-none absolute inset-[5px] border-2 border-dashed" />
+          <span className="font-mono text-[0.65rem]">CITY 10K · SAMPLE</span>
+          <span className="font-display text-3xl">417</span>
+          <span className="font-mono text-[0.65rem]">ALEX MORGAN</span>
         </div>
       </div>
-
-      <figcaption className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-        <Legend swatch="bg-signal/25" label="3 mm bleed" />
-        <Legend swatch="outline outline-1 outline-ink/70 bg-white" label="Trim" />
-        <Legend swatch="border border-dashed border-signal" label="Safe area" />
+      <figcaption className="grid justify-items-center gap-2 text-center text-xs">
+        <span className="font-mono">Illustrative proof · 148 × 210 mm</span>
+        <span className="flex flex-wrap justify-center gap-3">
+          <span className="border-bleed border-b-2">3 mm bleed</span>
+          <span className="border-paper border-b">Trim</span>
+          <span className="border-safe-area border-b-2 border-dashed">Safe area</span>
+        </span>
       </figcaption>
     </figure>
-  );
-}
-
-function Legend({ swatch, label }: { swatch: string; label: string }) {
-  return (
-    <span className="spec-label text-muted-foreground inline-flex items-center gap-1.5">
-      <span className={`inline-block size-2.5 ${swatch}`} aria-hidden="true" />
-      {label}
-    </span>
   );
 }
