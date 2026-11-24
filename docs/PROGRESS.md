@@ -5,9 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 15 live: apply `20261124230000_catalogue_admin.sql` (`pnpm exec supabase db push --remote`),
-  push, then as admin on the live site open Reports and download the Xero CSV for this month.
-- Then **Phase 16** (gallery, motion, responsive and accessibility polish, performance).
+- **Phase 16** (gallery, motion, responsive and accessibility polish, performance).
 
 ## Live
 
@@ -446,3 +444,8 @@ next step under **Next up** so work can resume cold.
   public price API changes at once → restored; hiding a template removes it from the shop;
   reports + Xero CSV containing a fresh invoice + audit; customers blocked). Full local run: 97
   passed; only the password-reset test fails when run on a second port (email links to :3000).
+- Live (2026-11-24): migration applied, 95 pgTAP tests pass on the live database, deployed (54d9d55).
+  Reports for this month: 3 paid orders, £42.71 incl. tax, £7.12 tax, by division correct. The Xero
+  CSV has 3 invoices (INV-2026-000001 to 3), all itemised, each adding up to what was paid
+  (£16.20, £10.31, £16.20), with division tracking. Products (6, 17 materials each listed) and
+  templates (6) pages load; no live catalogue data was changed.
