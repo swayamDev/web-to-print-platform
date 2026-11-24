@@ -5,9 +5,8 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 14 live: apply `20261124210000_admin_console.sql` (`pnpm exec supabase db push --remote`),
-  push, then as admin on the live site: search the queue, complete DH-2026-000023, upload a
-  corrected proof on a fresh test order, and check the users page.
+- Phase 14 live check (admin, in a browser): search the queue, open DH-2026-000023 and mark it
+  complete, check the users page.
 - Then **Phase 15** (admin product/template management, reports, Xero CSV export).
 
 ## Live
@@ -410,3 +409,6 @@ next step under **Next up** so work can resume cold.
   blocked, complete + email + archive, cancel with reason + email, staff proof upload → v2 pending,
   user search + role change + self-protection). Full local run: all pass except the
   password-reset test when run on a second port (its email links to APP_URL :3000).
+- Live (2026-11-24): migration applied, 83 pgTAP tests pass on the live database (the one admin is
+  intact afterwards), deployed (0daa5f3). Signed-out visits to /admin/orders and /admin/users
+  redirect to login; the user directory returns sign-in emails for an admin and refuses a customer.
