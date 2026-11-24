@@ -29,7 +29,8 @@ test("the gallery filters by division and links each piece to its product", asyn
   const image = await request.get(src!);
   expect(image.status()).toBe(200);
   expect(image.headers()["content-type"]).toBe("image/png");
-  expect(image.headers()["cache-control"]).toContain("s-maxage");
+  // Public and cacheable (on Vercel the CDN consumes s-maxage and passes max-age on).
+  expect(image.headers()["cache-control"]).toMatch(/^public, max-age=\d+/);
 
   await grid
     .getByRole("link", { name: /Make one like this/ })

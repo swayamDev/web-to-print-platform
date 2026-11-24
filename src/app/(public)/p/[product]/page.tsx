@@ -145,7 +145,7 @@ async function ProductContent({ params }: Props) {
                     width={template.previewWidth}
                     height={template.previewHeight}
                     loading="lazy"
-                    className="bg-muted h-auto max-h-72 w-auto max-w-full self-start rounded-md border object-contain"
+                    className="bg-muted h-72 w-auto max-w-full self-start rounded-md border object-contain"
                   />
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
