@@ -5,8 +5,6 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 10 live: approve proof v1 of DH-2026-000007 in the browser (customer demo account) and
-  confirm the "Proof approved" status and email.
 - Then **Phase 11** (production files): admin-only render of the approved proof's
   `document_snapshot` to PDF/PNG at output DPI, stored in `production/{order}/…` with the same
   snapshot hash in the PDF keywords, only when `files_unlocked_at` is set; secure admin download.
@@ -285,3 +283,7 @@ next step under **Next up** so work can resume cold.
   DH-2026-000007 (paid before this deploy) got proof v1 through the order-page retry: PNG + PDF in
   `proofs/`, status proof, "proof ready" in-app + email sent. Live e2e: 65 passed; one mobile
   configurator flake passed on re-run; the cron test now uses `E2E_CRON_SECRET` for live runs.
+- Approval verified live (2026-11-24): customer approved DH-2026-000007 v1 in the browser. One
+  `approved` event (actor, IP, user agent, hash = v1 hash), `approved_proof_id` = v1,
+  `files_unlocked_at` set, design locked, "proof approved" in-app + email sent, page shows
+  "Proof approved" with no decision buttons, dashboard has no waiting proofs.
