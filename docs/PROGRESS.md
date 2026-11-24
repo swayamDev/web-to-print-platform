@@ -5,8 +5,6 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 13 live check (customer): reorder DH-2026-000007 on the live site (Stripe test card), then
-  check its proof is approved via reorder with the original's hash and the invoice downloads.
 - Then **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
@@ -377,3 +375,8 @@ next step under **Next up** so work can resume cold.
 - Live (2026-11-24): migration applied, 65 pgTAP tests pass on the live database, deployed (a3f0371).
   Invoices for DH-2026-000007 and DH-2026-000023 download as PDFs (INV-2026-000001/2), byte-identical
   on re-download; unknown ids and anonymous requests get 404.
+- Live reorder DH-2026-000037 of DH-2026-000007 (card 4242): same £16.20 at today's prices; the
+  confirmation (time, IP, browser, source hash) was stored; after payment proof v1 (source `reorder`)
+  was approved automatically with the original's exact snapshot hash, logged as
+  `approved_via_reorder`; print files unlocked; confirmation and approval emails sent; invoice
+  INV-2026-000003 issued with "Reorder of DH-2026-000007".
