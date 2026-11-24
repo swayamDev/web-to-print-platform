@@ -92,6 +92,7 @@ node --env-file=.env.live scripts/seed-users.mts
 - Run the end-to-end tests against the live site with the live test-account values loaded, skipping
   the tests that create accounts (password reset needs the local Mailpit):
   `E2E_BASE_URL=https://<your-app>.vercel.app pnpm exec playwright test --grep-invert "sign up, lands|reset a forgotten password"`
+  (set `E2E_CRON_SECRET` to the deployed cron secret to include the keep-alive test)
 - If you do run the signup test live, remove its throwaway account afterwards:
   `node --env-file=.env.live scripts/cleanup-e2e-users.mts`
 

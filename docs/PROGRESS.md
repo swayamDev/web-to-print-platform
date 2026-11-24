@@ -5,8 +5,8 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 10 live check: apply `20261124130000_proof_workflow.sql` to the live database
-  (`pnpm exec supabase db push --remote`), push, then pay a test order and approve its proof live.
+- Phase 10 live: approve proof v1 of DH-2026-000007 in the browser (customer demo account) and
+  confirm the "Proof approved" status and email.
 - Then **Phase 11** (production files): admin-only render of the approved proof's
   `document_snapshot` to PDF/PNG at output DPI, stored in `production/{order}/…` with the same
   snapshot hash in the PDF keywords, only when `files_unlocked_at` is set; secure admin download.
@@ -281,4 +281,7 @@ next step under **Next up** so work can resume cold.
   history with hashes), "Proofs waiting for you" on the dashboard, "Proof approved" status label.
 - 3 proof e2e tests (v1 after payment + PDF hash; change request → v2 → approve, stale second tab
   refused, audit log, design locked, emails; config change refused). 133 unit + 78 e2e pass.
-- Not yet live: the migration needs applying to the live database before this deploys.
+- Live (2026-11-24): migration applied, 41 pgTAP tests pass on the live database, deployed.
+  DH-2026-000007 (paid before this deploy) got proof v1 through the order-page retry: PNG + PDF in
+  `proofs/`, status proof, "proof ready" in-app + email sent. Live e2e: 65 passed; one mobile
+  configurator flake passed on re-run; the cron test now uses `E2E_CRON_SECRET` for live runs.

@@ -15,8 +15,9 @@ test.describe("keep-alive cron", () => {
   });
 
   test("touches the database with the cron secret", async ({ request }) => {
-    const secret = process.env.CRON_SECRET;
-    test.skip(!secret, "CRON_SECRET not set");
+    // Live runs need the deployed secret (E2E_CRON_SECRET); the local one would not match.
+    const secret = process.env.E2E_BASE_URL ? process.env.E2E_CRON_SECRET : process.env.CRON_SECRET;
+    test.skip(!secret, "cron secret for this target not set");
     const response = await request.get("/api/cron/keepalive", {
       headers: { Authorization: `Bearer ${secret}` },
     });
