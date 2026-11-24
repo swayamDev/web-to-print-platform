@@ -5,9 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 16 live: apply `20261125090000_gallery.sql` and `20261125091000_gallery_designs.sql`
-  (`pnpm exec supabase db push --remote`), push, then check /gallery on the live site.
-- Then **Phase 17** (security hardening, RLS cross-tenant tests, full checklist E2E suite).
+- **Phase 17** (security hardening, RLS cross-tenant tests, full checklist E2E suite).
 
 ## Live
 
@@ -478,3 +476,9 @@ next step under **Next up** so work can resume cold.
 - Tests: 187 unit, 99 database (gallery rules), e2e: 134 passed in the full run; new specs a11y,
   responsive, performance, gallery. The only failure remains the password-reset test on a second
   port (email links to :3000).
+- Live (2026-11-25): both gallery migrations applied, 99 pgTAP tests pass on the live database,
+  deployed (cb27c0b, then aa4347d). Live runs of the gallery, accessibility, performance and
+  responsive specs: 69 passed over two repeats (one home-page load timed out once on the network).
+  The live run caught a layout shift on product pages (0.149): the template preview had no reserved
+  height (`w-auto` overrode its width attribute) and the streaming placeholder was shorter than a
+  screen, so the footer jumped. Fixed in aa4347d; CLS is now 0 on live.
