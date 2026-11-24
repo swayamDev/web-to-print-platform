@@ -205,3 +205,11 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   where the data, not one file, would need correcting.
 - **D-49 Role safety:** role changes run in one locked database function that refuses changes to
   your own role and demoting the last admin, and writes the audit row in the same transaction.
+- **D-50 Xero export:** a CSV in Xero's invoice import layout rather than the Xero API (no
+  OAuth app needed; `orders.xero_invoice_id` stays reserved for a later API sync). Amounts are
+  tax exclusive with an explicit TaxAmount per line, so every invoice matches the payment to the
+  penny. Payments are not exported: Stripe's bank feed reconciles them in Xero.
+- **D-51 Catalogue edits apply to new quotes only.** Orders keep the prices and settings frozen at
+  checkout and in their proofs; editing a product never changes an existing order.
+- **D-52 Template layouts** are not edited in the browser yet: admins manage name, group, order and
+  visibility. Layout changes are made as JSON (seed/migration); saved designs keep their own copy.

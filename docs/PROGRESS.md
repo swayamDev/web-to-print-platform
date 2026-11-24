@@ -5,7 +5,9 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 15** (admin product/template management, reports, Xero CSV export).
+- Phase 15 live: apply `20261124230000_catalogue_admin.sql` (`pnpm exec supabase db push --remote`),
+  push, then as admin on the live site open Reports and download the Xero CSV for this month.
+- Then **Phase 16** (gallery, motion, responsive and accessibility polish, performance).
 
 ## Live
 
@@ -36,7 +38,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
 - [x] **Phase 13** — Customer dashboard, invoices, one-click reorder
 - [x] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
-- [ ] **Phase 15** — Admin product/template management, reports, Xero CSV export
+- [x] **Phase 15** — Admin product/template management, reports, Xero CSV export
 - [ ] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
 - [ ] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
 - [ ] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
@@ -414,3 +416,33 @@ next step under **Next up** so work can resume cold.
   view are correct; DH-2026-000023 marked complete in the UI (timeline records the admin, audit
   row written, completion email sent); users page lists 6 accounts with emails and order counts;
   the admin cannot change their own role.
+
+### 2026-11-24 — Phase 15
+
+- Migration `20261124230000_catalogue_admin.sql`: `settings.xero` (sales account, tax rate name,
+  tracking category), `admin_update_product` (product fields + offered materials with prices and
+  the default + the product's own discount tiers in one transaction, audited with field, material
+  and tier changes), `admin_update_template` and `admin_update_xero_settings` (audited). All
+  service-role only, each re-checks the admin role. 12 pgTAP tests (95 total).
+- `src/domain/catalogue-admin.ts` (7 tests): the product edit form's validation (exact decimal
+  strings, size/quantity consistency, exactly one offered default material, tiers that grow with
+  quantity), minor-unit conversion and field diffs.
+- `/admin/products` (by division, on sale/hidden) and `/admin/products/[id]` (listing, prices,
+  materials table, volume tiers, sizes and quantities, print output, recent changes). Saving
+  expires the "catalogue" cache with `updateTag`, so quotes, pages and checkout use the new rules
+  at once. `/admin/templates`: name, group, description, order, shown/hidden, with previews.
+- `src/domain/reports.ts` (8 tests) and `/admin/reports`: presets and custom ranges (UTC days, max
+  two years), sales incl./excl. tax, tax, average order, items, reorder and CSV shares, daily
+  chart, by division and product, orders by current stage. Paid-then-cancelled orders are shown
+  apart (refunded by hand).
+- `src/domain/xero.ts` (8 tests) and `GET /api/v1/admin/exports/xero`: invoices issued in the
+  period in Xero's sales-invoice import layout (28 columns), dd/mm/yyyy in the business's time
+  zone, per-line TaxAmount allocated so each invoice's tax equals what was charged, itemised
+  quantity × unit price × discount only when Xero's rounding reproduces our line (else one net
+  line), division tracking, cancelled orders marked, CSV-injection guarded, UTF-8 BOM. Admin
+  only, rate-limited, audit-logged.
+- Admin nav: Products, Templates, Reports. `useHydrated()` marks admin forms when interactive.
+- Tests: 187 unit, 95 database, e2e `catalogue-admin.spec.ts` (4: price edit with validation →
+  public price API changes at once → restored; hiding a template removes it from the shop;
+  reports + Xero CSV containing a fresh invoice + audit; customers blocked). Full local run: 97
+  passed; only the password-reset test fails when run on a second port (email links to :3000).

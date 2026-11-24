@@ -485,14 +485,14 @@ isOneToOne: false
                   ]
                 },"settings": {
                   Row: {
-                    "company_legal": NonNullable<Json>,"currency": string,"id": boolean,"max_csv_rows": number,"prices_entered_net": boolean,"support_email": string | null,"tax_label": string,"tax_rate": number,"updated_at": string
+                    "company_legal": NonNullable<Json>,"currency": string,"id": boolean,"max_csv_rows": number,"prices_entered_net": boolean,"support_email": string | null,"tax_label": string,"tax_rate": number,"updated_at": string,"xero": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "company_legal"?: NonNullable<Json>,"currency"?: string,"id"?: boolean,"max_csv_rows"?: number,"prices_entered_net"?: boolean,"support_email"?: string | null,"tax_label"?: string,"tax_rate"?: number,"updated_at"?: string
+                    "company_legal"?: NonNullable<Json>,"currency"?: string,"id"?: boolean,"max_csv_rows"?: number,"prices_entered_net"?: boolean,"support_email"?: string | null,"tax_label"?: string,"tax_rate"?: number,"updated_at"?: string,"xero"?: NonNullable<Json>
                   }
                   Update: {
-                    "company_legal"?: NonNullable<Json>,"currency"?: string,"id"?: boolean,"max_csv_rows"?: number,"prices_entered_net"?: boolean,"support_email"?: string | null,"tax_label"?: string,"tax_rate"?: number,"updated_at"?: string
+                    "company_legal"?: NonNullable<Json>,"currency"?: string,"id"?: boolean,"max_csv_rows"?: number,"prices_entered_net"?: boolean,"support_email"?: string | null,"tax_label"?: string,"tax_rate"?: number,"updated_at"?: string,"xero"?: NonNullable<Json>
                   }
                   Relationships: [
                     
@@ -589,6 +589,70 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"admin_update_product":
+{ Args: { "p_actor": string,"p_changes"?: Json,"p_materials": Json,"p_patch": Json,"p_product_id": string,"p_tiers": Json }; Returns: {
+              "allow_custom_size": boolean,
+"base_unit_price": number,
+"bleed_mm": number,
+"created_at": string,
+"default_height_mm": number,
+"default_width_mm": number,
+"description": string | null,
+"division_id": string,
+"id": string,
+"is_active": boolean,
+"max_height_mm": number,
+"max_qty": number,
+"max_width_mm": number,
+"min_height_mm": number,
+"min_qty": number,
+"min_width_mm": number,
+"mirror_output": boolean,
+"name": string,
+"options": NonNullable<Json>,
+"orientations": (string)[],
+"output_dpi": number,
+"pricing_model": Database["public"]['Enums']["pricing_model"],
+"qty_step": number,
+"safe_margin_mm": number,
+"setup_fee_minor": number,
+"short_description": string | null,
+"size_presets": NonNullable<Json>,
+"slug": string,
+"sort_order": number,
+"supports_variable_data": boolean,
+"updated_at": string,
+"variable_data_unit_fee": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "products"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"admin_update_template":
+{ Args: { "p_actor": string,"p_patch": Json,"p_template_id": string }; Returns: {
+              "created_at": string,
+"description": string | null,
+"document": NonNullable<Json>,
+"group_name": string | null,
+"id": string,
+"is_active": boolean,
+"name": string,
+"product_id": string,
+"sort_order": number,
+"thumbnail_path": string | null,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "templates"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"admin_update_xero_settings":
+{ Args: { "p_actor": string,"p_xero": Json }; Returns: Json
+                           },
 "admin_user_directory":
 { Args: { "p_actor": string,"p_limit"?: number,"p_offset"?: number,"p_query"?: string,"p_role"?: Database["public"]['Enums']["user_role"] }; Returns: {
               "company_name": string,"created_at": string,"email": string,"full_name": string,"id": string,"last_order_at": string,"order_count": number,"paid_total_minor": number,"phone": string,"role": Database["public"]['Enums']["user_role"],"total_count": number
