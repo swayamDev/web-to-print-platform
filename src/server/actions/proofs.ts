@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { z } from "zod";
 
 import { canonicalJson } from "@/domain/canonical";
@@ -10,6 +9,7 @@ import { designConfigSchema } from "@/server/designs";
 import { errorCode, generateProof, notifyProofApproved, proofErrorMessage } from "@/server/proofs";
 import { resolveMerge, type ResolvedMerge } from "@/server/merge";
 import { rateLimit } from "@/server/rate-limit";
+import { requestOrigin } from "@/server/request-origin";
 import { createSupabaseAdminClient } from "@/server/supabase/admin";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
@@ -41,14 +41,9 @@ async function signedInCustomer(key: string) {
 }
 
 /** Where the decision came from, for the approval log (PRD p6 §08). */
-async function requestOrigin() {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = z.union([z.ipv4(), z.ipv6()]).safeParse(forwarded ?? h.get("x-real-ip"));
-  return {
-    p_ip: ip.success ? ip.data : undefined,
-    p_user_agent: h.get("user-agent")?.slice(0, 500) ?? undefined,
-  };
+async function originParams() {
+  const { ip, userAgent } = await requestOrigin();
+  return { p_ip: ip ?? undefined, p_user_agent: userAgent ?? undefined };
 }
 
 /**
@@ -67,7 +62,7 @@ export async function approveProofAction(input: unknown): Promise<ProofActionRes
     p_version_id: parsed.data.versionId,
     p_version: parsed.data.version,
     p_actor_id: user.id,
-    ...(await requestOrigin()),
+    ...(await originParams()),
   });
   if (rpcError || !data) return failure(errorCode(rpcError?.message));
   await notifyProofApproved(parsed.data.orderId, parsed.data.version);
@@ -90,7 +85,7 @@ export async function requestProofChangesAction(input: unknown): Promise<ProofAc
     p_version: parsed.data.version,
     p_actor_id: user.id,
     p_comment: parsed.data.comment,
-    ...(await requestOrigin()),
+    ...(await originParams()),
   });
   if (rpcError || !data) return failure(errorCode(rpcError?.message));
   return { ok: true };

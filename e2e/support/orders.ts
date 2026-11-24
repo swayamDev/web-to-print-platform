@@ -208,3 +208,34 @@ export async function customerId() {
   const { data } = await admin().auth.admin.listUsers({ perPage: 200 });
   return data.users.find((u) => u.email === customer.email)!.id;
 }
+
+/** A paid order whose proof v1 the customer has approved (as the approve button would). */
+export async function approvedOrder(request: APIRequestContext) {
+  const design = await createStickerDesign("PRINT ME");
+  const order = await createQuoteOrder(1620, design);
+  await payOrder(request, order);
+  const db = admin();
+  let proof: { id: string; snapshot_hash: string } | null = null;
+  await expect
+    .poll(
+      async () => {
+        const { data } = await db
+          .from("proof_versions")
+          .select("id, snapshot_hash")
+          .eq("order_id", order.id)
+          .maybeSingle();
+        proof = data;
+        return Boolean(data);
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
+  const { error } = await db.rpc("approve_proof", {
+    p_order_id: order.id,
+    p_version_id: proof!.id,
+    p_version: 1,
+    p_actor_id: await customerId(),
+  });
+  if (error) throw error;
+  return { order, proof: proof! };
+}

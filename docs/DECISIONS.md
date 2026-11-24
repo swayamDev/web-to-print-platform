@@ -189,3 +189,11 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   print file, so every name can be checked. The dataset hash is part of the approved snapshot.
 - **D-44 Batched production:** 10 rows (PDF + PNG each) per request keeps every call well inside
   serverless limits; progress is stored in `merge_jobs`, so an interrupted run resumes.
+- **D-45 Reorder approval:** a reorder repeats the approved snapshot exactly (artwork, size,
+  material, quantity, data rows) at today's prices. The customer's "artwork unchanged" confirmation
+  is stored with the order; after payment a proof is rendered and approved on their behalf only if
+  its sha256 equals the original approval, so changed or deleted files can never slip through.
+  To change anything, the customer edits a copy of the design and orders it normally.
+- **D-46 Invoices** are generated on request from the order as recorded at payment, never stored
+  or re-priced; the invoice date is the payment date (tax point). The demo company has no VAT
+  number, so none is printed.

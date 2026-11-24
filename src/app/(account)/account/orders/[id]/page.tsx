@@ -5,7 +5,11 @@ import { after } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
-import { PayNowButton, PaymentConfirmationPoller } from "@/components/account/order-actions";
+import {
+  PayNowButton,
+  PaymentConfirmationPoller,
+  ReorderButton,
+} from "@/components/account/order-actions";
 import {
   ProofDecision,
   ProofPreparingPoller,
@@ -18,6 +22,7 @@ import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
 import { ensureFirstProof, isStalled, signProofFiles } from "@/server/proofs";
+import { quoteReorder } from "@/server/reorders";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 export const metadata: Metadata = { title: "Order" };
@@ -62,7 +67,8 @@ async function OrderDetail({ params, searchParams }: Props) {
        order_status_history(to_status, note, created_at),
        proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_pdf_path, proof_png_path, created_at),
        proof_events(id, proof_version_id, action, comment, created_at),
-       merge_jobs(row_count)`,
+       merge_jobs(row_count),
+       reorder_of:reorder_of_order_id(id, order_number)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -76,12 +82,23 @@ async function OrderDetail({ params, searchParams }: Props) {
   );
   const events = [...order.proof_events].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const lastChangeRequest = events.findLast((e) => e.action === "changes_requested");
-  const approval = events.find((e) => e.action === "approved");
+  const approval = events.find(
+    (e) => e.action === "approved" || e.action === "approved_via_reorder",
+  );
   const approved = Boolean(order.approved_proof_id);
   const awaitingFirstProof = order.status === "artwork" && versions.length === 0;
   // Self-healing: if proof v1 did not appear after payment (e.g. a failed background job),
   // try again after this response. Duplicate attempts are refused by the database.
-  if (awaitingFirstProof && order.paid_at && isStalled(order.paid_at)) {
+  // The original order of a reorder (one row; the API may return an object or a list).
+  const originalOrder =
+    ([] as { id: string; order_number: string }[]).concat(order.reorder_of ?? [])[0] ?? null;
+  const reorderAwaitingApproval =
+    Boolean(originalOrder) && order.status === "proof" && !approved && latest?.status === "pending";
+  if (
+    (awaitingFirstProof || reorderAwaitingApproval) &&
+    order.paid_at &&
+    isStalled(order.paid_at)
+  ) {
     after(() => ensureFirstProof(order.id));
   }
   const pngUrl = latest?.proof_png_path ? signed.get(latest.proof_png_path) : undefined;
@@ -94,6 +111,8 @@ async function OrderDetail({ params, searchParams }: Props) {
   const item = order.order_items[0];
   const reached = new Map(order.order_status_history.map((h) => [h.to_status, h.created_at]));
   const currentIndex = PIPELINE.findIndex((p) => p.status === order.status);
+  // Reorder: offered once a proof is approved, at today's price (DECISIONS D-12).
+  const reorder = approved && order.status !== "cancelled" ? await quoteReorder(order.id) : null;
   const quote = (
     order.pricing_snapshot as {
       quote?: { tier?: { percentOff: string } | null; setupFeeMinor?: number };
@@ -109,6 +128,17 @@ async function OrderDetail({ params, searchParams }: Props) {
             {order.order_number}
           </h1>
           <p className="text-muted-foreground text-sm">{item?.description}</p>
+          {originalOrder ? (
+            <p className="text-muted-foreground text-sm" data-testid="reorder-of">
+              Reorder of{" "}
+              <Link
+                href={`/account/orders/${originalOrder.id}`}
+                className="text-foreground font-mono underline underline-offset-4"
+              >
+                {originalOrder.order_number}
+              </Link>
+            </p>
+          ) : null}
         </div>
         <span
           className={cn(
@@ -249,9 +279,20 @@ async function OrderDetail({ params, searchParams }: Props) {
               className="border-ink rounded-lg border-2 px-4 py-3 text-sm"
               data-testid="proof-approved"
             >
-              You approved proof v{versions.find((v) => v.id === order.approved_proof_id)?.version}{" "}
-              on {new Date(approval.created_at).toLocaleString("en-GB")}. It will be printed exactly
-              as approved, and the design is now locked.
+              {approval.action === "approved_via_reorder" ? (
+                <>
+                  Approved through your reorder: you confirmed the artwork is unchanged, and proof v
+                  {versions.find((v) => v.id === order.approved_proof_id)?.version} matches the
+                  approved original exactly. It will be printed as before.
+                </>
+              ) : (
+                <>
+                  You approved proof v
+                  {versions.find((v) => v.id === order.approved_proof_id)?.version} on{" "}
+                  {new Date(approval.created_at).toLocaleString("en-GB")}. It will be printed
+                  exactly as approved, and the design is now locked.
+                </>
+              )}
             </p>
           ) : null}
 
@@ -351,6 +392,15 @@ async function OrderDetail({ params, searchParams }: Props) {
             />
             <Row label="Invoice" value={order.invoice_number ?? "Issued on payment"} />
           </dl>
+          {order.invoice_number ? (
+            <a
+              href={`/api/v1/invoices/${order.id}`}
+              className="w-fit underline underline-offset-4"
+              data-testid="invoice-link"
+            >
+              Download invoice (PDF)
+            </a>
+          ) : null}
           {item?.design_id ? (
             <Link href={`/design/${item.design_id}`} className="w-fit underline underline-offset-4">
               Open the saved design
@@ -358,6 +408,44 @@ async function OrderDetail({ params, searchParams }: Props) {
           ) : null}
         </section>
       </div>
+
+      {reorder ? (
+        <section
+          id="reorder"
+          className="bg-card grid scroll-mt-24 gap-3 rounded-xl border p-5"
+          aria-labelledby="reorder-heading"
+          data-testid="reorder-section"
+        >
+          <h2 id="reorder-heading" className="text-base font-semibold">
+            Order this again
+          </h2>
+          {reorder.ok ? (
+            <>
+              <p className="text-muted-foreground text-sm">
+                The same approved artwork, size, material and quantity (
+                {reorder.quote.quantity.toLocaleString("en-GB")}
+                {dataRows ? " personalised items from the same data file" : " items"}), at
+                today&rsquo;s price:{" "}
+                <strong className="text-foreground">{money(reorder.quote.totalGrossMinor)}</strong>{" "}
+                incl. VAT
+                {reorder.quote.totalGrossMinor !== order.total_gross_minor
+                  ? ` (this order was ${money(order.total_gross_minor)})`
+                  : ""}
+                . There is no new proof to wait for: once paid, it goes straight to print.
+              </p>
+              <ReorderButton
+                orderId={order.id}
+                proofVersion={reorder.source.proofVersion}
+                total={money(reorder.quote.totalGrossMinor)}
+              />
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm" data-testid="reorder-unavailable">
+              {reorder.message}
+            </p>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

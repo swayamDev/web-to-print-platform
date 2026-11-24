@@ -29,7 +29,14 @@ export type PdfMeta = {
 export type PdfImageSource = { format: "png" | "jpeg" | "pdf"; bytes: Uint8Array };
 
 // Shaping must match the measuring code exactly (DECISIONS D-26).
-const NO_SHAPING = { liga: false, clig: false, dlig: false, calt: false, kern: false, ccmp: false };
+export const NO_SHAPING = {
+  liga: false,
+  clig: false,
+  dlig: false,
+  calt: false,
+  kern: false,
+  ccmp: false,
+};
 
 const hex = (color: string) =>
   rgb(

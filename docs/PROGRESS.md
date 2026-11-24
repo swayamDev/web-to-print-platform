@@ -5,7 +5,10 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 13** (customer dashboard, invoices, one-click reorder).
+- Phase 13 live: apply `20261124190000_reorders.sql` (`pnpm exec supabase db push --remote`), push,
+  then on the live site download an invoice and reorder an approved order (Stripe test card); check
+  the reorder's proof is approved via reorder with the original's hash.
+- Then **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
@@ -35,7 +38,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
 - [x] **Phase 11** — Production file generation, storage layout, secure admin download
 - [x] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
-- [ ] **Phase 13** — Customer dashboard, invoices, one-click reorder
+- [x] **Phase 13** — Customer dashboard, invoices, one-click reorder
 - [ ] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
 - [ ] **Phase 15** — Admin product/template management, reports, Xero CSV export
 - [ ] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
@@ -348,3 +351,27 @@ next step under **Next up** so work can resume cold.
   matches; the customer approved it. Admin "Generate print files" ran both batches: 12 row PDFs +
   12 row PNGs in `rows/`, a 12-page combined `print.pdf` (trim 148 × 210 mm), and a ZIP with 24
   entries; merge job `done` 12/12, order in production, `production.started` audited.
+
+### 2026-11-24 — Phase 13
+
+- Invoices: `src/domain/invoice.ts` (pure, 9 tests) builds a Xero-shaped VAT invoice (product line
+  before discount, discount, setup, net subtotal, VAT, gross, paid, amount due) and refuses totals
+  that do not add up. `src/server/invoices.ts` renders it to an A4 PDF with the embedded Inter
+  fonts, dated the payment date, so the same invoice is always the same file.
+  `GET /api/v1/invoices/{orderId}`: own paid orders (admins: any), 404 otherwise, rate-limited.
+  Linked from the order page and the order list.
+- One-click reorder (D-12, D-45): migration `20261124190000_reorders.sql` adds
+  `orders.reorder_confirmation` and `approve_reorder_proof`, which approves a reorder's proof only
+  when its snapshot hash equals the original's approved proof (same customer, confirmed, latest,
+  pending), logged as `approved_via_reorder` with the confirmation's time, IP and browser.
+  `src/server/reorders.ts` re-prices the approved snapshot at today's rates, re-hashes today's
+  uploaded files (refuses if anything changed or was deleted), copies the frozen CSV rows and opens
+  Stripe. After payment the proof is rendered from the same snapshot and approved at once.
+  Order page: "Order this again" with the artwork confirmation checkbox; dashboard "Order again".
+- Dashboard: order counts by stage (In progress, Awaiting payment, Completed) linking to the
+  filtered order list (`?show=`); list rows show the date, invoice and reorder links.
+- Admin order page shows reorder approvals with their note.
+- Tests: 159 unit, 65 database (10 new), e2e `account.spec.ts` (invoice download, byte-identical
+  re-download, 404s; reorder → Stripe → paid → auto-approved with the same hash; confirmation
+  required; filters). Full local e2e: 85 passed; the only failure is the password-reset test when
+  run on a second port (the email links to APP_URL :3000), unrelated.

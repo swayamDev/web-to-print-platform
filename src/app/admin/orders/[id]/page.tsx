@@ -43,7 +43,7 @@ async function AdminOrder({ params }: Props) {
        files_unlocked_at, customer:profiles!orders_customer_id_fkey(full_name, company_name),
        order_items(description, quantity, product:products(name, output_dpi, mirror_output)),
        proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_png_path),
-       proof_events(proof_version_id, action, ip, created_at),
+       proof_events(proof_version_id, action, ip, comment, created_at),
        production_files(id, kind, row_index, storage_path, bytes, sha256, width_px, height_px, dpi, created_at),
        merge_jobs(row_count, processed_count, status)`,
     )
@@ -54,7 +54,9 @@ async function AdminOrder({ params }: Props) {
   const item = order.order_items[0];
   const approved = order.proof_versions.find((v) => v.id === order.approved_proof_id);
   const approval = order.proof_events.find(
-    (e) => e.action === "approved" && e.proof_version_id === order.approved_proof_id,
+    (e) =>
+      (e.action === "approved" || e.action === "approved_via_reorder") &&
+      e.proof_version_id === order.approved_proof_id,
   );
   const signed = await signProofFiles(approved?.proof_png_path ? [approved.proof_png_path] : []);
   const proofImage = approved?.proof_png_path ? signed.get(approved.proof_png_path) : undefined;
@@ -111,6 +113,9 @@ async function AdminOrder({ params }: Props) {
               <Row label="Version" value={`v${approved.version}`} />
               <Row label="Approved" value={new Date(approval.created_at).toLocaleString("en-GB")} />
               <Row label="From IP" value={approval.ip ? String(approval.ip) : "—"} />
+              {approval.action === "approved_via_reorder" ? (
+                <Row label="Approval" value={approval.comment ?? "Via reorder"} />
+              ) : null}
               <Row label="Snapshot sha256" value={approved.snapshot_hash} mono />
               {job ? (
                 <Row

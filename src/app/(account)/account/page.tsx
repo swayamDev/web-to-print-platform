@@ -27,7 +27,13 @@ async function AccountDashboard() {
   const supabase = await createSupabaseServerClient();
 
   // RLS limits both queries to this customer's own rows.
-  const [{ data: orders }, { count: designCount }, { data: awaitingProofs }] = await Promise.all([
+  const [
+    { data: orders },
+    { count: designCount },
+    { data: awaitingProofs },
+    { data: allStatuses },
+    { data: repeatable },
+  ] = await Promise.all([
     supabase
       .from("orders")
       .select(
@@ -43,7 +49,28 @@ async function AccountDashboard() {
       .eq("status", "proof")
       .is("approved_proof_id", null)
       .order("created_at", { ascending: false }),
+    // Order counts per stage for the summary tiles.
+    supabase.from("orders").select("status").limit(1000),
+    // Approved jobs the customer can repeat in one click (DECISIONS D-12).
+    supabase
+      .from("orders")
+      .select("id, order_number, created_at, order_items(description)")
+      .not("approved_proof_id", "is", null)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(3),
   ]);
+  const count = (statuses: string[]) =>
+    (allStatuses ?? []).filter((o) => statuses.includes(o.status)).length;
+  const tiles = [
+    {
+      label: "In progress",
+      value: count(["order", "artwork", "proof", "production"]),
+      href: "/account/orders?show=active",
+    },
+    { label: "Awaiting payment", value: count(["quote"]), href: "/account/orders?show=unpaid" },
+    { label: "Completed", value: count(["completed"]), href: "/account/orders?show=completed" },
+  ];
 
   const { full_name, company_name, phone } = user.profile;
   const missing = [!full_name && "name", !company_name && "company", !phone && "phone"].filter(
@@ -58,6 +85,20 @@ async function AccountDashboard() {
         </h1>
         <p className="text-muted-foreground text-sm">{user.email}</p>
       </div>
+
+      <ul className="grid grid-cols-3 gap-3" data-testid="order-summary">
+        {tiles.map((tile) => (
+          <li key={tile.label}>
+            <Link
+              href={tile.href}
+              className="bg-card hover:border-ink grid gap-1 rounded-xl border p-4 transition-colors"
+            >
+              <span className="num font-mono text-2xl font-semibold">{tile.value}</span>
+              <span className="text-muted-foreground text-xs sm:text-sm">{tile.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       {awaitingProofs && awaitingProofs.length > 0 ? (
         <Card className="border-signal" data-testid="active-proofs">
@@ -127,6 +168,40 @@ async function AccountDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {repeatable && repeatable.length > 0 ? (
+        <Card data-testid="order-again">
+          <CardHeader>
+            <CardTitle>Order again</CardTitle>
+            <CardDescription>
+              Repeat an approved job at today&rsquo;s price, with no new proof to wait for.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {repeatable.map((order) => (
+                <li
+                  key={order.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-3"
+                >
+                  <span className="grid">
+                    <span className="font-mono text-sm">{order.order_number}</span>
+                    <span className="text-muted-foreground text-sm">
+                      {order.order_items[0]?.description}
+                    </span>
+                  </span>
+                  <Link
+                    href={`/account/orders/${order.id}#reorder`}
+                    className={buttonVariants({ size: "sm", variant: "outline" })}
+                  >
+                    Reorder
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

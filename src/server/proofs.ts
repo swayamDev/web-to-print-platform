@@ -108,6 +108,8 @@ export async function generateProof(input: {
   document?: DesignDocument;
   /** Revised CSV rows (a revision of a variable-data order); otherwise the frozen merge job. */
   merge?: ResolvedMerge;
+  /** Email the customer that a proof is ready (not for reorders, which are approved at once). */
+  notify?: boolean;
 }): Promise<GenerateProofOutcome> {
   const admin = createSupabaseAdminClient();
   const { data: order } = await admin
@@ -234,6 +236,7 @@ export async function generateProof(input: {
       .eq("id", job.id);
   }
 
+  if (input.notify === false) return { ok: true, version, versionId: row.id };
   const customer = await customerContact(order.customer_id);
   await notifyCustomer({
     userId: order.customer_id,
@@ -250,18 +253,49 @@ export async function generateProof(input: {
   return { ok: true, version, versionId: row.id };
 }
 
-/** Proof v1 straight after payment, if the order has none yet. Never throws. */
+/**
+ * Proof v1 straight after payment, if the order has none yet. A reorder's proof is rendered
+ * from the same approved snapshot and approved at once with the customer's reorder
+ * confirmation (the database refuses unless its hash equals the original approval). Never throws.
+ */
 export async function ensureFirstProof(orderId: string): Promise<void> {
   try {
     const admin = createSupabaseAdminClient();
-    const { count } = await admin
-      .from("proof_versions")
-      .select("id", { count: "exact", head: true })
-      .eq("order_id", orderId);
-    if ((count ?? 0) > 0) return;
-    const outcome = await generateProof({ orderId, source: "customer_edit", actorId: null });
-    if (!outcome.ok && outcome.code !== "proof_version_conflict") {
-      console.error("proof generation failed", { orderId, code: outcome.code });
+    const [{ data: proofs }, { data: order }] = await Promise.all([
+      admin.from("proof_versions").select("id, version, status").eq("order_id", orderId),
+      admin
+        .from("orders")
+        .select("reorder_of_order_id, approved_proof_id")
+        .eq("id", orderId)
+        .single(),
+    ]);
+    const reorder = Boolean(order?.reorder_of_order_id);
+    let pending =
+      reorder && !order?.approved_proof_id
+        ? proofs?.find((p) => p.status === "pending")
+        : undefined;
+    if ((proofs?.length ?? 0) === 0) {
+      const outcome = await generateProof({
+        orderId,
+        source: reorder ? "reorder" : "customer_edit",
+        actorId: null,
+        notify: !reorder,
+      });
+      if (!outcome.ok) {
+        if (outcome.code !== "proof_version_conflict") {
+          console.error("proof generation failed", { orderId, code: outcome.code });
+        }
+        return;
+      }
+      if (reorder) pending = { id: outcome.versionId, version: outcome.version, status: "pending" };
+    }
+    if (reorder && pending) {
+      const { error } = await admin.rpc("approve_reorder_proof", {
+        p_order_id: orderId,
+        p_version_id: pending.id,
+      });
+      if (error) console.error("reorder approval failed", { orderId, error: error.message });
+      else await notifyProofApproved(orderId, pending.version);
     }
   } catch (error) {
     console.error("proof generation crashed", { orderId, error });

@@ -159,7 +159,7 @@ export async function startCheckout(
   );
 }
 
-async function openCheckoutSession(
+export async function openCheckoutSession(
   orderId: string,
   orderNumber: string,
   email: string,

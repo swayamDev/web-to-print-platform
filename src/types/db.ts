@@ -263,14 +263,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "approved_proof_id": string | null,"archived_at": string | null,"billing_details": NonNullable<Json>,"cancelled_at": string | null,"checkout_session_id": string | null,"created_at": string,"currency": string,"customer_id": string,"discount_minor": number,"files_unlocked_at": string | null,"id": string,"invoice_number": string | null,"order_number": string,"paid_at": string | null,"payment_provider": string | null,"pricing_snapshot": NonNullable<Json>,"reorder_of_order_id": string | null,"status": Database["public"]['Enums']["order_status"],"subtotal_net_minor": number,"tax_minor": number,"tax_rate": number,"total_gross_minor": number,"updated_at": string,"xero_invoice_id": string | null
+                    "approved_proof_id": string | null,"archived_at": string | null,"billing_details": NonNullable<Json>,"cancelled_at": string | null,"checkout_session_id": string | null,"created_at": string,"currency": string,"customer_id": string,"discount_minor": number,"files_unlocked_at": string | null,"id": string,"invoice_number": string | null,"order_number": string,"paid_at": string | null,"payment_provider": string | null,"pricing_snapshot": NonNullable<Json>,"reorder_confirmation": Json | null,"reorder_of_order_id": string | null,"status": Database["public"]['Enums']["order_status"],"subtotal_net_minor": number,"tax_minor": number,"tax_rate": number,"total_gross_minor": number,"updated_at": string,"xero_invoice_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_proof_id"?: string | null,"archived_at"?: string | null,"billing_details"?: NonNullable<Json>,"cancelled_at"?: string | null,"checkout_session_id"?: string | null,"created_at"?: string,"currency": string,"customer_id": string,"discount_minor"?: number,"files_unlocked_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"order_number"?: string,"paid_at"?: string | null,"payment_provider"?: string | null,"pricing_snapshot": NonNullable<Json>,"reorder_of_order_id"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"subtotal_net_minor": number,"tax_minor": number,"tax_rate": number,"total_gross_minor": number,"updated_at"?: string,"xero_invoice_id"?: string | null
+                    "approved_proof_id"?: string | null,"archived_at"?: string | null,"billing_details"?: NonNullable<Json>,"cancelled_at"?: string | null,"checkout_session_id"?: string | null,"created_at"?: string,"currency": string,"customer_id": string,"discount_minor"?: number,"files_unlocked_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"order_number"?: string,"paid_at"?: string | null,"payment_provider"?: string | null,"pricing_snapshot": NonNullable<Json>,"reorder_confirmation"?: Json | null,"reorder_of_order_id"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"subtotal_net_minor": number,"tax_minor": number,"tax_rate": number,"total_gross_minor": number,"updated_at"?: string,"xero_invoice_id"?: string | null
                   }
                   Update: {
-                    "approved_proof_id"?: string | null,"archived_at"?: string | null,"billing_details"?: NonNullable<Json>,"cancelled_at"?: string | null,"checkout_session_id"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string,"discount_minor"?: number,"files_unlocked_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"order_number"?: string,"paid_at"?: string | null,"payment_provider"?: string | null,"pricing_snapshot"?: NonNullable<Json>,"reorder_of_order_id"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"subtotal_net_minor"?: number,"tax_minor"?: number,"tax_rate"?: number,"total_gross_minor"?: number,"updated_at"?: string,"xero_invoice_id"?: string | null
+                    "approved_proof_id"?: string | null,"archived_at"?: string | null,"billing_details"?: NonNullable<Json>,"cancelled_at"?: string | null,"checkout_session_id"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string,"discount_minor"?: number,"files_unlocked_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"order_number"?: string,"paid_at"?: string | null,"payment_provider"?: string | null,"pricing_snapshot"?: NonNullable<Json>,"reorder_confirmation"?: Json | null,"reorder_of_order_id"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"subtotal_net_minor"?: number,"tax_minor"?: number,"tax_rate"?: number,"total_gross_minor"?: number,"updated_at"?: string,"xero_invoice_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -560,6 +560,29 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"approve_reorder_proof":
+{ Args: { "p_order_id": string,"p_version_id": string }; Returns: {
+              "config_snapshot": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"document_snapshot": Json | null,
+"id": string,
+"merge_dataset_hash": string | null,
+"order_id": string,
+"proof_pdf_path": string | null,
+"proof_png_path": string | null,
+"snapshot_hash": string,
+"source": Database["public"]['Enums']["proof_source"],
+"status": Database["public"]['Enums']["proof_status"],
+"upload_asset_id": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "proof_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "check_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
                            },
@@ -659,6 +682,7 @@ isOneToOne: false
 "paid_at": string | null,
 "payment_provider": string | null,
 "pricing_snapshot": NonNullable<Json>,
+"reorder_confirmation": Json | null,
 "reorder_of_order_id": string | null,
 "status": Database["public"]['Enums']["order_status"],
 "subtotal_net_minor": number,
@@ -692,6 +716,7 @@ isOneToOne: false
 "paid_at": string | null,
 "payment_provider": string | null,
 "pricing_snapshot": NonNullable<Json>,
+"reorder_confirmation": Json | null,
 "reorder_of_order_id": string | null,
 "status": Database["public"]['Enums']["order_status"],
 "subtotal_net_minor": number,
