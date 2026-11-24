@@ -5,8 +5,6 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 11 live: apply `20261124150000_production_gate.sql` (`pnpm exec supabase db push --remote`),
-  push, then generate print files for DH-2026-000007 as admin and download them.
 - Then **Phase 12** (CSV variable-data merge): upload CSV, map columns to placeholders, preflight
   every row (overflow, missing values, 100-row cap), proof the first rows, batched row PDFs/PNGs
   into `production/{OrderID}/rows/` plus a ZIP.
@@ -311,3 +309,9 @@ next step under **Next up** so work can resume cold.
 - 4 e2e tests (generate + names + PNG size/DPI + download + hash in PDF + byte-identical regenerate +
   email; customers get 404 and never see file names; locked before approval; admin header at 360 px).
   137 unit + 82 e2e + 50 database tests pass.
+- Live (2026-11-24): migration applied, 50 pgTAP tests pass on the live database, deployed.
+  As admin, generated DH-2026-000007's files from `/admin/production`: `DH-2026-000007_custom-stickers_2026-11-24_print.pdf`
+  (TrimBox 50 × 50 mm inside a 54 mm page, keywords carry the approved snapshot hash) and `…_print.png`
+  (638 × 638 px, 300 DPI); both downloaded through the admin route (2 audit rows); the customer
+  gets 404 on the route and sees "In production"; "in production" in-app + email sent. Live e2e:
+  66 passed; one template-preview cold start passed on re-run.
