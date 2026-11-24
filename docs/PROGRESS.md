@@ -6,11 +6,13 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 9** (checkout): confirm the payment provider first (D-01). `PaymentProvider`
-  interface + Stripe hosted Checkout (test mode), checkout server action that re-prices on the
-  server and refuses designs with blocking print issues, `quote` order + order_items rows, signed
-  webhook with idempotency (`webhook_events`), `order` status + invoice number, success page that
-  polls, confirmation email via SMTP, notifications table.
+- **Live setup for checkout (needs the user):** apply migration `20261124120000_order_design_snapshot`
+  to the live database (`supabase db push --remote`), add `STRIPE_SECRET_KEY` and the webhook endpoint
+  - `STRIPE_WEBHOOK_SECRET` in Vercel, and SMTP settings (docs/DEPLOYMENT.md §6–7).
+- Then **Phase 10** (proofs): generate proof v1 (watermarked PNG + PDF with guides) from the order's
+  `design_snapshot`, `proof_versions` with snapshot hash, customer approve / request changes (only the
+  latest version, transactional), immutable `proof_events`, approval gate (`files_unlocked_at`),
+  proof-ready and approved emails.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -36,7 +38,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
 - [x] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
 - [x] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
-- [ ] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
+- [x] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
 - [ ] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
 - [ ] **Phase 11** — Production file generation, storage layout, secure admin download
 - [ ] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
@@ -239,3 +241,24 @@ next step under **Next up** so work can resume cold.
   it statically and passed its own canvas factory. Verified live: 10/10 upload + render e2e pass.
 - Live e2e runs that save designs or upload files leave data in the demo customer account; clean it
   up afterwards (designs, asset rows and storage objects created since the run started).
+
+### 2026-11-24 — Phase 9
+
+- `src/server/payments.ts`: PaymentProvider + Stripe hosted Checkout (idempotency key, 24 h expiry,
+  expire-old-session on retry, live keys refused). `src/lib/payments/events.ts` maps verified Stripe
+  events to our own events (6 unit tests incl. real signature checks).
+- `src/server/orders.ts`: `startCheckout` re-reads the design under RLS, re-validates it with the
+  print engine (blocking issues refused), re-prices from the database, writes a `quote` order +
+  order_items (with the new `design_snapshot` column) via the secret key, opens Checkout.
+  `processPaymentEvent`: webhook_events idempotency, amount/currency must match the stored total,
+  payments row (unique per payment), paid_at + invoice number, `transition_order` quote → order →
+  artwork, confirmation notification.
+- `POST /api/v1/webhooks/stripe` verifies the signature on the raw body (400 if invalid).
+- Notifications (`src/server/notify.ts`): stored in-app, emailed via SMTP (Nodemailer) when set;
+  local email goes to Mailpit (SMTP port 55325 exposed in config.toml).
+- UI: "Order now" in the designer (saves first; disabled while the print check has errors),
+  `/account/orders` list, `/account/orders/[id]` with pipeline timeline, totals, invoice number,
+  "Confirming your payment…" polling after Stripe, "Pay now" for unpaid orders.
+- 4 checkout e2e tests with Stripe-signed test events (processed once, duplicate replay, forged and
+  tampered signatures, wrong amount, customer page, Mailpit email). 127 unit + 75 e2e pass.
+- Not verified yet: a real Stripe test payment end to end (needs the user's test keys and webhook).

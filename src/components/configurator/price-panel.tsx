@@ -114,7 +114,7 @@ export function PricePanel({
               </a>
             ) : null}
             <p className="text-paper/70 text-sm">
-              Design your artwork and save it to your account. Checkout opens in a later release.
+              Design your artwork online, then order and pay securely with Stripe.
             </p>
             <CopyLinkButton />
           </div>

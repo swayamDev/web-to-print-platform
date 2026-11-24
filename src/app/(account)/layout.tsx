@@ -6,6 +6,7 @@ import { requireUser } from "@/server/auth";
 
 const NAV = [
   { href: "/account", label: "Dashboard", exact: true },
+  { href: "/account/orders", label: "Orders" },
   { href: "/account/designs", label: "Designs" },
   { href: "/account/profile", label: "Profile" },
 ];
@@ -14,7 +15,10 @@ const NAV = [
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-6 px-4 py-6">
-      <SectionNav items={NAV} label="Account sections" />
+      {/* The nav reads the current URL, which dynamic routes only know at request time. */}
+      <Suspense fallback={<div className="h-10 border-b" aria-hidden="true" />}>
+        <SectionNav items={NAV} label="Account sections" />
+      </Suspense>
       <Suspense fallback={<PageSkeleton />}>
         <SignedIn>{children}</SignedIn>
       </Suspense>

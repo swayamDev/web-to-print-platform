@@ -24,6 +24,7 @@ import { acceptAttribute, type AssetInfo } from "@/domain/uploads";
 import { calculatePrice, type PricingRules } from "@/domain/pricing";
 import { formatMm } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { startCheckoutAction } from "@/server/actions/checkout";
 import { saveDesignAction } from "@/server/actions/designs";
 import type { ClientAsset } from "@/server/assets";
 
@@ -106,6 +107,10 @@ export function Designer({
   const logoInput = useRef<HTMLInputElement>(null);
   const artworkInput = useRef<HTMLInputElement>(null);
   const [notices, setNotices] = useState<string[]>([]);
+  const [ordering, setOrdering] = useState<{ busy: boolean; error: string | null }>({
+    busy: false,
+    error: null,
+  });
 
   const commit = useCallback(
     (next: DesignDocument, key?: string) => {
@@ -151,6 +156,7 @@ export function Designer({
     [product.slug, templateId, config, router],
   );
 
+  const savedIdRef = useRef<string | null>(design?.id ?? null);
   const save = useCallback(
     async (documentToSave: DesignDocument, nameToSave: string) => {
       setSaveState({ kind: "saving" });
@@ -171,6 +177,7 @@ export function Designer({
         return;
       }
       if (!designId) {
+        savedIdRef.current = result.id;
         setDesignId(result.id);
         // Give the design its own address without reloading the editor.
         window.history.replaceState(null, "", `/design/${result.id}`);
@@ -306,6 +313,27 @@ export function Designer({
     commit(placed.doc);
     setSelectedId(placed.id);
     setNotices([...placed.notes, ...asset.warnings]);
+  };
+
+  /** Save if needed, then let the server re-check, re-price and open Stripe Checkout. */
+  const orderNow = async () => {
+    if (!userId) {
+      stashDraftAndLogin(doc, name);
+      return;
+    }
+    setOrdering({ busy: true, error: null });
+    if (!designId || saveState.kind === "dirty") await save(doc, name);
+    const id = savedIdRef.current;
+    if (!id) {
+      setOrdering({ busy: false, error: "Save your design first." });
+      return;
+    }
+    const result = await startCheckoutAction(id);
+    if (result.ok) {
+      window.location.assign(result.url);
+      return;
+    }
+    setOrdering({ busy: false, error: result.message });
   };
 
   const statusText =
@@ -666,9 +694,26 @@ export function Designer({
             >
               Change size, material or quantity
             </Link>
-            <p className="text-muted-foreground text-xs">
-              Ordering opens with checkout; for now your design is saved to your account.
-            </p>
+            <button
+              type="button"
+              onClick={() => void orderNow()}
+              disabled={locked || ordering.busy || errors.length > 0 || !layout}
+              className="bg-primary text-primary-foreground mt-1 inline-flex h-11 items-center justify-center rounded-md px-4 font-medium disabled:opacity-50"
+            >
+              {ordering.busy ? "Opening secure payment…" : "Order now"}
+            </button>
+            {errors.length > 0 ? (
+              <p className="text-muted-foreground text-xs">Fix the print check above to order.</p>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                You pay on Stripe&apos;s secure page. Nothing is printed until you approve a proof.
+              </p>
+            )}
+            {ordering.error ? (
+              <p role="alert" className="text-destructive text-sm" data-testid="order-error">
+                {ordering.error}
+              </p>
+            ) : null}
           </section>
         </aside>
       </div>

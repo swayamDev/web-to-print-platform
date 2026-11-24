@@ -159,3 +159,12 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-32 Finished artwork placement:** a file the size of the page plus bleed covers the bleed box;
   a trim-size file covers the trim and the customer is told there is no bleed; anything else is
   fitted inside the page with a note. Customer PDFs stay vector in the print PDF.
+- **D-33 One order per checkout attempt; payment confirmed only by the webhook.** "Order now" creates
+  a `quote` order from the server's own price and a frozen copy of the artwork, then opens Stripe
+  Checkout for exactly that total. The order is marked paid only by a signature-verified webhook
+  whose amount and currency match; the browser's return to the success page proves nothing.
+  Reopening payment for an unpaid order expires the previous Stripe session first.
+- **D-34 Notifications are stored and emailed.** Every customer message is recorded in-app; email is
+  sent through SMTP when configured, and failures are recorded rather than ignored.
+- **D-35 Live payment keys are refused** unless `ALLOW_LIVE_PAYMENTS=true`, so a demonstration
+  deployment can never take real money by mistake.

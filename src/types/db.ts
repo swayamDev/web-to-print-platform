@@ -205,14 +205,14 @@ isOneToOne: false
                   ]
                 },"order_items": {
                   Row: {
-                    "config_snapshot": NonNullable<Json>,"created_at": string,"description": string,"design_id": string | null,"discount_percent": number,"id": string,"is_variable_data": boolean,"line_gross_minor": number,"line_net_minor": number,"line_tax_minor": number,"order_id": string,"product_id": string,"quantity": number,"unit_net": number
+                    "config_snapshot": NonNullable<Json>,"created_at": string,"description": string,"design_id": string | null,"design_snapshot": Json | null,"discount_percent": number,"id": string,"is_variable_data": boolean,"line_gross_minor": number,"line_net_minor": number,"line_tax_minor": number,"order_id": string,"product_id": string,"quantity": number,"unit_net": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "config_snapshot": NonNullable<Json>,"created_at"?: string,"description": string,"design_id"?: string | null,"discount_percent"?: number,"id"?: string,"is_variable_data"?: boolean,"line_gross_minor": number,"line_net_minor": number,"line_tax_minor": number,"order_id": string,"product_id": string,"quantity": number,"unit_net": number
+                    "config_snapshot": NonNullable<Json>,"created_at"?: string,"description": string,"design_id"?: string | null,"design_snapshot"?: Json | null,"discount_percent"?: number,"id"?: string,"is_variable_data"?: boolean,"line_gross_minor": number,"line_net_minor": number,"line_tax_minor": number,"order_id": string,"product_id": string,"quantity": number,"unit_net": number
                   }
                   Update: {
-                    "config_snapshot"?: NonNullable<Json>,"created_at"?: string,"description"?: string,"design_id"?: string | null,"discount_percent"?: number,"id"?: string,"is_variable_data"?: boolean,"line_gross_minor"?: number,"line_net_minor"?: number,"line_tax_minor"?: number,"order_id"?: string,"product_id"?: string,"quantity"?: number,"unit_net"?: number
+                    "config_snapshot"?: NonNullable<Json>,"created_at"?: string,"description"?: string,"design_id"?: string | null,"design_snapshot"?: Json | null,"discount_percent"?: number,"id"?: string,"is_variable_data"?: boolean,"line_gross_minor"?: number,"line_net_minor"?: number,"line_tax_minor"?: number,"order_id"?: string,"product_id"?: string,"quantity"?: number,"unit_net"?: number
                   }
                   Relationships: [
                     {

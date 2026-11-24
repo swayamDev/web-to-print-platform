@@ -95,6 +95,41 @@ node --env-file=.env.live scripts/seed-users.mts
 - If you do run the signup test live, remove its throwaway account afterwards:
   `node --env-file=.env.live scripts/cleanup-e2e-users.mts`
 
+## 6. Payments (Stripe, test mode)
+
+1. In Stripe (a separate account such as "Digital Heroes Print (demo)" is fine), keep **Test mode**
+   on. **Developers → API keys**: copy the secret key `sk_test_…` into Vercel as
+   `STRIPE_SECRET_KEY` (Production + Preview, **Sensitive**). Live keys are refused by the app
+   unless `ALLOW_LIVE_PAYMENTS=true`.
+2. **Developers → Webhooks → Add endpoint**:
+   - URL: `https://<your-app>.vercel.app/api/v1/webhooks/stripe`
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+     `checkout.session.async_payment_failed`, `checkout.session.expired`
+   - Copy the endpoint's **signing secret** `whsec_…` into Vercel as `STRIPE_WEBHOOK_SECRET`
+     (**Sensitive**), then redeploy.
+3. Test with card `4242 4242 4242 4242`, any future expiry, any CVC. The order page shows
+   "Confirming your payment…" until the webhook arrives, then "Artwork check".
+4. Locally: `stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe` prints a
+   temporary `whsec_…` for `.env.local`. The automated tests sign their own events instead.
+
+## 7. Email (SMTP)
+
+Order and proof emails are sent through any SMTP account, and every message is also shown in the
+customer's account, so a delivery problem never hides a notification. Example with a dedicated
+Gmail account and an **app password** (Google Account → Security → App passwords):
+
+| Name         | Value                                         |
+| ------------ | --------------------------------------------- |
+| `SMTP_HOST`  | `smtp.gmail.com`                              |
+| `SMTP_PORT`  | `465`                                         |
+| `SMTP_USER`  | the Gmail address                             |
+| `SMTP_PASS`  | the 16-character app password (**Sensitive**) |
+| `EMAIL_FROM` | `Digital Heroes Print <the Gmail address>`    |
+
+Use the same SMTP details in Supabase → **Authentication → Emails → SMTP Settings** so password
+reset emails are not limited by Supabase's built-in sender. Locally, email goes to Mailpit
+(`http://127.0.0.1:55324`).
+
 ## Changing the schema later
 
 Add a migration in `supabase/migrations/`, test with `pnpm db:reset && pnpm db:test`, then

@@ -97,7 +97,12 @@ async function AccountDashboard() {
                   key={order.id}
                   className="flex flex-wrap items-center justify-between gap-2 py-3"
                 >
-                  <span className="font-mono text-sm">{order.order_number}</span>
+                  <Link
+                    href={`/account/orders/${order.id}`}
+                    className="font-mono text-sm underline-offset-4 hover:underline"
+                  >
+                    {order.order_number}
+                  </Link>
                   <span className="text-muted-foreground text-sm">
                     {ORDER_STATUS_LABELS[order.status]}
                   </span>
