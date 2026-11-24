@@ -123,7 +123,8 @@ export async function inspectUpload(
       let preview: Uint8Array;
       try {
         preview = (await pdfPageToPng(bytes, { dpi: 150, maxPixels: PREVIEW_MAX_PX })).png;
-      } catch {
+      } catch (error) {
+        console.error("PDF preview failed", error);
         return { ok: false, reason: "This PDF could not be drawn. Please export it again." };
       }
       return {

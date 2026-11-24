@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import * as napiCanvas from "@napi-rs/canvas";
 import { Resvg } from "@resvg/resvg-js";
 
 import { setPngDpi } from "./png";
@@ -16,10 +17,46 @@ import { setPngDpi } from "./png";
 // these folders into the serverless bundle at the same relative paths.
 const pdfjsDir = () => join(process.cwd(), "node_modules", "pdfjs-dist");
 
+/**
+ * pdf.js loads @napi-rs/canvas itself through a dynamic require that serverless bundlers cannot
+ * trace, so on Vercel the package would be missing. Importing it statically above makes sure it
+ * ships; here we give pdf.js the browser classes it expects and our own canvas factory.
+ */
+function installCanvasGlobals() {
+  const g = globalThis as Record<string, unknown>;
+  g.DOMMatrix ??= napiCanvas.DOMMatrix;
+  g.ImageData ??= napiCanvas.ImageData;
+  g.Path2D ??= napiCanvas.Path2D;
+}
+
+type CanvasAndContext = { canvas: napiCanvas.Canvas; context: napiCanvas.SKRSContext2D };
+
+/** Same interface as pdf.js's BaseCanvasFactory, backed by the statically imported canvas. */
+class NodeCanvasFactory {
+  // pdf.js passes constructor options ({ enableHWA }); none apply on the server.
+  create(width: number, height: number): CanvasAndContext {
+    if (width <= 0 || height <= 0) throw new Error("Invalid canvas size");
+    const canvas = napiCanvas.createCanvas(width, height);
+    return { canvas, context: canvas.getContext("2d") };
+  }
+  reset(target: CanvasAndContext, width: number, height: number) {
+    target.canvas.width = width;
+    target.canvas.height = height;
+  }
+  destroy(target: CanvasAndContext) {
+    target.canvas.width = 0;
+    target.canvas.height = 0;
+  }
+  getNoAlphaContext(canvas: napiCanvas.Canvas) {
+    return canvas.getContext("2d", { alpha: false });
+  }
+}
+
 export async function pdfPageToPng(
   pdfBytes: Uint8Array,
   options: { dpi?: number; maxPixels?: number; pageIndex?: number } = {},
 ): Promise<{ png: Uint8Array; width: number; height: number }> {
+  installCanvasGlobals();
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const task = getDocument({
     data: pdfBytes.slice(),
@@ -28,6 +65,7 @@ export async function pdfPageToPng(
     cMapPacked: true,
     disableFontFace: true,
     useSystemFonts: false,
+    CanvasFactory: NodeCanvasFactory,
   });
   const pdf = await task.promise;
   try {
@@ -40,20 +78,10 @@ export async function pdfPageToPng(
     const viewport = page.getViewport({ scale });
     const width = Math.max(1, Math.round(viewport.width));
     const height = Math.max(1, Math.round(viewport.height));
-    const factory = pdf.canvasFactory as {
-      create(
-        w: number,
-        h: number,
-      ): { canvas: { encode(type: "png"): Promise<Buffer> }; context: unknown };
-    };
-    const { canvas, context } = factory.create(width, height);
+    const { canvas, context } = new NodeCanvasFactory().create(width, height);
     // White paper behind transparent PDF pages.
-    const ctx = context as {
-      fillStyle: string;
-      fillRect(x: number, y: number, w: number, h: number): void;
-    };
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
     await page.render({ canvasContext: context as never, viewport, canvas: canvas as never })
       .promise;
     let png: Uint8Array = new Uint8Array(await canvas.encode("png"));
