@@ -5,9 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Then **Phase 11** (production files): admin-only render of the approved proof's
-  `document_snapshot` to PDF/PNG at output DPI, stored in `production/{order}/…` with the same
-  snapshot hash in the PDF keywords, only when `files_unlocked_at` is set; secure admin download.
+- Phase 11 live: apply `20261124150000_production_gate.sql` (`pnpm exec supabase db push --remote`),
+  push, then generate print files for DH-2026-000007 as admin and download them.
+- Then **Phase 12** (CSV variable-data merge): upload CSV, map columns to placeholders, preflight
+  every row (overflow, missing values, 100-row cap), proof the first rows, batched row PDFs/PNGs
+  into `production/{OrderID}/rows/` plus a ZIP.
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
@@ -35,7 +37,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
 - [x] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
 - [x] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
-- [ ] **Phase 11** — Production file generation, storage layout, secure admin download
+- [x] **Phase 11** — Production file generation, storage layout, secure admin download
 - [ ] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
 - [ ] **Phase 13** — Customer dashboard, invoices, one-click reorder
 - [ ] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
@@ -287,3 +289,25 @@ next step under **Next up** so work can resume cold.
   `approved` event (actor, IP, user agent, hash = v1 hash), `approved_proof_id` = v1,
   `files_unlocked_at` set, design locked, "proof approved" in-app + email sent, page shows
   "Proof approved" with no decision buttons, dashboard has no waiting proofs.
+
+### 2026-11-24 — Phase 11
+
+- Migration `20261124150000_production_gate.sql`: a trigger refuses production file rows unless they
+  belong to the order's approved proof after unlock; `start_production` moves proof → production
+  only once the approved proof's print PDF exists (no-op when already in production). 9 pgTAP tests
+  (50 total).
+- `src/domain/production.ts`: `OrderID_ProductType_Date_Output` names (paid date in UTC, path-safe).
+- Print engine: `mirror` option (SVG group flip, PDF content-stream flip; trim box unchanged) for
+  products produced mirrored (stamps). Proofs are never mirrored.
+- `src/server/production.ts`: renders from the approved proof's snapshot after re-hashing it
+  (refuses if an upload changed), PDF dated with the paid date (byte-identical on regeneration),
+  PNG at the product's output DPI, upserted into `production/{OrderID}/` + `production_files`,
+  `start_production`, audit log, "in production" email.
+- Admin: `/admin/production` queue (approved / in production), `/admin/orders/[id]` (approved
+  proof, hash, IP, generate / regenerate, file list), downloads via
+  `GET /api/v1/admin/production-files/[id]` (admin check in the route, audit log, 60 s signed link,
+  404 for everyone else).
+- Fixed: admin header was 20 px too wide on phones (tighter header buttons below 640 px).
+- 4 e2e tests (generate + names + PNG size/DPI + download + hash in PDF + byte-identical regenerate +
+  email; customers get 404 and never see file names; locked before approval; admin header at 360 px).
+  137 unit + 82 e2e + 50 database tests pass.

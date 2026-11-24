@@ -189,6 +189,63 @@ describe("PNG preflight", () => {
     expect(dark).toBeGreaterThan(20);
   });
 
+  it("mirrors the artwork left to right when the product is produced mirrored", async () => {
+    const base = raceBib();
+    const doc: DesignDocument = {
+      ...base,
+      elements: [
+        {
+          id: "bar",
+          type: "rect",
+          areaId: base.printAreas[0]!.id,
+          x: 0,
+          y: 50,
+          w: 20,
+          h: 40,
+          rotation: 0,
+          fill: "#FF4D00",
+        },
+      ],
+    };
+    const layout = layoutDocument(doc, {}, lookup);
+    const dpi = 50;
+    const pixelAt = (svg: string, xMm: number, yMm: number) => {
+      const image = new Resvg(svg, {
+        fitTo: { mode: "width", value: mmToPx(layout.pageWidthMm, dpi) },
+      }).render();
+      const i = (mmToPx(yMm, dpi) * image.width + mmToPx(xMm, dpi)) * 4;
+      return Array.from(image.pixels.subarray(i, i + 3));
+    };
+    const W = layout.pageWidthMm;
+    const plain = layoutToSvg(layout, fonts);
+    const mirrored = layoutToSvg(layout, fonts, { mirror: true });
+    expect(pixelAt(plain, 10, 75)).toEqual([255, 77, 0]);
+    expect(pixelAt(plain, W - 10, 75)).toEqual([255, 255, 255]);
+    expect(pixelAt(mirrored, 10, 75)).toEqual([255, 255, 255]);
+    expect(pixelAt(mirrored, W - 10, 75)).toEqual([255, 77, 0]);
+
+    // The PDF flips its content stream about the page centre and keeps the trim box.
+    const pdf = await renderPdf(layout, fonts, { title: "m", date: fixedDate }, new Map(), {
+      mirror: true,
+    });
+    const loaded = await PDFDocument.load(pdf);
+    expect(box(loaded.getPage(0), "TrimBox")).toEqual(
+      box(
+        (
+          await PDFDocument.load(await renderPdf(layout, fonts, { title: "m", date: fixedDate }))
+        ).getPage(0),
+        "TrimBox",
+      ),
+    );
+    const pdfPage = await (await getDocument({ data: new Uint8Array(pdf) }).promise).getPage(1);
+    const { argsArray } = await pdfPage.getOperatorList();
+    expect(
+      argsArray.some(
+        (args) => Array.isArray(args) && args.length === 6 && args[0] === -1 && args[3] === 1,
+      ),
+    ).toBe(true);
+  });
+
   it("can draw proof guides without changing the print file", () => {
     const layout = layoutDocument(raceBib(), {}, lookup);
     const plain = layoutToSvg(layout, fonts);

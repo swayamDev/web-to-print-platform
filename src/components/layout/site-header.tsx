@@ -34,7 +34,7 @@ async function ProductsMenu() {
   return (
     <details className="group relative">
       <summary
-        className={`${buttonVariants({ variant: "ghost" })} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+        className={`${buttonVariants({ variant: "ghost", className: TIGHT })} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
         <Menu className="size-4 md:hidden" aria-hidden="true" />
         <span className="max-md:sr-only">Products</span>
@@ -60,6 +60,9 @@ async function ProductsMenu() {
   );
 }
 
+/** Narrower buttons on phones, so an admin's four header buttons fit at 360 px. */
+const TIGHT = "max-sm:px-1.5";
+
 async function AccountNav() {
   const user = await getSessionUser();
 
@@ -79,16 +82,16 @@ async function AccountNav() {
   return (
     <nav aria-label="Account" className="flex items-center gap-1">
       {user.profile.role === "admin" ? (
-        <Link href="/admin" className={buttonVariants({ variant: "ghost" })}>
+        <Link href="/admin" className={buttonVariants({ variant: "ghost", className: TIGHT })}>
           Admin
         </Link>
       ) : null}
-      <Link href="/account" className={buttonVariants({ variant: "ghost" })}>
+      <Link href="/account" className={buttonVariants({ variant: "ghost", className: TIGHT })}>
         <span className="max-sm:hidden">My account</span>
         <span className="sm:hidden">Account</span>
       </Link>
       <form action={logoutAction}>
-        <button type="submit" className={buttonVariants({ variant: "outline" })}>
+        <button type="submit" className={buttonVariants({ variant: "outline", className: TIGHT })}>
           Log out
         </button>
       </form>

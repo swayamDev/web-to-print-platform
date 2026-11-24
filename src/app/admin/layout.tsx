@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const NAV = [{ href: "/admin", label: "Overview", exact: true }];
+const NAV = [
+  { href: "/admin", label: "Overview", exact: true },
+  { href: "/admin/production", label: "Production" },
+];
 
 /**
  * Administrator console. requireAdmin() here protects every page below it, and each admin

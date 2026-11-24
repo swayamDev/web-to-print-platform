@@ -176,3 +176,8 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   Anything else needs a new order (no re-pricing of paid orders).
 - **D-38 Approval stays in "proof" until an admin starts production.** Approval unlocks print files
   and locks the design; the customer sees "Proof approved".
+- **D-39 Mirroring happens only in production files.** Customers approve the readable artwork; for
+  products marked "produced mirrored" (stamps) the print files are flipped left to right.
+- **D-40 Print files are reproducible.** They are rendered from the approved snapshot (re-hashed
+  first) with the paid date as their timestamp, so regenerating gives the same names and the same
+  PDF bytes. Admins download through a logged, 60-second signed link.

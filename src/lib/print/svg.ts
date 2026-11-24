@@ -15,6 +15,8 @@ export type SvgOptions = {
   guides?: { safeMarginMm: number };
   /** Diagonal "PROOF" text across the page (proof images only, never print files). */
   watermark?: { text: string; font: LoadedFont };
+  /** Flip the artwork left to right (mirrored production output, e.g. stamps). */
+  mirror?: boolean;
   /** Image data by asset id, as data: URIs (PNG/JPEG/SVG; PDFs pre-rasterised by the caller). */
   images?: ReadonlyMap<string, string>;
 };
@@ -37,6 +39,7 @@ export function layoutToSvg(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${n(W)}mm" height="${n(H)}mm" viewBox="0 0 ${n(W)} ${n(H)}">`,
   );
   parts.push(`<rect x="0" y="0" width="${n(W)}" height="${n(H)}" fill="${layout.background}"/>`);
+  if (options.mirror) parts.push(`<g id="mirrored" transform="matrix(-1 0 0 1 ${n(W)} 0)">`);
 
   for (const item of layout.items) {
     if (item.kind === "rect") {
@@ -78,6 +81,8 @@ export function layoutToSvg(
       );
     }
   }
+
+  if (options.mirror) parts.push("</g>");
 
   if (options.watermark) {
     // Size the text to about 70% of the page diagonal, centred, at the diagonal's angle.

@@ -36,6 +36,8 @@ export type RenderRequest = {
   dpi?: number;
   /** Draw trim, bleed and safe-area guides (proofs/previews only). */
   guides?: boolean;
+  /** Flip the artwork left to right (mirrored products). */
+  mirror?: boolean;
   /** Diagonal watermark text (PNG proofs only). */
   watermark?: string;
   meta: PdfMeta;

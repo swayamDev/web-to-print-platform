@@ -112,12 +112,18 @@ export const deliver = (request: APIRequestContext, payload: string, signature: 
     data: payload,
   });
 
-export async function logIn(page: Page) {
+export const adminUser = {
+  email: process.env.TEST_ADMIN_EMAIL ?? "",
+  password: process.env.TEST_ADMIN_PASSWORD ?? "",
+};
+
+export async function logIn(page: Page, who: { email: string; password: string } = customer) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(customer.email);
-  await page.getByLabel("Password").fill(customer.password);
+  await page.getByLabel("Email").fill(who.email);
+  await page.getByLabel("Password").fill(who.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  // Customers land on their account, admins on the admin console.
+  await expect(page).toHaveURL(/\/(account|admin)$/);
 }
 
 /** A simple one-line sticker design, saved for the test customer. */
@@ -195,4 +201,10 @@ export async function mailCount(request: APIRequestContext, subject: string) {
     params: { query: `subject:"${subject}"` },
   });
   return ((await res.json()) as { messages: unknown[] }).messages.length;
+}
+
+/** The test customer's user id. */
+export async function customerId() {
+  const { data } = await admin().auth.admin.listUsers({ perPage: 200 });
+  return data.users.find((u) => u.email === customer.email)!.id;
 }

@@ -91,3 +91,22 @@ export function proofApprovedEmail(input: {
     html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
   };
 }
+
+export function orderInProductionEmail(input: {
+  customerName: string | null;
+  orderNumber: string;
+  orderUrl: string;
+}): EmailContent {
+  const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
+  const paragraphs = [
+    greeting,
+    `Order ${input.orderNumber} is now in production, printed from the proof you approved.`,
+    "We will let you know when it is complete.",
+  ];
+  const title = `Order ${input.orderNumber} is in production`;
+  return {
+    subject: title,
+    text: `${paragraphs.join("\n\n")}\n\nView your order: ${input.orderUrl}\n`,
+    html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
+  };
+}

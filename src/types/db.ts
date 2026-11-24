@@ -641,6 +641,39 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"start_production":
+{ Args: { "p_actor_id"?: string,"p_order_id": string }; Returns: {
+              "approved_proof_id": string | null,
+"archived_at": string | null,
+"billing_details": NonNullable<Json>,
+"cancelled_at": string | null,
+"checkout_session_id": string | null,
+"created_at": string,
+"currency": string,
+"customer_id": string,
+"discount_minor": number,
+"files_unlocked_at": string | null,
+"id": string,
+"invoice_number": string | null,
+"order_number": string,
+"paid_at": string | null,
+"payment_provider": string | null,
+"pricing_snapshot": NonNullable<Json>,
+"reorder_of_order_id": string | null,
+"status": Database["public"]['Enums']["order_status"],
+"subtotal_net_minor": number,
+"tax_minor": number,
+"tax_rate": number,
+"total_gross_minor": number,
+"updated_at": string,
+"xero_invoice_id": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "transition_order":
 { Args: { "p_actor_id"?: string,"p_note"?: string,"p_order_id": string,"p_to_status": Database["public"]['Enums']["order_status"] }; Returns: {
               "approved_proof_id": string | null,

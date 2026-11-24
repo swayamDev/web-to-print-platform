@@ -26,6 +26,8 @@ export type RenderInput = {
   dpi?: number;
   /** Draw trim, bleed and safe-area guides (PNG proofs/previews only). */
   guides?: boolean;
+  /** Flip the artwork left to right (products produced mirrored, e.g. stamps). */
+  mirror?: boolean;
   /** Diagonal watermark text (PNG proofs only; print files never carry one). */
   watermark?: string;
   meta: PdfMeta;
@@ -78,7 +80,7 @@ export async function renderDocument(input: RenderInput): Promise<RenderResult> 
     }
     return {
       ok: true,
-      bytes: await renderPdf(layout, input.fonts, input.meta, images),
+      bytes: await renderPdf(layout, input.fonts, input.meta, images, { mirror: input.mirror }),
       contentType: "application/pdf",
       issues,
     };
@@ -98,6 +100,7 @@ export async function renderDocument(input: RenderInput): Promise<RenderResult> 
   }
   const svg = layoutToSvg(layout, input.fonts, {
     images,
+    mirror: input.mirror,
     ...(input.guides ? { guides: { safeMarginMm: input.document.safeMargin } } : {}),
     ...(input.watermark && input.fonts.get("inter-semibold")
       ? { watermark: { text: input.watermark, font: input.fonts.get("inter-semibold")! } }

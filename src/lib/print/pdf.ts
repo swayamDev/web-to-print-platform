@@ -1,5 +1,6 @@
 import fontkit from "@pdf-lib/fontkit";
 import {
+  concatTransformationMatrix,
   degrees,
   PDFDocument,
   type PDFFont,
@@ -47,6 +48,7 @@ export async function renderPdf(
   fonts: Map<string, LoadedFont>,
   meta: PdfMeta,
   images: ReadonlyMap<string, PdfImageSource> = new Map(),
+  options: { mirror?: boolean } = {},
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -71,6 +73,10 @@ export async function renderPdf(
   const Y = (mm: number) => H - mmToPt(mm);
 
   page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: hex(layout.background) });
+  // Mirrored output (e.g. stamps): flip the artwork left to right about the page centre. Bleed is
+  // equal on both sides, so the trim box stays where it is.
+  if (options.mirror)
+    page.pushOperators(pushGraphicsState(), concatTransformationMatrix(-1, 0, 0, 1, W, 0));
 
   const embedded = new Map<string, PDFFont>();
   const fontFor = async (id: string) => {
@@ -146,6 +152,7 @@ export async function renderPdf(
       page.pushOperators(popGraphicsState());
     }
   }
+  if (options.mirror) page.pushOperators(popGraphicsState());
 
   return doc.save({ useObjectStreams: false });
 }
