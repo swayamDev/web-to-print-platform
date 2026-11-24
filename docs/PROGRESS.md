@@ -5,7 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Then **Phase 15** (admin product/template management, reports, Xero CSV export).
+- **Phase 15** (admin product/template management, reports, Xero CSV export).
 
 ## Live
 
