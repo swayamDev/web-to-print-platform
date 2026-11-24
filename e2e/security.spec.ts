@@ -166,9 +166,12 @@ test.describe("security", () => {
     });
     expect(webhook.status()).toBe(400);
 
+    // Path tricks never reach a file (the app answers 404; Vercel's edge may refuse with 403 first).
+    const traversal = await request.get("/api/v1/invoices/../../etc/passwd");
+    expect([403, 404]).toContain(traversal.status());
+
     // Private files and documents are 404 to strangers, whatever the id looks like.
     for (const path of [
-      "/api/v1/invoices/../../etc/passwd",
       "/api/v1/invoices/00000000-0000-4000-8000-000000000000",
       "/api/v1/admin/production-files/00000000-0000-4000-8000-000000000000",
       "/api/v1/admin/exports/xero?period=month",
