@@ -5,9 +5,9 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 12 live: apply `20261124170000_data_merge.sql` (`pnpm exec supabase db push --remote`), push,
-  then place a CSV race-number order live (Stripe test card), approve its all-rows proof and
-  generate its row files as admin.
+- Phase 12 live check (customer): place a CSV race-number order on the live site (≥ 10 rows, card
+  4242), approve its all-rows proof; then generate and download its row files as admin. This also
+  exercises checkout's server-side row re-check, which local tests cannot (no Stripe key locally).
 - Then **Phase 13** (customer dashboard, invoices, one-click reorder).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
@@ -342,3 +342,7 @@ next step under **Next up** so work can resume cold.
   previous route mounted but hidden.
 - Note: after `supabase db reset` locally, delete `.next` before testing (the build cache keeps old
   template ids) and run `pnpm seed:users`.
+- Live (2026-11-24): migration applied, 55 pgTAP tests pass on the live database, deployed (e2bc0f8).
+  Smoke test as the demo customer: 12-row CSV uploaded, columns auto-mapped, all rows ready,
+  12 items priced, row preview works (test file deleted afterwards). Live e2e: 64 passed; 3 failed
+  in a slow run and passed on re-run (27/27).
