@@ -5,9 +5,8 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 13 live: apply `20261124190000_reorders.sql` (`pnpm exec supabase db push --remote`), push,
-  then on the live site download an invoice and reorder an approved order (Stripe test card); check
-  the reorder's proof is approved via reorder with the original's hash.
+- Phase 13 live check (customer): reorder DH-2026-000007 on the live site (Stripe test card), then
+  check its proof is approved via reorder with the original's hash and the invoice downloads.
 - Then **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
@@ -375,3 +374,6 @@ next step under **Next up** so work can resume cold.
   re-download, 404s; reorder → Stripe → paid → auto-approved with the same hash; confirmation
   required; filters). Full local e2e: 85 passed; the only failure is the password-reset test when
   run on a second port (the email links to APP_URL :3000), unrelated.
+- Live (2026-11-24): migration applied, 65 pgTAP tests pass on the live database, deployed (a3f0371).
+  Invoices for DH-2026-000007 and DH-2026-000023 download as PDFs (INV-2026-000001/2), byte-identical
+  on re-download; unknown ids and anonymous requests get 404.
