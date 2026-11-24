@@ -24,8 +24,8 @@ export function GalleryGrid({
           className="motion-reveal"
           style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
         >
-          <figure className="group bg-card grid h-full overflow-hidden rounded-xl border transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-            <div className="bg-mm-grid relative aspect-[4/3] overflow-hidden border-b">
+          <figure className="group bg-card hover:border-ink focus-within:border-ink grid h-full overflow-hidden rounded-lg border transition-colors duration-300">
+            <div className="bg-muted relative aspect-[4/3] overflow-hidden border-b">
               {/* eslint-disable-next-line @next/next/no-img-element -- rendered on demand by our print engine and CDN-cached */}
               <img
                 src={item.imageUrl}
@@ -35,10 +35,13 @@ export function GalleryGrid({
                 loading={index < 3 ? "eager" : "lazy"}
                 decoding="async"
                 // Fitted inside the frame; drop-shadow follows the piece, not the letterbox.
-                className="absolute inset-6 m-auto h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain drop-shadow-[0_6px_10px_rgb(0_0_0/0.25)] transition-transform duration-500 ease-out group-hover:scale-[1.03] group-hover:-rotate-1"
+                className="absolute inset-6 m-auto h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain drop-shadow-[0_6px_10px_rgb(0_0_0/0.25)] transition-transform duration-300 ease-out group-hover:scale-[1.03]"
               />
               {item.isSample ? (
-                <span className="spec-label bg-paper/90 text-ink absolute top-3 left-3 rounded-full border px-2 py-0.5">
+                <span
+                  title="Print-engine sample"
+                  className="bg-ink text-paper absolute right-0 bottom-0 px-2 py-1 text-xs"
+                >
                   Sample work
                 </span>
               ) : null}

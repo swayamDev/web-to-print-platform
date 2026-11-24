@@ -18,13 +18,12 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 /** Gallery of work by product family, filterable by division (PRD R-45). */
 export default function GalleryPage(props: Props) {
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10">
-      <header className="grid gap-2">
-        <p className="spec-label text-muted-foreground">Gallery</p>
-        <h1 className="text-4xl font-semibold">Made on this platform</h1>
+    <main className="mx-auto grid w-full max-w-[96rem] gap-7 px-4 py-7 md:gap-9 md:px-8 md:py-10 lg:px-12">
+      <header className="grid gap-3 border-b pb-6">
+        <h1 className="text-4xl font-bold md:text-5xl">Made on this platform</h1>
         <p className="text-muted-foreground max-w-2xl">
-          Sample pieces from each division. Every image is drawn by the same engine that makes your
-          proof and the print files, so what you see is what gets printed.
+          Explore sample designs rendered by the print engine. Filter by division to see how each
+          product’s artwork can look.
         </p>
       </header>
       <Suspense fallback={<PageSkeleton />}>
@@ -53,7 +52,7 @@ async function GalleryContent({ searchParams }: Props) {
               aria-current={current ? "page" : undefined}
               scroll={false}
               className={cn(
-                "rounded-full border px-3 py-1 text-sm transition-colors",
+                "focus-visible:outline-ring inline-flex min-h-10 items-center rounded-md border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
                 current ? "border-ink bg-ink text-paper" : "hover:border-ink",
               )}
             >

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DivisionIcon } from "@/components/brand/division-icon";
+import { StorefrontImage } from "@/components/brand/storefront-image";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMm } from "@/lib/format";
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function DivisionPage({ params }: Props) {
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-10">
+    <main className="mx-auto grid w-full max-w-[96rem] gap-7 px-4 py-7 md:gap-10 md:px-8 md:py-10 lg:px-12">
       <Suspense fallback={<PageSkeleton />}>
         <DivisionContent params={params} />
       </Suspense>
@@ -50,16 +51,19 @@ async function DivisionContent({ params }: Props) {
         <span aria-current="page">{division.name}</span>
       </nav>
 
-      <header className="grid gap-4 md:grid-cols-[auto_1fr] md:items-end md:gap-8">
-        <div className="bg-card crop-marks grid size-24 place-items-center rounded-lg border">
-          <DivisionIcon slug={division.slug} className="size-11" />
-        </div>
-        <div className="grid gap-2">
-          <h1 className="text-4xl font-semibold">{division.name}</h1>
+      <header className="grid items-center gap-5 border-b pb-6 md:grid-cols-2 md:gap-8 md:pb-8">
+        <div className="grid content-center justify-items-start gap-3">
+          <DivisionIcon slug={division.slug} className="size-10" />
+          <h1 className="text-4xl font-bold md:text-5xl">{division.name}</h1>
           {division.description ? (
             <p className="text-muted-foreground max-w-2xl text-lg">{division.description}</p>
           ) : null}
         </div>
+        <StorefrontImage
+          slug={division.slug}
+          className="aspect-[16/9] max-h-80"
+          sizes="(max-width: 767px) 100vw, 50vw"
+        />
       </header>
 
       {division.products.length === 0 ? (
@@ -67,12 +71,12 @@ async function DivisionContent({ params }: Props) {
           New products for this division are on the way.
         </p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 lg:grid-cols-2">
           {division.products.map((product) => (
             <li key={product.id}>
               <Link
                 href={`/p/${product.slug}`}
-                className="group bg-card hover:border-ink flex h-full flex-col gap-4 rounded-xl border p-5 transition-colors"
+                className="group bg-card hover:border-ink focus-visible:outline-ring flex h-full flex-col gap-4 rounded-lg border p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 sm:p-5"
               >
                 <div className="grid gap-1">
                   <h2 className="text-xl font-semibold">{product.name}</h2>
