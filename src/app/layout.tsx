@@ -20,7 +20,8 @@ const display = localFont({
 const mono = localFont({
   src: "./web-fonts/mono.ttf",
   variable: "--font-plex",
-  preload: false,
+  fallback: ["monospace"],
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {

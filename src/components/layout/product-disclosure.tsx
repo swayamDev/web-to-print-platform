@@ -26,7 +26,8 @@ export function ProductDisclosure({ children }: { children: ReactNode }) {
         ref={summary}
         className={buttonVariants({
           variant: "ghost",
-          className: "cursor-pointer list-none max-md:min-h-10 max-md:px-2 [&::-webkit-details-marker]:hidden",
+          className:
+            "cursor-pointer list-none max-md:min-h-10 max-md:px-2 [&::-webkit-details-marker]:hidden",
         })}
       >
         <Menu className="size-5 md:hidden" aria-hidden="true" />

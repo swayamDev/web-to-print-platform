@@ -19,11 +19,20 @@ export function SiteHeader() {
         <Logo />
         <nav aria-label="Catalogue" className="flex items-center gap-1 md:gap-4">
           <ProductsMenu />
-          <Link href="/gallery" className={buttonVariants({ variant: "ghost", className: "hidden md:inline-flex" })}>
-            Gallery
-          </Link>
+          <span className="hidden md:block">
+            <Link href="/gallery" className={buttonVariants({ variant: "ghost" })}>
+              Gallery
+            </Link>
+          </span>
         </nav>
-        <Suspense fallback={<div className="bg-muted h-8 w-28 motion-safe:animate-pulse rounded-md" aria-hidden="true" />}>
+        <Suspense
+          fallback={
+            <div
+              className="bg-muted h-8 w-28 rounded-md motion-safe:animate-pulse"
+              aria-hidden="true"
+            />
+          }
+        >
           <AccountNav />
         </Suspense>
       </div>
@@ -36,30 +45,30 @@ async function ProductsMenu() {
   const divisions = await getDivisions();
   return (
     <ProductDisclosure>
-        <ul>
-          {divisions.map((division) => (
-            <li key={division.id}>
-              <Link
-                href={`/d/${division.slug}`}
-                className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
-              >
-                {division.name}
-                <span className="spec-label text-muted-foreground">
-                  {String(division.sortOrder).padStart(2, "0")}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-1 border-t pt-1">
-          <Link
-            href="/gallery"
-            className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
-          >
-            Gallery
-            <span className="spec-label text-muted-foreground">Work</span>
-          </Link>
-        </div>
+      <ul>
+        {divisions.map((division) => (
+          <li key={division.id}>
+            <Link
+              href={`/d/${division.slug}`}
+              className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
+            >
+              {division.name}
+              <span className="spec-label text-muted-foreground">
+                {String(division.sortOrder).padStart(2, "0")}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-1 border-t pt-1">
+        <Link
+          href="/gallery"
+          className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
+        >
+          Gallery
+          <span className="spec-label text-muted-foreground">Work</span>
+        </Link>
+      </div>
     </ProductDisclosure>
   );
 }

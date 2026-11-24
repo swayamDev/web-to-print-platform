@@ -5,9 +5,10 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 2 visual exploration awaits approval. Compare three complete homepages and six original
-  marks in the isolated prototype workspace, with rendered desktop and mobile evidence.
-  Start from the [handover index](../handover/README.md).
+- Precision Commerce and Register were approved, and Phase 4 implements the production storefront
+  in the existing Next.js application. Phase 5 needs separate approval.
+- Phase 5 focuses on the configurator, editor and checkout. Preserve the pricing and print
+  contracts, and verify actual touch handling before changing the existing resize-test skip.
 - Review the [CI proposal](TESTING.md) independently of design approval. Review the suggested
   mirrored-test improvement separately from application changes.
 
@@ -52,6 +53,18 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
 
 ## Session log
+
+### 2026-11-25 · Phase 4 production storefront
+
+- Adopted Register, the approved Proof Mark colours and self-hosted interface fonts. Kept
+  production print fonts independent. See the [asset provenance](STOREFRONT-ASSETS.md).
+- Rebuilt the public presentation around the existing catalogue, pricing rules, gallery renders
+  and session-aware account navigation. The homepage puts the quick quote before the six-division
+  hub and gives the fifth process step a full row on mobile.
+- Updated public division and gallery layouts. Product, editor, checkout, auth, account and admin
+  workflows retain their existing functional components.
+- Before/after captures, responsive results and the visual QA harness live in the local ignored
+  `handover/references/phase-4/` directory. No live services were verified or deployed.
 
 ### 2026-11-25 — Handover baseline
 

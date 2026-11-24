@@ -14,13 +14,11 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
       ? error.digest
       : null;
   return (
-    <main className="bg-mm-grid flex flex-1 items-center">
+    <main className="flex flex-1 items-center">
       <div className="mx-auto grid w-full max-w-xl justify-items-start gap-5 px-4 py-24">
-        <p className="spec-label text-muted-foreground">Error · paper jam</p>
-        <h1 className="text-4xl font-semibold">Something went wrong</h1>
+        <h1 className="text-4xl font-bold">Something went wrong</h1>
         <p className="text-muted-foreground">
-          This page could not be loaded. Nothing you saved has been lost. Please try again in a
-          moment.
+          This page could not be loaded. Try again, or return to the product catalogue.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button size="lg" className="h-11 px-5" onClick={() => retry()}>

@@ -1,5 +1,24 @@
 # Test results
 
+## Phase 4 production storefront
+
+- ESLint and TypeScript passed. Default Vitest passed 187 tests and the loopback pgTAP suite
+  passed 148 checks.
+- The first production browser run found seven regressions caused by narrow header overflow
+  and contrast in the existing dark price panel. The fixes preserved the test assertions.
+- The next full browser run passed 142 tests and skipped the same 59 as the handover baseline.
+  Five desktop tests timed out at login when repeated runs reached a fixture account's existing
+  15-minute rate window. All five passed after rollover in a single-worker targeted rerun.
+  The 147 executed cases therefore passed across two runs. Authentication limits stayed in place.
+- The targeted rerun rebuilt the application with the monospaced font preloaded and a monospaced
+  fallback. The final production-build Chromium checks covered 19 viewport and session cases
+  with eight axe scans and no reported issues. The local capture report in
+  `handover/references/phase-4/qa.json` records responsive widths, image loading, keyboard
+  checks, account states, axe scans and observed layout shifts. Firefox and WebKit binaries were
+  unavailable in the local Playwright installation.
+- Live verification and physical-device touch verification remain pending. The existing mobile
+  transformer resize skip is still present.
+
 ## Handover baseline, 25 November 2026
 
 | Check | Fresh result |
