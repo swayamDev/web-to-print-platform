@@ -30,9 +30,14 @@ export async function SiteFooter() {
             ))}
           </ul>
         </nav>
-        <nav aria-label="Account" className="grid content-start gap-2">
-          <p className="spec-label text-paper/50">Account</p>
+        <nav aria-label="More" className="grid content-start gap-2">
+          <p className="spec-label text-paper/50">More</p>
           <ul className="grid gap-1.5 text-sm">
+            <li>
+              <Link href="/gallery" className="text-paper/80 hover:text-signal">
+                Gallery
+              </Link>
+            </li>
             <li>
               <Link href="/account" className="text-paper/80 hover:text-signal">
                 My account

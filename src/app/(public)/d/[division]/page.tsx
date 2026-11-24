@@ -5,9 +5,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DivisionIcon } from "@/components/brand/division-icon";
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMm } from "@/lib/format";
 import { getDivisions, getDivisionWithProducts } from "@/server/catalogue";
+import { getGallery } from "@/server/gallery";
 
 type Props = { params: Promise<{ division: string }> };
 
@@ -34,7 +36,8 @@ export default function DivisionPage({ params }: Props) {
 }
 
 async function DivisionContent({ params }: Props) {
-  const division = await getDivisionWithProducts((await params).division);
+  const slug = (await params).division;
+  const [division, gallery] = await Promise.all([getDivisionWithProducts(slug), getGallery(slug)]);
   if (!division) notFound();
 
   return (
@@ -111,6 +114,23 @@ async function DivisionContent({ params }: Props) {
           ))}
         </ul>
       )}
+
+      {gallery.length > 0 ? (
+        <section aria-labelledby="division-gallery" className="grid gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h2 id="division-gallery" className="text-2xl font-semibold">
+              Sample work
+            </h2>
+            <Link
+              href={`/gallery?division=${division.slug}`}
+              className="text-sm font-medium underline-offset-4 hover:underline"
+            >
+              More in the gallery
+            </Link>
+          </div>
+          <GalleryGrid items={gallery} />
+        </section>
+      ) : null}
     </>
   );
 }

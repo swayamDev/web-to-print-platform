@@ -128,7 +128,7 @@ export async function getProductDetail(slug: string) {
       `*,
        division:divisions(slug, name),
        product_materials(price_per_cm2, price_per_unit, is_default, sort_order, material:materials(slug, name, description, is_active)),
-       templates(id, name, group_name, description, is_active, sort_order)`,
+       templates(id, name, group_name, description, is_active, sort_order, trim:document->trim, bleed:document->bleed)`,
     )
     .eq("slug", slug)
     .eq("is_active", true)
@@ -149,7 +149,20 @@ export async function getProductDetail(slug: string) {
   const templates = (data.templates ?? [])
     .filter((t) => t.is_active)
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((t) => ({ id: t.id, name: t.name, group: t.group_name, description: t.description }));
+    .map((t) => {
+      // Preview size at 96 DPI (page incl. bleed), so the image reserves its space.
+      const trim = t.trim as { w?: number; h?: number } | null;
+      const bleed = Number(t.bleed ?? 0);
+      const px = (mm: number) => Math.round((mm / 25.4) * 96);
+      return {
+        id: t.id,
+        name: t.name,
+        group: t.group_name,
+        description: t.description,
+        previewWidth: px((trim?.w ?? 100) + 2 * bleed),
+        previewHeight: px((trim?.h ?? 100) + 2 * bleed),
+      };
+    });
 
   return {
     id: data.id,

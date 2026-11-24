@@ -142,8 +142,10 @@ async function ProductContent({ params }: Props) {
                   <img
                     src={`/api/v1/templates/${template.id}/preview?format=png&dpi=96`}
                     alt={`${template.name} template preview`}
+                    width={template.previewWidth}
+                    height={template.previewHeight}
                     loading="lazy"
-                    className="bg-muted max-h-72 w-auto max-w-full self-start rounded-md border object-contain"
+                    className="bg-muted h-auto max-h-72 w-auto max-w-full self-start rounded-md border object-contain"
                   />
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>

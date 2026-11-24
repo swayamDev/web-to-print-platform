@@ -55,6 +55,15 @@ async function ProductsMenu() {
             </li>
           ))}
         </ul>
+        <div className="mt-1 border-t pt-1">
+          <Link
+            href="/gallery"
+            className="hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm"
+          >
+            Gallery
+            <span className="spec-label text-muted-foreground">Work</span>
+          </Link>
+        </div>
       </div>
     </details>
   );

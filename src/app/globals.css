@@ -37,6 +37,7 @@
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-signal: var(--signal);
+  --color-signal-text: var(--signal-text);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -66,6 +67,8 @@
   --paper: #f4f2ed;
   --ink: #121212;
   --signal: #ff4d00;
+  /* Signal orange dark enough for small text on paper or white (5:1 and more). */
+  --signal-text: #b83600;
   --graphite-700: #2a2a2a;
   --graphite-500: #5c5a55;
   --graphite-300: #cfcac0;
@@ -89,8 +92,8 @@
   --accent: var(--graphite-100);
   --accent-foreground: var(--ink);
   --destructive: #c62828;
-  --success: #1f8a4c;
-  --warning: #9a6700;
+  --success: #17703d;
+  --warning: #855800;
   --border: var(--graphite-200);
   --input: var(--graphite-300);
   --ring: var(--signal);
@@ -192,7 +195,63 @@
   }
 }
 
+/* Motion (PRD R-49): short, purposeful, and off when the visitor asks for reduced motion. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer utilities {
+  /* Cards rise into place, staggered, when the page loads. Time-based rather than tied to
+     scrolling, so content is never left hidden (printing, full-page captures, jump links). */
+  .motion-reveal {
+    animation: reveal-up 480ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  }
+
+  /* A new page settles in rather than snapping. Opacity only: an animated transform here would
+     make this wrapper the containing block of fixed bars (price bar, designer sheet). */
+  .motion-page {
+    animation: fade-in 220ms ease-out backwards;
+  }
+}
+
+/* Confirmations and errors fade in where they appear. */
+[role="status"],
+[role="alert"] {
+  animation: soft-in 200ms ease-out backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .motion-reveal,
+  .motion-page,
+  [role="status"],
+  [role="alert"] {
+    animation: none !important;
+  }
+
   *,
   *::before,
   *::after {

@@ -5,7 +5,9 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 16** (gallery, motion, responsive and accessibility polish, performance).
+- Phase 16 live: apply `20261125090000_gallery.sql` and `20261125091000_gallery_designs.sql`
+  (`pnpm exec supabase db push --remote`), push, then check /gallery on the live site.
+- Then **Phase 17** (security hardening, RLS cross-tenant tests, full checklist E2E suite).
 
 ## Live
 
@@ -37,7 +39,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 13** — Customer dashboard, invoices, one-click reorder
 - [x] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
 - [x] **Phase 15** — Admin product/template management, reports, Xero CSV export
-- [ ] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
+- [x] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
 - [ ] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
 - [ ] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
 
@@ -449,3 +451,30 @@ next step under **Next up** so work can resume cold.
   CSV has 3 invoices (INV-2026-000001 to 3), all itemised, each adding up to what was paid
   (£16.20, £10.31, £16.20), with division tracking. Products (6, 17 materials each listed) and
   templates (6) pages load; no live catalogue data was changed.
+
+### 2026-11-25 — Phase 16
+
+- Gallery (R-45, D-19): migrations `20261125090000_gallery.sql` (items link a template + their own
+  text, or a photo) and `20261125091000_gallery_designs.sql` (items may carry a finished design;
+  the two sticker samples do, since the template's logo slot would be blank); the same rows are in
+  `seed.sql` for fresh databases. 12 sample pieces, two per division, rendered on request by the
+  print engine (`/api/v1/gallery/{id}/image`, `use cache` + CDN headers, 5–58 KB each).
+  `/gallery` with division filters, a "Sample work" section on each division page, a teaser on
+  the home page, links in the Products menu and footer. Every piece is labelled "Sample work".
+- Motion (R-49): staggered card entrance, a short page fade (`app/template.tsx`, opacity only so
+  fixed bars keep working), hover lift on gallery cards, soft entry for status and error
+  messages; all off under `prefers-reduced-motion`.
+- Accessibility: axe-core (`@axe-core/playwright` 4.10.2) scans 21 pages signed out, as a
+  customer and as an admin, at phone and desktop sizes: WCAG 2.1 A/AA clean. Fixed: success
+  green (#17703d) and warning amber (#855800) contrast, a text-safe orange (`text-signal-text`)
+  for small labels, the footer nav no longer shares the header's "Account" landmark name.
+- Responsive: every public, customer and admin page fits 360, 768 and 1280 px without sideways
+  scrolling (new spec).
+- Performance: no layout shift on the main public pages (CLS 0), every image sized (template
+  previews now carry their dimensions), first load ≈ 140 KB gzipped JS (React/Next baseline);
+  guarded by a new spec.
+- Error states: branded `error.tsx` (retry, reference id, no details leaked) and
+  `global-error.tsx`.
+- Tests: 187 unit, 99 database (gallery rules), e2e: 134 passed in the full run; new specs a11y,
+  responsive, performance, gallery. The only failure remains the password-reset test on a second
+  port (email links to :3000).

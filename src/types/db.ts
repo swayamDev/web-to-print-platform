@@ -119,14 +119,14 @@ isOneToOne: false
                   ]
                 },"gallery_items": {
                   Row: {
-                    "caption": string | null,"created_at": string,"division_id": string,"id": string,"image_path": string,"is_active": boolean,"is_sample": boolean,"sort_order": number,"title": string
+                    "caption": string | null,"created_at": string,"division_id": string,"document": Json | null,"id": string,"image_path": string | null,"is_active": boolean,"is_sample": boolean,"sample_values": NonNullable<Json>,"sort_order": number,"template_id": string | null,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "caption"?: string | null,"created_at"?: string,"division_id": string,"id"?: string,"image_path": string,"is_active"?: boolean,"is_sample"?: boolean,"sort_order"?: number,"title": string
+                    "caption"?: string | null,"created_at"?: string,"division_id": string,"document"?: Json | null,"id"?: string,"image_path"?: string | null,"is_active"?: boolean,"is_sample"?: boolean,"sample_values"?: NonNullable<Json>,"sort_order"?: number,"template_id"?: string | null,"title": string
                   }
                   Update: {
-                    "caption"?: string | null,"created_at"?: string,"division_id"?: string,"id"?: string,"image_path"?: string,"is_active"?: boolean,"is_sample"?: boolean,"sort_order"?: number,"title"?: string
+                    "caption"?: string | null,"created_at"?: string,"division_id"?: string,"document"?: Json | null,"id"?: string,"image_path"?: string | null,"is_active"?: boolean,"is_sample"?: boolean,"sample_values"?: NonNullable<Json>,"sort_order"?: number,"template_id"?: string | null,"title"?: string
                   }
                   Relationships: [
                     {
@@ -134,6 +134,12 @@ isOneToOne: false
       columns: ["division_id"]
 isOneToOne: false
       referencedRelation: "divisions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "gallery_items_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "templates"
       referencedColumns: ["id"]
     }
                   ]

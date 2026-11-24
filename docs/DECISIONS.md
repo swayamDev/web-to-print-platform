@@ -213,3 +213,9 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   checkout and in their proofs; editing a product never changes an existing order.
 - **D-52 Template layouts** are not edited in the browser yet: admins manage name, group, order and
   visibility. Layout changes are made as JSON (seed/migration); saved designs keep their own copy.
+- **D-53 Gallery images are rendered, not photographed.** With no real customer photos (D-19),
+  each sample is a template or stored design drawn by the print engine and labelled "Sample work".
+  A photo can replace it later (`gallery_items.image_path`) without code changes.
+- **D-54 Motion** is time-based and short (under 0.5 s), never needed to read content, and fully off
+  under reduced motion. Scroll-linked animation was tried and dropped: it left content hidden in
+  print and full-page captures.

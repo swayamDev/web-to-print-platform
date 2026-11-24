@@ -1,11 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { DivisionHub } from "@/components/home/division-hub";
 import { QuickPrice, type QuickPriceProduct } from "@/components/home/quick-price";
 import { SampleProof } from "@/components/home/sample-proof";
 import { buttonVariants } from "@/components/ui/button";
 import { getDivisions, getDivisionWithProducts, getProductDetail } from "@/server/catalogue";
+import { getGallery } from "@/server/gallery";
 import { loadPricingRules } from "@/server/pricing";
 
 const STEPS = [
@@ -54,10 +56,15 @@ async function loadQuickPriceProducts(): Promise<QuickPriceProduct[]> {
 
 /** Home: hero, the six-division hub, instant price calculator and how ordering works. */
 export default async function HomePage() {
-  const [divisions, quickPriceProducts] = await Promise.all([
+  const [divisions, quickPriceProducts, gallery] = await Promise.all([
     getDivisions(),
     loadQuickPriceProducts(),
+    getGallery(),
   ]);
+  // One piece per division for the teaser.
+  const showcase = gallery
+    .filter((item, i) => gallery.findIndex((g) => g.division.slug === item.division.slug) === i)
+    .slice(0, 6);
 
   return (
     <main>
@@ -137,6 +144,32 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {showcase.length > 0 ? (
+        <section aria-labelledby="gallery-heading">
+          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="grid gap-2">
+                <p className="spec-label text-muted-foreground">Gallery</p>
+                <h2 id="gallery-heading" className="text-3xl font-semibold">
+                  Made on this platform
+                </h2>
+              </div>
+              <Link
+                href="/gallery"
+                className={buttonVariants({ variant: "outline", className: "group" })}
+              >
+                See all work
+                <ArrowRight
+                  aria-hidden="true"
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
+            </div>
+            <GalleryGrid items={showcase} />
+          </div>
+        </section>
+      ) : null}
+
       <section aria-labelledby="how-heading" className="bg-card border-y">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
           <div className="grid gap-2">
@@ -148,7 +181,7 @@ export default async function HomePage() {
           <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.title} className="border-ink grid content-start gap-2 border-t-2 pt-4">
-                <span className="spec-label text-signal">
+                <span className="spec-label text-signal-text">
                   Step {String(index + 1).padStart(2, "0")}
                 </span>
                 <h3 className="text-lg font-semibold">{step.title}</h3>
