@@ -6,9 +6,6 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- **Live setup for checkout (needs the user):** the order migration is applied to the live database
-  (2026-11-24, 24 pgTAP tests pass). Still to do: add `STRIPE_SECRET_KEY` and the webhook endpoint
-  - `STRIPE_WEBHOOK_SECRET` in Vercel, and SMTP settings (docs/DEPLOYMENT.md §6–7).
 - Then **Phase 10** (proofs): generate proof v1 (watermarked PNG + PDF with guides) from the order's
   `design_snapshot`, `proof_versions` with snapshot hash, customer approve / request changes (only the
   latest version, transactional), immutable `proof_events`, approval gate (`files_unlocked_at`),
@@ -261,4 +258,6 @@ next step under **Next up** so work can resume cold.
   "Confirming your payment…" polling after Stripe, "Pay now" for unpaid orders.
 - 4 checkout e2e tests with Stripe-signed test events (processed once, duplicate replay, forged and
   tampered signatures, wrong amount, customer page, Mailpit email). 127 unit + 75 e2e pass.
-- Not verified yet: a real Stripe test payment end to end (needs the user's test keys and webhook).
+- Verified live (2026-11-24): real Stripe test-mode payment for DH-2026-000007 (£16.20, card 4242):
+  signed webhook processed once, order quote → order → artwork, INV-2026-000001, one succeeded
+  payment, previous session expired by "Pay now", in-app + email notification recorded as sent.
