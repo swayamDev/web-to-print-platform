@@ -57,3 +57,16 @@ Notes:
   site, the designer with a direct upload, and private proof images.
 - `a11y.spec.ts`: axe WCAG 2.1 A/AA on 21 pages (signed out, customer, admin), phone and desktop.
 - `performance.spec.ts`: no layout shift on public pages; every image sized.
+
+## Windows Docker access
+
+If a sandboxed shell reports access denied to `dockerDesktopLinuxEngine`, check `docker context show` and `docker ps` in a regular PowerShell session. This project uses Docker Desktop's Linux engine and the Supabase ports 55321–55325. If Docker is stopped, start Docker Desktop, wait for the engine to be ready, and use `docker context use desktop-linux`. If the engine is visible from a regular session, run the Docker-dependent command there. On 25 November 2026, this resolved the sandbox denial without changing Docker or resetting either local project. If a regular PowerShell session also returns access denied, check Docker Desktop access with the Windows administrator before changing permissions.
+
+## Proposed GitHub Actions workflow
+
+The repository currently has no tracked Actions workflow. For approval, add a workflow on pull requests and pushes to the default branch with two jobs:
+
+- **Static and unit checks:** Set up the documented Node runtime and pinned pnpm version. Install with `pnpm install --frozen-lockfile`. Run lint, typecheck and the default Vitest suite.
+- **Local integration:** Run on a Linux Docker-capable runner. Start local Supabase with the repository-pinned CLI, populate CI-only loopback environment variables, seed disposable test accounts and run `pnpm db:test`. Install Playwright Chromium with dependencies and run the production-build desktop and mobile suite. Keep the HTML report and traces on failure with short retention.
+
+Use read-only repository permissions and vetted actions pinned to commit SHAs. Keep both jobs independent of live credentials and services. Preserve existing local and viewport skips. Require green checks only after the workflow has passed with reproducible fixtures and artifacts. See [Playwright CI](https://playwright.dev/docs/ci) and [GitHub Actions security guidance](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions).

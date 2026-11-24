@@ -5,9 +5,15 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- All 18 phases are done and live. Before submitting: run `pnpm test:e2e:live` once more, log in
-  to the live site with the shared test accounts, and check the Supabase project is active (the
-  daily keep-alive cron prevents pausing; confirm it under Vercel › Crons).
+- Phase 2 visual exploration awaits approval. Compare three complete homepages and six original
+  marks in the isolated prototype workspace, with rendered desktop and mobile evidence.
+  Start from the [handover index](../handover/README.md).
+- Review the [CI proposal](TESTING.md) independently of design approval. Review the suggested
+  mirrored-test improvement separately from application changes.
+
+- The Phase 18 deployment record is historical. Before submission and with approval, run
+  `pnpm test:e2e:live`, verify both evaluator roles against the deployed revision, and confirm
+  the dedicated Supabase project and scheduled Vercel keep-alive are active.
 - Possible follow-ups (not required by the brief, see docs/LIMITATIONS.md): in-browser template
   layout editing, CMYK output, a cart, shipping, a live Xero API connection.
 
@@ -46,6 +52,17 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
 
 ## Session log
+
+### 2026-11-25 — Handover baseline
+
+- Preserved the source materials in a local ignored directory and indexed the design decisions
+  and PRD discrepancies. Made the root instructions eligible for Git tracking, retaining the
+  Next.js-managed block.
+- - Lint and types passed. Default Vitest passed 187 tests, and the mirrored artwork test passed
+  in isolation. Local pgTAP passed 148 checks after scoped access to the running Docker engine.
+  Local Playwright passed 147 tests with 59 configured skips. See [test results](TEST-RESULTS.md)
+  for the timing investigation.
+- The GitHub Actions workflow is proposed only. Live verification remains a submission-phase task.
 
 ### 2026-11-23 — Phase 0
 

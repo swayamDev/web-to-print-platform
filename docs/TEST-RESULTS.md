@@ -1,5 +1,29 @@
 # Test results
 
+## Handover baseline, 25 November 2026
+
+| Check | Fresh result |
+| --- | --- |
+| `pnpm lint` | Passed |
+| `pnpm exec tsc --noEmit --incremental false` | Passed |
+| `pnpm test` | 187 passed across 20 files under the default configuration |
+| Mirrored artwork test in isolation | Passed |
+| `pnpm db:test` | 148 passed across 9 files against local Supabase |
+| `pnpm test:e2e` | 147 passed, 59 skipped, 0 failed across desktop and mobile on a local production build |
+| Live checks | Historical results below. Fresh verification remains pending. |
+
+The initial audit's default Vitest run timed out in the mirrored artwork test at five seconds.
+The audit's serial rerun passed, and the Phase 1 default and focused runs both passed.
+The test creates four Resvg renderers with system fonts enabled by default before checking PDF
+output. In a local four-render comparison using a text-free SVG, loading system fonts took about
+2.48 seconds versus 1 millisecond with loading disabled. Both variants returned the same sampled
+pixel value. This identifies avoidable setup cost. It does not reproduce the original timeout.
+Production already disables system-font loading for outlined artwork. A proposed test-only fix
+would render each orientation once and sample both sides of its result with font discovery
+disabled. The proposal retains the existing timeout and assertions. Phase 1 made no test edits.
+
+## Historical Phase 18 results
+
 Final run on **25 November 2026**, after Phase 18. How to run them: [`TESTING.md`](TESTING.md).
 
 ## Summary

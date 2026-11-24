@@ -47,3 +47,5 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 
+# Local source materials for the design handover
+/handover/references/
