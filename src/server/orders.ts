@@ -13,6 +13,7 @@ import { orderConfirmedEmail } from "@/server/email/templates";
 import { serverEnv } from "@/server/env";
 import { notifyCustomer } from "@/server/notify";
 import { paymentProvider } from "@/server/payments";
+import { resolveMerge, type ResolvedMerge } from "@/server/merge";
 import { loadPricingRules } from "@/server/pricing";
 import { loadPrintFonts } from "@/server/render";
 import { createSupabaseAdminClient } from "@/server/supabase/admin";
@@ -25,7 +26,8 @@ export type CheckoutOutcome = { ok: true; url: string } | { ok: false; message: 
  *  1. re-reads the design under RLS (only the owner's own design);
  *  2. re-validates the artwork with the print engine (no blocking issues allowed);
  *  3. re-prices it from the current database rules (the browser's price is never used);
- *  4. records a `quote` order with the full price breakdown and a frozen copy of the artwork;
+ *  4. records a `quote` order with the full price breakdown and a frozen copy of the artwork
+ *     (and, for variable data, of every checked CSV row: one item per row);
  *  5. opens a Stripe Checkout session for exactly that total.
  */
 export async function startCheckout(
@@ -39,7 +41,9 @@ export async function startCheckout(
   const supabase = await createSupabaseServerClient();
   const { data: design } = await supabase
     .from("designs")
-    .select("id, name, config, document, product:products(id, slug, name)")
+    .select(
+      "id, name, config, document, data_merge, product:products(id, slug, name, supports_variable_data)",
+    )
     .eq("id", designId)
     .maybeSingle();
   const config = designConfigSchema.safeParse(design?.config);
@@ -49,9 +53,26 @@ export async function startCheckout(
   }
   const product = design.product;
 
+  // Variable data: every CSV row is re-checked here, and the quantity is the row count.
+  let merge: ResolvedMerge | null = null;
+  let orderConfig = config.data;
+  if (config.data.variableData) {
+    if (!product.supports_variable_data) {
+      return { ok: false, message: "This product cannot be personalised from a file." };
+    }
+    const resolved = await resolveMerge(design.data_merge, user.id, document.data);
+    if (!resolved.ok) return { ok: false, message: resolved.error };
+    const firstError = resolved.merge.check.issues.find((i) => i.severity === "error");
+    if (firstError) {
+      return { ok: false, message: `Fix your data file before ordering: ${firstError.message}` };
+    }
+    merge = resolved.merge;
+    orderConfig = { ...config.data, quantity: merge.values.length };
+  }
+
   const rules = await loadPricingRules(product.slug);
   if (!rules) return { ok: false, message: "This product is no longer available." };
-  const priced = calculatePrice(rules, { productSlug: product.slug, ...config.data });
+  const priced = calculatePrice(rules, { productSlug: product.slug, ...orderConfig });
   if (!priced.ok) return { ok: false, message: priced.errors[0]!.message };
   const quote = priced.quote;
 
@@ -67,7 +88,7 @@ export async function startCheckout(
   }
 
   const material = rules.materials.find((m) => m.slug === config.data.materialSlug)?.name ?? "";
-  const description = `${product.name} × ${quote.quantity.toLocaleString("en-GB")} (${formatMm(config.data.widthMm)} × ${formatMm(config.data.heightMm)} mm, ${material})`;
+  const description = `${product.name} × ${quote.quantity.toLocaleString("en-GB")} (${formatMm(config.data.widthMm)} × ${formatMm(config.data.heightMm)} mm, ${material}${merge ? ", personalised from CSV" : ""})`;
 
   // Orders, items and payments are written with the secret key: customers cannot write them.
   const admin = createSupabaseAdminClient();
@@ -84,7 +105,7 @@ export async function startCheckout(
       pricing_snapshot: {
         engine: PRICING_ENGINE_VERSION,
         pricedAt: new Date().toISOString(),
-        request: { productSlug: product.slug, ...config.data },
+        request: { productSlug: product.slug, ...orderConfig },
         quote,
       },
       payment_provider: paymentProvider.name,
@@ -99,7 +120,7 @@ export async function startCheckout(
     product_id: product.id,
     design_id: design.id,
     description,
-    config_snapshot: config.data,
+    config_snapshot: orderConfig,
     design_snapshot: document.data,
     quantity: quote.quantity,
     unit_net: Number(quote.unit.net),
@@ -107,9 +128,25 @@ export async function startCheckout(
     line_net_minor: quote.subtotalNetMinor,
     line_tax_minor: quote.taxMinor,
     line_gross_minor: quote.totalGrossMinor,
-    is_variable_data: config.data.variableData,
+    is_variable_data: Boolean(merge),
   });
   if (itemError) return { ok: false, message: "We could not start your order. Please try again." };
+
+  if (merge) {
+    const { error: mergeError } = await admin.from("merge_jobs").insert({
+      order_id: order.id,
+      csv_asset_id: merge.csvAssetId,
+      mapping: merge.mapping,
+      rows: merge.values,
+      row_count: merge.values.length,
+      row_issues: merge.check.issues,
+      dataset_hash: merge.datasetHash,
+      status: "validated",
+    });
+    if (mergeError) {
+      return { ok: false, message: "We could not start your order. Please try again." };
+    }
+  }
 
   return openCheckoutSession(
     order.id,

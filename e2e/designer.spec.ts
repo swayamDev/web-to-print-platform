@@ -149,7 +149,8 @@ test.describe("designer", () => {
 
     // Back in the designer, the draft is restored and saved to the account.
     await expect(page).toHaveURL(/\/design\/[0-9a-f-]{36}$/);
-    await expect(page.getByTestId("save-status")).toContainText("Saved");
+    // Next keeps the previous route mounted but hidden for a moment; check the visible one.
+    await expect(page.getByTestId("save-status").filter({ visible: true })).toContainText("Saved");
 
     await page.goto("/account/designs");
     await page.getByRole("link", { name: `E2E bib ${name}` }).click();

@@ -8,6 +8,7 @@ import { designDocumentSchema } from "@/domain/design/schema";
 import { getSessionUser } from "@/server/auth";
 import { designConfigSchema } from "@/server/designs";
 import { errorCode, generateProof, notifyProofApproved, proofErrorMessage } from "@/server/proofs";
+import { resolveMerge, type ResolvedMerge } from "@/server/merge";
 import { rateLimit } from "@/server/rate-limit";
 import { createSupabaseAdminClient } from "@/server/supabase/admin";
 import { createSupabaseServerClient } from "@/server/supabase/server";
@@ -129,7 +130,7 @@ export async function submitRevisionAction(orderId: unknown): Promise<ProofActio
 
   const { data: design } = await supabase
     .from("designs")
-    .select("product_id, config, document")
+    .select("product_id, config, document, data_merge")
     .eq("id", item.design_id)
     .maybeSingle();
   const document = designDocumentSchema.safeParse(design?.document);
@@ -137,13 +138,26 @@ export async function submitRevisionAction(orderId: unknown): Promise<ProofActio
   if (!design || !document.success || !config.success) {
     return failure("artwork_invalid", "Your saved design could not be read. Save it again.");
   }
+  // Variable data: the revised file is re-checked row by row; one item per row, as paid.
+  let merge: ResolvedMerge | undefined;
+  let revisedConfig = config.data;
+  if (config.data.variableData) {
+    const resolved = await resolveMerge(design.data_merge, user.id, document.data);
+    if (!resolved.ok) return failure("artwork_invalid", resolved.error);
+    const firstError = resolved.merge.check.issues.find((i) => i.severity === "error");
+    if (firstError) return failure("artwork_invalid", `Fix your data file: ${firstError.message}`);
+    merge = resolved.merge;
+    revisedConfig = { ...config.data, quantity: merge.values.length };
+  }
   if (
     design.product_id !== item.product_id ||
-    canonicalJson(config.data) !== canonicalJson(designConfigSchema.parse(item.config_snapshot))
+    canonicalJson(revisedConfig) !== canonicalJson(designConfigSchema.parse(item.config_snapshot))
   ) {
     return failure(
       "config_changed",
-      "The size, material or quantity no longer matches this order. Change them back to revise this order, or place a new order.",
+      config.data.variableData
+        ? "The size, material or number of rows no longer matches this order. Keep the same number of rows to revise it, or place a new order."
+        : "The size, material or quantity no longer matches this order. Change them back to revise this order, or place a new order.",
     );
   }
 
@@ -152,6 +166,7 @@ export async function submitRevisionAction(orderId: unknown): Promise<ProofActio
     source: "customer_edit",
     actorId: user.id,
     document: document.data,
+    ...(merge ? { merge } : {}),
   });
   return outcome.ok ? { ok: true } : failure(outcome.code, outcome.message);
 }

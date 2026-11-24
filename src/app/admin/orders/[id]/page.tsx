@@ -44,7 +44,8 @@ async function AdminOrder({ params }: Props) {
        order_items(description, quantity, product:products(name, output_dpi, mirror_output)),
        proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_png_path),
        proof_events(proof_version_id, action, ip, created_at),
-       production_files(id, kind, storage_path, bytes, sha256, width_px, height_px, dpi, created_at)`,
+       production_files(id, kind, row_index, storage_path, bytes, sha256, width_px, height_px, dpi, created_at),
+       merge_jobs(row_count, processed_count, status)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -57,7 +58,15 @@ async function AdminOrder({ params }: Props) {
   );
   const signed = await signProofFiles(approved?.proof_png_path ? [approved.proof_png_path] : []);
   const proofImage = approved?.proof_png_path ? signed.get(approved.proof_png_path) : undefined;
-  const files = [...order.production_files].sort((a, b) => a.kind.localeCompare(b.kind));
+  const KIND_ORDER = ["pdf", "png", "zip"];
+  const files = order.production_files
+    .filter((f) => KIND_ORDER.includes(f.kind))
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+  const rowFiles = order.production_files
+    .filter((f) => f.row_index !== null)
+    .sort((a, b) => a.row_index! - b.row_index! || a.kind.localeCompare(b.kind));
+  // One merge job per order (unique index): the API may return it as an object or a list.
+  const job = ([] as typeof order.merge_jobs).concat(order.merge_jobs ?? [])[0];
   const canGenerate =
     Boolean(approved) && (order.status === "proof" || order.status === "production");
 
@@ -103,6 +112,12 @@ async function AdminOrder({ params }: Props) {
               <Row label="Approved" value={new Date(approval.created_at).toLocaleString("en-GB")} />
               <Row label="From IP" value={approval.ip ? String(approval.ip) : "—"} />
               <Row label="Snapshot sha256" value={approved.snapshot_hash} mono />
+              {job ? (
+                <Row
+                  label="Data"
+                  value={`${job.row_count} CSV rows · one PDF + PNG per row${job.status === "processing" || job.status === "failed" ? ` (${job.processed_count} rendered so far)` : ""}`}
+                />
+              ) : null}
               <Row
                 label="Output"
                 value={`${item?.product?.output_dpi ?? 300} DPI PNG + PDF${item?.product?.mirror_output ? ", mirrored" : ""}`}
@@ -123,36 +138,71 @@ async function AdminOrder({ params }: Props) {
         <h2 id="files-heading" className="text-base font-semibold">
           Print files
         </h2>
-        {files.length === 0 ? (
+        {files.length === 0 && rowFiles.length === 0 ? (
           <p className="text-muted-foreground text-sm">None yet.</p>
-        ) : (
+        ) : null}
+        {files.length > 0 ? (
           <ul className="divide-y text-sm" data-testid="production-files">
             {files.map((file) => (
-              <li
-                key={file.id}
-                className="grid gap-1 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4"
-              >
-                <span className="grid min-w-0">
-                  <span className="font-mono break-all">{file.storage_path.split("/").pop()}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {sizeLabel(file.bytes)}
-                    {file.width_px ? ` · ${file.width_px} × ${file.height_px} px` : ""}
-                    {file.dpi ? ` · ${file.dpi} DPI` : ""} · sha256 {file.sha256?.slice(0, 12)}…
-                  </span>
-                </span>
-                <a
-                  href={`/api/v1/admin/production-files/${file.id}`}
-                  className="w-fit shrink-0 underline underline-offset-4"
-                  data-testid={`download-${file.kind}`}
-                >
-                  Download {file.kind.toUpperCase()}
-                </a>
-              </li>
+              <FileRow key={file.id} file={file} />
             ))}
           </ul>
-        )}
+        ) : null}
+        {rowFiles.length > 0 ? (
+          <details className="text-sm" data-testid="row-files">
+            <summary className="cursor-pointer font-medium">
+              Per-row files ({rowFiles.length})
+            </summary>
+            <ul className="divide-y">
+              {rowFiles.map((file) => (
+                <FileRow key={file.id} file={file} />
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </section>
     </div>
+  );
+}
+
+type FileInfo = {
+  id: string;
+  kind: string;
+  storage_path: string;
+  bytes: number | null;
+  sha256: string | null;
+  width_px: number | null;
+  height_px: number | null;
+  dpi: number | null;
+};
+
+const DOWNLOAD_LABEL: Record<string, string> = {
+  pdf: "Download PDF",
+  png: "Download PNG",
+  zip: "Download ZIP",
+  row_pdf: "PDF",
+  row_png: "PNG",
+};
+
+function FileRow({ file }: { file: FileInfo }) {
+  return (
+    <li className="grid gap-1 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <span className="grid min-w-0">
+        <span className="font-mono break-all">{file.storage_path.split("/").pop()}</span>
+        <span className="text-muted-foreground text-xs">
+          {sizeLabel(file.bytes)}
+          {file.width_px ? ` · ${file.width_px} × ${file.height_px} px` : ""}
+          {file.dpi ? ` · ${file.dpi} DPI` : ""} · sha256 {file.sha256?.slice(0, 12)}…
+        </span>
+      </span>
+      <a
+        href={`/api/v1/admin/production-files/${file.id}`}
+        className="w-fit shrink-0 underline underline-offset-4"
+        data-testid={`download-${file.kind}`}
+      >
+        {DOWNLOAD_LABEL[file.kind] ?? "Download"}
+      </a>
+    </li>
   );
 }
 

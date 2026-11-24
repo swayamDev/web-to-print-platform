@@ -8,6 +8,7 @@ import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { getOwnAssets } from "@/server/assets";
 import { requireUser } from "@/server/auth";
 import { getOwnDesign } from "@/server/designs";
+import { getOwnCsv } from "@/server/merge";
 
 export const metadata: Metadata = { title: "Edit design", robots: { index: false } };
 
@@ -30,9 +31,14 @@ async function EditDesign({ params }: Props) {
   const design = await getOwnDesign(id);
   if (!design) notFound();
   const { context } = design;
-  const assets = await getOwnAssets(
-    context.document.elements.flatMap((e) => (e.type === "image" && e.assetId ? [e.assetId] : [])),
-  );
+  const [assets, csv] = await Promise.all([
+    getOwnAssets(
+      context.document.elements.flatMap((e) =>
+        e.type === "image" && e.assetId ? [e.assetId] : [],
+      ),
+    ),
+    design.dataMerge ? getOwnCsv(design.dataMerge.csvAssetId, user.id) : null,
+  ]);
 
   return (
     <>
@@ -53,6 +59,9 @@ async function EditDesign({ params }: Props) {
         design={{ id: design.id, name: design.name, isLocked: design.isLocked }}
         userId={user.id}
         initialAssets={assets}
+        initialMerge={
+          csv && design.dataMerge ? { file: csv, mapping: design.dataMerge.mapping } : null
+        }
       />
     </>
   );

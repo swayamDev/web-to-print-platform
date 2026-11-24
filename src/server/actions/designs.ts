@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { designDocumentSchema } from "@/domain/design/schema";
+import { dataMergeSchema } from "@/domain/merge";
 import { calculatePrice } from "@/domain/pricing";
 import { getSessionUser } from "@/server/auth";
 import { designConfigSchema } from "@/server/designs";
@@ -17,6 +18,8 @@ const saveDesignSchema = z.object({
   name: z.string().trim().min(1).max(120),
   config: designConfigSchema,
   document: designDocumentSchema,
+  /** CSV merge settings (variable-data products only); null removes them. */
+  dataMerge: dataMergeSchema.nullable().optional(),
 });
 
 export type SaveDesignInput = z.input<typeof saveDesignSchema>;
@@ -39,7 +42,7 @@ export async function saveDesignAction(input: SaveDesignInput): Promise<SaveDesi
   const parsed = saveDesignSchema.safeParse(input);
   if (!parsed.success)
     return { status: "error", message: "This design could not be read. Please reload." };
-  const { designId, productSlug, templateId, name, config, document } = parsed.data;
+  const { designId, productSlug, templateId, name, config, document, dataMerge } = parsed.data;
 
   // The artwork must match the configured size, and the configuration must be orderable.
   if (
@@ -78,10 +81,26 @@ export async function saveDesignAction(input: SaveDesignInput): Promise<SaveDesi
 
   const { data: product } = await supabase
     .from("products")
-    .select("id")
+    .select("id, supports_variable_data")
     .eq("slug", productSlug)
     .single();
   if (!product) return { status: "error", message: "This product is no longer available." };
+
+  // A data file must be this customer's own CSV, on a product that supports variable data.
+  if (dataMerge) {
+    if (!product.supports_variable_data) {
+      return { status: "error", message: "This product cannot be personalised from a file." };
+    }
+    const { count } = await supabase
+      .from("assets")
+      .select("id", { count: "exact", head: true })
+      .eq("id", dataMerge.csvAssetId)
+      .eq("kind", "csv")
+      .eq("status", "valid");
+    if (count !== 1) {
+      return { status: "error", message: "The data file is no longer available. Upload it again." };
+    }
+  }
 
   const row = {
     name,
@@ -90,6 +109,8 @@ export async function saveDesignAction(input: SaveDesignInput): Promise<SaveDesi
     config,
     document,
     source: "editor" as const,
+    // Left untouched when the caller does not send it (older clients).
+    ...(dataMerge !== undefined ? { data_merge: dataMerge } : {}),
   };
 
   if (designId) {

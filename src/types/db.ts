@@ -47,14 +47,14 @@ isOneToOne: false
                   ]
                 },"designs": {
                   Row: {
-                    "config": NonNullable<Json>,"created_at": string,"document": Json | null,"id": string,"is_locked": boolean,"name": string,"owner_id": string,"product_id": string,"source": Database["public"]['Enums']["design_source"],"template_id": string | null,"thumbnail_path": string | null,"updated_at": string,"upload_asset_id": string | null
+                    "config": NonNullable<Json>,"created_at": string,"data_merge": Json | null,"document": Json | null,"id": string,"is_locked": boolean,"name": string,"owner_id": string,"product_id": string,"source": Database["public"]['Enums']["design_source"],"template_id": string | null,"thumbnail_path": string | null,"updated_at": string,"upload_asset_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"document"?: Json | null,"id"?: string,"is_locked"?: boolean,"name"?: string,"owner_id": string,"product_id": string,"source"?: Database["public"]['Enums']["design_source"],"template_id"?: string | null,"thumbnail_path"?: string | null,"updated_at"?: string,"upload_asset_id"?: string | null
+                    "config"?: NonNullable<Json>,"created_at"?: string,"data_merge"?: Json | null,"document"?: Json | null,"id"?: string,"is_locked"?: boolean,"name"?: string,"owner_id": string,"product_id": string,"source"?: Database["public"]['Enums']["design_source"],"template_id"?: string | null,"thumbnail_path"?: string | null,"updated_at"?: string,"upload_asset_id"?: string | null
                   }
                   Update: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"document"?: Json | null,"id"?: string,"is_locked"?: boolean,"name"?: string,"owner_id"?: string,"product_id"?: string,"source"?: Database["public"]['Enums']["design_source"],"template_id"?: string | null,"thumbnail_path"?: string | null,"updated_at"?: string,"upload_asset_id"?: string | null
+                    "config"?: NonNullable<Json>,"created_at"?: string,"data_merge"?: Json | null,"document"?: Json | null,"id"?: string,"is_locked"?: boolean,"name"?: string,"owner_id"?: string,"product_id"?: string,"source"?: Database["public"]['Enums']["design_source"],"template_id"?: string | null,"thumbnail_path"?: string | null,"updated_at"?: string,"upload_asset_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -564,7 +564,7 @@ isOneToOne: false
 { Args: { "p_key": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
                            },
 "create_proof_version":
-{ Args: { "p_actor_id"?: string,"p_config": Json,"p_document": Json,"p_order_id": string,"p_pdf_path": string,"p_png_path": string,"p_snapshot_hash": string,"p_source": Database["public"]['Enums']["proof_source"],"p_version": number }; Returns: {
+{ Args: { "p_actor_id"?: string,"p_config": Json,"p_document": Json,"p_merge_dataset_hash"?: string,"p_order_id": string,"p_pdf_path": string,"p_png_path": string,"p_snapshot_hash": string,"p_source": Database["public"]['Enums']["proof_source"],"p_version": number }; Returns: {
               "config_snapshot": NonNullable<Json>,
 "created_at": string,
 "created_by": string | null,

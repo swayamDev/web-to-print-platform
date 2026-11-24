@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { blankDocument, fitDocumentToSize } from "@/domain/design/document";
 import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
+import { dataMergeSchema, type DataMerge } from "@/domain/merge";
 import { calculatePrice, priceRequestSchema, type PricingRules } from "@/domain/pricing";
 import { getProductDetail, type ProductDetail } from "@/server/catalogue";
 import { loadPricingRules } from "@/server/pricing";
@@ -90,6 +91,8 @@ export type SavedDesign = {
   name: string;
   isLocked: boolean;
   updatedAt: string;
+  /** CSV merge settings, if the design has a data file. */
+  dataMerge: DataMerge | null;
   context: DesignerContext;
 };
 
@@ -100,7 +103,7 @@ export async function getOwnDesign(designId: string): Promise<SavedDesign | null
   const { data } = await supabase
     .from("designs")
     .select(
-      "id, name, config, document, template_id, is_locked, updated_at, product:products(slug)",
+      "id, name, config, document, data_merge, template_id, is_locked, updated_at, product:products(slug)",
     )
     .eq("id", designId)
     .maybeSingle();
@@ -120,6 +123,7 @@ export async function getOwnDesign(designId: string): Promise<SavedDesign | null
     name: data.name,
     isLocked: data.is_locked,
     updatedAt: data.updated_at,
+    dataMerge: dataMergeSchema.safeParse(data.data_merge).data ?? null,
     context: {
       product,
       rules,

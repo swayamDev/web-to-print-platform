@@ -156,3 +156,24 @@ export async function renderPdf(
 
   return doc.save({ useObjectStreams: false });
 }
+
+/**
+ * Combine single-page PDFs (one per CSV row) into one document, keeping each page's boxes.
+ * Used for the all-rows proof and the combined print file of a variable-data order.
+ */
+export async function combinePdfs(files: Uint8Array[], meta: PdfMeta): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  doc.setTitle(meta.title);
+  if (meta.subject) doc.setSubject(meta.subject);
+  if (meta.keywords) doc.setKeywords(meta.keywords);
+  doc.setProducer("Digital Heroes Print");
+  doc.setCreator("Digital Heroes Print render engine");
+  doc.setCreationDate(meta.date);
+  doc.setModificationDate(meta.date);
+  for (const bytes of files) {
+    const source = await PDFDocument.load(bytes);
+    const pages = await doc.copyPages(source, source.getPageIndices());
+    for (const page of pages) doc.addPage(page);
+  }
+  return doc.save({ useObjectStreams: false });
+}

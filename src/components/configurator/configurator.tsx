@@ -283,8 +283,9 @@ export function Configurator(props: ConfiguratorProps) {
               <span className="grid gap-0.5">
                 <span className="font-medium">Different name and number on every item</span>
                 <span className="text-muted-foreground text-sm">
-                  Upload a CSV of entries after ordering; we print one design per row.{" "}
-                  {perUnitLabel(rules.product.variableDataUnitFee)}.
+                  Upload a CSV of entries in the designer: one design is printed per row, so the
+                  quantity is your number of rows. {perUnitLabel(rules.product.variableDataUnitFee)}
+                  .
                 </span>
               </span>
             </label>

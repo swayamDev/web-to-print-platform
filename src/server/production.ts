@@ -1,13 +1,18 @@
 import "server-only";
 
-import { designDocumentSchema } from "@/domain/design/schema";
+import { zipSync } from "fflate";
+
+import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
+import { rowLabel } from "@/domain/merge";
 import { productionFileName, productionPath, type ProductionOutput } from "@/domain/production";
+import { combinePdfs, type PdfMeta } from "@/lib/print/pdf";
 import { readPngInfo } from "@/lib/print/png";
 import { loadAssetFiles, sha256 } from "@/server/assets";
 import { orderInProductionEmail } from "@/server/email/templates";
 import { serverEnv } from "@/server/env";
+import { datasetHash } from "@/server/merge";
 import { notifyCustomer } from "@/server/notify";
-import { snapshotHash } from "@/server/proofs";
+import { mergeRowsSchema, snapshotHash } from "@/server/proofs";
 import { renderDesign } from "@/server/render";
 import { createSupabaseAdminClient } from "@/server/supabase/admin";
 
@@ -17,20 +22,32 @@ import { createSupabaseAdminClient } from "@/server/supabase/admin";
  *  - print.pdf: trim + bleed page, TrimBox/BleedBox, embedded fonts, the snapshot hash in its
  *    keywords and the paid date as its timestamp (same input, byte-identical file);
  *  - print.png: the same page at the product's output DPI, DPI written into the file.
+ * Variable-data orders get one PDF and one PNG per CSV row in `rows/`, rendered in batches so
+ * each request stays well inside serverless time limits, then a combined print.pdf (one page
+ * per row) and rows.zip with every row file.
  * Products produced mirrored (stamps) are flipped here, never in the customer's proof.
  * Stored privately in `production/{OrderID}/OrderID_ProductType_Date_Output` (DECISIONS D-13);
  * the database refuses files for anything but the approved proof.
  */
 
+/** Rows rendered per request (PDF + PNG each). */
+export const ROW_BATCH = 10;
+
 export type ProductionOutcome =
-  | { ok: true; files: { kind: "pdf" | "png"; path: string; bytes: number }[]; startedNow: boolean }
+  | {
+      ok: true;
+      /** False while rows of a variable-data order remain: call again to continue. */
+      done: boolean;
+      progress: { processed: number; total: number } | null;
+      startedNow: boolean;
+    }
   | { ok: false; code: string; message: string };
 
 const MESSAGES: Record<string, string> = {
   order_not_found: "This order could not be found.",
   proof_not_approved: "The customer has not approved a proof yet, so print files stay locked.",
   snapshot_mismatch:
-    "The approved artwork no longer matches its proof (an uploaded file changed or is missing). Ask the customer for a new proof.",
+    "The approved artwork no longer matches its proof (an uploaded file or the data changed). Ask the customer for a new proof.",
   render_failed: "The print files could not be rendered.",
   storage_failed: "The print files could not be saved. Please try again.",
   order_closed: "This order is completed or cancelled.",
@@ -45,10 +62,23 @@ const fail = (code: string, detail?: string): ProductionOutcome => ({
     : (MESSAGES[code] ?? MESSAGES.unknown!),
 });
 
-/** Generate (or regenerate) the print files of an approved order and start production. */
+type Output = {
+  kind: "pdf" | "png" | "row_pdf" | "row_png" | "zip";
+  rowIndex?: number;
+  path: string;
+  bytes: Uint8Array;
+  type: string;
+};
+
+/**
+ * Generate (or regenerate) the print files of an approved order and start production.
+ * For variable-data orders each call renders the next batch of rows; the admin page calls
+ * again until `done`. `restart` begins a regeneration from row 1.
+ */
 export async function generateProductionFiles(
   orderId: string,
   actorId: string,
+  options: { restart?: boolean } = {},
 ): Promise<ProductionOutcome> {
   const admin = createSupabaseAdminClient();
   const { data: order } = await admin
@@ -66,11 +96,24 @@ export async function generateProductionFiles(
 
   const { data: proof } = await admin
     .from("proof_versions")
-    .select("id, version, status, document_snapshot, config_snapshot, snapshot_hash")
+    .select(
+      "id, version, status, document_snapshot, config_snapshot, snapshot_hash, merge_dataset_hash",
+    )
     .eq("id", order.approved_proof_id)
     .single();
   const document = designDocumentSchema.safeParse(proof?.document_snapshot);
   if (!proof || proof.status !== "approved" || !document.success) return fail("proof_not_approved");
+
+  // Variable data: the frozen rows must be exactly the data set the customer approved.
+  const { data: job } = await admin
+    .from("merge_jobs")
+    .select("id, rows, row_count, processed_count, status")
+    .eq("order_id", order.id)
+    .maybeSingle();
+  const rows = job ? mergeRowsSchema.safeParse(job.rows) : null;
+  if (rows && !rows.success) return fail("snapshot_mismatch");
+  const dataset = rows?.data ? datasetHash(rows.data) : null;
+  if ((proof.merge_dataset_hash ?? null) !== dataset) return fail("snapshot_mismatch");
 
   // Approved = printed: the files must hash to exactly the snapshot the customer approved.
   const assetIds = document.data.elements.flatMap((e) =>
@@ -81,27 +124,18 @@ export async function generateProductionFiles(
     document.data,
     proof.config_snapshot,
     [...assets].map(([id, a]) => ({ id, sha256: sha256(a.bytes) })),
+    dataset,
   );
   if (hash !== proof.snapshot_hash || assets.size !== new Set(assetIds).size) {
     return fail("snapshot_mismatch");
   }
 
-  const meta = {
+  const meta: PdfMeta = {
     title: `${order.order_number} print file`,
     subject: `Approved proof v${proof.version}`,
     keywords: [order.order_number, `proof-v${proof.version}`, `sha256:${hash}`],
     date: new Date(order.paid_at),
   };
-  const common = { document: document.data, meta, assets, mirror: product.mirror_output };
-  const [pdf, png] = await Promise.all([
-    renderDesign({ ...common, format: "pdf" }),
-    renderDesign({ ...common, format: "png", dpi: product.output_dpi }),
-  ]);
-  if (!pdf.ok || !png.ok) {
-    const issue = (!pdf.ok ? pdf.issues : !png.ok ? png.issues : [])[0];
-    return fail("render_failed", issue?.message);
-  }
-
   const name = (output: ProductionOutput) =>
     productionPath(
       order.order_number,
@@ -112,38 +146,210 @@ export async function generateProductionFiles(
         output,
       }),
     );
-  const pngInfo = readPngInfo(png.bytes);
-  const trim = { w: document.data.trim.w, h: document.data.trim.h };
-  const outputs = [
-    { kind: "pdf" as const, path: name("print.pdf"), bytes: pdf.bytes, type: "application/pdf" },
-    { kind: "png" as const, path: name("print.png"), bytes: png.bytes, type: "image/png" },
-  ];
+  const ctx = {
+    document: document.data,
+    meta,
+    assets,
+    mirror: product.mirror_output,
+    dpi: product.output_dpi,
+  };
+  const save = (outputs: Output[]) => saveOutputs(order.id, proof.id, document.data, outputs);
 
+  if (!job || !rows?.data) {
+    // A single design: print.pdf + print.png.
+    const [pdf, png] = await Promise.all([
+      renderDesign({ ...ctx, format: "pdf" }),
+      renderDesign({ ...ctx, format: "png" }),
+    ]);
+    if (!pdf.ok || !png.ok) {
+      const issue = (!pdf.ok ? pdf.issues : !png.ok ? png.issues : [])[0];
+      return fail("render_failed", issue?.message);
+    }
+    const outputs: Output[] = [
+      { kind: "pdf", path: name("print.pdf"), bytes: pdf.bytes, type: "application/pdf" },
+      { kind: "png", path: name("print.png"), bytes: png.bytes, type: "image/png" },
+    ];
+    if (!(await save(outputs))) return fail("storage_failed");
+    return finish(
+      order,
+      proof.version,
+      hash,
+      actorId,
+      outputs.map((o) => o.path),
+      null,
+    );
+  }
+
+  // Variable data: the next batch of rows.
+  const total = rows.data.length;
+  let processed = options.restart || job.status === "done" ? 0 : job.processed_count;
+  if (options.restart || job.status === "done") {
+    await admin
+      .from("merge_jobs")
+      .update({ processed_count: 0, status: "processing", started_at: new Date().toISOString() })
+      .eq("id", job.id);
+  }
+  const batch = rows.data.slice(processed, processed + ROW_BATCH);
+  const outputs: Output[] = [];
+  for (const [offset, values] of batch.entries()) {
+    const row = processed + offset + 1;
+    const [pdf, png] = await Promise.all([
+      renderDesign({ ...ctx, values, format: "pdf" }),
+      renderDesign({ ...ctx, values, format: "png" }),
+    ]);
+    if (!pdf.ok || !png.ok) {
+      const issue = (!pdf.ok ? pdf.issues : !png.ok ? png.issues : [])[0];
+      await admin.from("merge_jobs").update({ status: "failed" }).eq("id", job.id);
+      return fail("render_failed", `Row ${row}: ${issue?.message ?? ""}`);
+    }
+    outputs.push(
+      {
+        kind: "row_pdf",
+        rowIndex: row,
+        path: name(`${rowLabel(row)}.pdf`),
+        bytes: pdf.bytes,
+        type: "application/pdf",
+      },
+      {
+        kind: "row_png",
+        rowIndex: row,
+        path: name(`${rowLabel(row)}.png`),
+        bytes: png.bytes,
+        type: "image/png",
+      },
+    );
+  }
+  if (!(await save(outputs))) return fail("storage_failed");
+  processed += batch.length;
+  await admin
+    .from("merge_jobs")
+    .update({
+      processed_count: processed,
+      status: processed >= total ? "done" : "processing",
+      ...(job.processed_count === 0 && !options.restart
+        ? { started_at: new Date().toISOString() }
+        : {}),
+    })
+    .eq("id", job.id);
+  if (processed < total) {
+    return { ok: true, done: false, progress: { processed, total }, startedNow: false };
+  }
+
+  // All rows done: combined print.pdf and rows.zip, from the stored row files.
+  const finalized = await finalizeRows(order.id, total, meta, name);
+  if (!finalized) return fail("storage_failed");
+  if (!(await save(finalized))) return fail("storage_failed");
+  await admin
+    .from("merge_jobs")
+    .update({
+      zip_path: finalized.find((o) => o.kind === "zip")!.path,
+      finished_at: new Date().toISOString(),
+    })
+    .eq("id", job.id);
+  return finish(
+    order,
+    proof.version,
+    hash,
+    actorId,
+    finalized.map((o) => o.path),
+    {
+      processed,
+      total,
+    },
+  );
+}
+
+/** Read back every row file, then build the combined PDF and the ZIP. */
+async function finalizeRows(
+  orderId: string,
+  total: number,
+  meta: PdfMeta,
+  name: (output: ProductionOutput) => string,
+): Promise<Output[] | null> {
+  const admin = createSupabaseAdminClient();
+  const { data: files } = await admin
+    .from("production_files")
+    .select("kind, row_index, storage_path")
+    .eq("order_id", orderId)
+    .in("kind", ["row_pdf", "row_png"])
+    .lte("row_index", total)
+    .order("row_index");
+  if (!files || files.length !== total * 2) return null;
+  const bucket = admin.storage.from("production");
+  const downloaded = await Promise.all(
+    files.map(async (f) => {
+      const { data } = await bucket.download(f.storage_path);
+      return data ? { ...f, bytes: new Uint8Array(await data.arrayBuffer()) } : null;
+    }),
+  );
+  if (downloaded.some((d) => !d)) return null;
+  const all = downloaded as NonNullable<(typeof downloaded)[number]>[];
+
+  const combined = await combinePdfs(
+    all.filter((f) => f.kind === "row_pdf").map((f) => f.bytes),
+    { ...meta, subject: `${meta.subject}, ${total} rows` },
+  );
+  // Files are already compressed (PDF streams, PNG): store them; fixed dates keep the ZIP stable.
+  const zip = zipSync(
+    Object.fromEntries(
+      all.map((f) => [
+        f.storage_path.split("/").pop()!,
+        [f.bytes, { level: 0, mtime: meta.date }] as [Uint8Array, { level: 0; mtime: Date }],
+      ]),
+    ),
+  );
+  return [
+    { kind: "pdf", path: name("print.pdf"), bytes: combined, type: "application/pdf" },
+    { kind: "zip", path: name("rows.zip"), bytes: zip, type: "application/zip" },
+  ];
+}
+
+/** Upload and record files. Same names on regeneration replace the earlier rows. */
+async function saveOutputs(
+  orderId: string,
+  proofId: string,
+  document: DesignDocument,
+  outputs: Output[],
+): Promise<boolean> {
+  const admin = createSupabaseAdminClient();
   const bucket = admin.storage.from("production");
   const uploads = await Promise.all(
     outputs.map((o) => bucket.upload(o.path, o.bytes, { contentType: o.type, upsert: true })),
   );
-  if (uploads.some((u) => u.error)) return fail("storage_failed");
-
-  // Same names on regeneration: replace the rows for these paths.
+  if (uploads.some((u) => u.error)) return false;
   const { error } = await admin.from("production_files").upsert(
-    outputs.map((o) => ({
-      order_id: order.id,
-      proof_version_id: proof.id,
-      kind: o.kind,
-      storage_path: o.path,
-      bytes: o.bytes.byteLength,
-      sha256: sha256(o.bytes),
-      trim_mm: trim,
-      bleed_mm: document.data.bleed,
-      ...(o.kind === "png"
-        ? { width_px: pngInfo.width, height_px: pngInfo.height, dpi: pngInfo.dpi }
-        : { dpi: null }),
-    })),
+    outputs.map((o) => {
+      const png = o.kind === "png" || o.kind === "row_png" ? readPngInfo(o.bytes) : null;
+      return {
+        order_id: orderId,
+        proof_version_id: proofId,
+        kind: o.kind,
+        row_index: o.rowIndex ?? null,
+        storage_path: o.path,
+        bytes: o.bytes.byteLength,
+        sha256: sha256(o.bytes),
+        trim_mm: { w: document.trim.w, h: document.trim.h },
+        bleed_mm: document.bleed,
+        width_px: png?.width ?? null,
+        height_px: png?.height ?? null,
+        dpi: png?.dpi ?? null,
+      };
+    }),
     { onConflict: "storage_path" },
   );
-  if (error) return fail("storage_failed");
+  return !error;
+}
 
+/** Start production (first time), log it and tell the customer. */
+async function finish(
+  order: { id: string; order_number: string; customer_id: string; status: string },
+  proofVersion: number,
+  hash: string,
+  actorId: string,
+  paths: string[],
+  progress: { processed: number; total: number } | null,
+): Promise<ProductionOutcome> {
+  const admin = createSupabaseAdminClient();
   const startedNow = order.status === "proof";
   const { error: startError } = await admin.rpc("start_production", {
     p_order_id: order.id,
@@ -156,7 +362,7 @@ export async function generateProductionFiles(
     action: startedNow ? "production.started" : "production.regenerated",
     entity_type: "order",
     entity_id: order.id,
-    diff: { proofVersion: proof.version, snapshotHash: hash, files: outputs.map((o) => o.path) },
+    diff: { proofVersion, snapshotHash: hash, files: paths, rows: progress?.total ?? null },
   });
 
   if (startedNow) {
@@ -176,12 +382,7 @@ export async function generateProductionFiles(
       }),
     });
   }
-
-  return {
-    ok: true,
-    startedNow,
-    files: outputs.map((o) => ({ kind: o.kind, path: o.path, bytes: o.bytes.byteLength })),
-  };
+  return { ok: true, done: true, progress, startedNow };
 }
 
 /**

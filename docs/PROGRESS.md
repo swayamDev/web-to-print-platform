@@ -5,9 +5,10 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Then **Phase 12** (CSV variable-data merge): upload CSV, map columns to placeholders, preflight
-  every row (overflow, missing values, 100-row cap), proof the first rows, batched row PDFs/PNGs
-  into `production/{OrderID}/rows/` plus a ZIP.
+- Phase 12 live: apply `20261124170000_data_merge.sql` (`pnpm exec supabase db push --remote`), push,
+  then place a CSV race-number order live (Stripe test card), approve its all-rows proof and
+  generate its row files as admin.
+- Then **Phase 13** (customer dashboard, invoices, one-click reorder).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
@@ -36,7 +37,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
 - [x] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
 - [x] **Phase 11** — Production file generation, storage layout, secure admin download
-- [ ] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
+- [x] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
 - [ ] **Phase 13** — Customer dashboard, invoices, one-click reorder
 - [ ] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
 - [ ] **Phase 15** — Admin product/template management, reports, Xero CSV export
@@ -315,3 +316,29 @@ next step under **Next up** so work can resume cold.
   (638 × 638 px, 300 DPI); both downloaded through the admin route (2 audit rows); the customer
   gets 404 on the route and sees "In production"; "in production" in-app + email sent. Live e2e:
   66 passed; one template-preview cold start passed on re-run.
+
+### 2026-11-24 — Phase 12
+
+- `src/domain/merge.ts` (pure, 10 tests): RFC 4180 CSV parser (quotes, embedded newlines, BOM,
+  comma/semicolon/tab detection, row cap, cell/column limits, clear errors), placeholder → column
+  mapping with name/synonym suggestions ("Same text on every item" = null), and per-row preflight
+  through the same layout + print checks (empty values, overflow, missing glyphs = errors; duplicate
+  race numbers = warnings).
+- Migration `20261124170000_data_merge.sql`: `designs.data_merge` (locked with the design),
+  one merge job per order, `create_proof_version` records the dataset hash atomically.
+  5 pgTAP tests (55 total).
+- Designer: "Personalise from a file" panel (upload CSV, column mapping, row preview on the canvas,
+  per-row problems, sample CSV); quantity = rows; saved with the design and restored on reopen.
+  CSV text goes to `uploadCsvAction` (≤ 256 KB), stored as a `csv` asset in the customer's folder.
+- Checkout re-parses and re-checks every row with server fonts, prices by row count and freezes the
+  rows in `merge_jobs` with their sha256. Revisions re-check the file and must keep the row count.
+- Proofs: watermarked PNG of row 1 + print PDF with one page per row; the snapshot hash includes the
+  dataset hash. Customer page explains the per-row PDF.
+- Production: rows render in batches of 10 per request (PDF + PNG per row, `{OrderID}/rows/…_row-001.pdf`),
+  the admin page loops with a progress bar; then a combined `print.pdf` and `rows.zip` (fflate 0.8.2,
+  stored, fixed dates). Production refuses if the frozen rows no longer match the approved dataset hash.
+- Tests: 148 unit, 55 database, 84 e2e (designer CSV flow; paid CSV order → 12-page proof → 24 row
+  files + 12-page PDF + ZIP with 24 entries). Hardened a designer test against Next keeping the
+  previous route mounted but hidden.
+- Note: after `supabase db reset` locally, delete `.next` before testing (the build cache keeps old
+  template ids) and run `pnpm seed:users`.

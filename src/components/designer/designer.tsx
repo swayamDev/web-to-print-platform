@@ -19,6 +19,13 @@ import { constrainGeometry } from "@/domain/design/constraints";
 import { layoutDocument } from "@/domain/design/layout";
 import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
 import { validateDocument } from "@/domain/design/validate";
+import {
+  placeholderKeys,
+  preflightMerge,
+  rowValues,
+  suggestMapping,
+  type MergeMapping,
+} from "@/domain/merge";
 import { formatMinor } from "@/domain/money";
 import { acceptAttribute, type AssetInfo } from "@/domain/uploads";
 import { calculatePrice, type PricingRules } from "@/domain/pricing";
@@ -28,6 +35,7 @@ import { startCheckoutAction } from "@/server/actions/checkout";
 import { saveDesignAction } from "@/server/actions/designs";
 import type { ClientAsset } from "@/server/assets";
 
+import { DataMergePanel, type MergeFile } from "./data-merge-panel";
 import type { ElementChange } from "./design-canvas";
 import { ElementPanel } from "./element-panel";
 import { historyReducer, initialHistory } from "./history";
@@ -58,6 +66,8 @@ export type DesignerProps = {
   userId: string | null;
   /** Uploads the design already uses, with preview URLs. */
   initialAssets: ClientAsset[];
+  /** The design's CSV data file and column mapping (variable-data products). */
+  initialMerge?: { file: MergeFile; mapping: MergeMapping } | null;
 };
 
 const DRAFT_KEY = "dh-design-draft";
@@ -86,6 +96,7 @@ export function Designer({
   design,
   userId,
   initialAssets,
+  initialMerge = null,
 }: DesignerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -112,6 +123,12 @@ export function Designer({
     error: null,
   });
 
+  // Variable data (CSV merge): one printed item per row.
+  const usesData = config.variableData;
+  const [mergeFile, setMergeFile] = useState<MergeFile | null>(initialMerge?.file ?? null);
+  const [mapping, setMapping] = useState<MergeMapping>(initialMerge?.mapping ?? {});
+  const [previewRow, setPreviewRow] = useState(0);
+
   const commit = useCallback(
     (next: DesignDocument, key?: string) => {
       dispatch({ type: "commit", doc: next, key, at: Date.now() });
@@ -121,13 +138,26 @@ export function Designer({
   );
 
   // Live layout and print checks, from the same code the server uses.
-  const layout = fonts ? layoutDocument(doc, {}, (id) => fonts.get(id)?.metrics) : null;
+  const keys = usesData ? placeholderKeys(doc) : [];
+  const previewValues =
+    usesData && mergeFile && previewRow > 0
+      ? (rowValues(mergeFile.table, mapping)[previewRow - 1] ?? {})
+      : {};
+  const layout = fonts ? layoutDocument(doc, previewValues, (id) => fonts.get(id)?.metrics) : null;
+  const mergeCheck =
+    usesData && mergeFile && fonts
+      ? preflightMerge(doc, mergeFile.table, mapping, (id) => fonts.get(id)?.metrics, assetInfos)
+      : null;
+  const dataBlocking = usesData && (!mergeCheck || mergeCheck.errors > 0);
   const issues = layout ? validateDocument(doc, layout, assetInfos) : [];
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
   const issueIds = new Set(issues.map((i) => i.elementId));
   const selected = doc.elements.find((e) => e.id === selectedId) ?? null;
-  const priced = calculatePrice(rules, { productSlug: product.slug, ...config });
+  // With a data file the quantity is the number of rows.
+  const orderConfig =
+    usesData && mergeFile ? { ...config, quantity: mergeFile.table.rows.length } : config;
+  const priced = calculatePrice(rules, { productSlug: product.slug, ...orderConfig });
 
   // ---------------------------------------------------------------------------
   // Saving
@@ -167,6 +197,9 @@ export function Designer({
         name: nameToSave.trim() || product.name,
         config,
         document: documentToSave,
+        ...(usesData
+          ? { dataMerge: mergeFile ? { csvAssetId: mergeFile.id, mapping } : null }
+          : {}),
       });
       if (result.status === "login-required") {
         stashDraftAndLogin(documentToSave, nameToSave);
@@ -184,7 +217,17 @@ export function Designer({
       }
       setSaveState({ kind: "saved", at: result.savedAt });
     },
-    [designId, product.slug, product.name, templateId, config, stashDraftAndLogin],
+    [
+      designId,
+      product.slug,
+      product.name,
+      templateId,
+      config,
+      stashDraftAndLogin,
+      usesData,
+      mergeFile,
+      mapping,
+    ],
   );
 
   // Restore a draft carried through login (?restore=1), then save it to the account.
@@ -667,6 +710,36 @@ export function Designer({
             )}
           </section>
 
+          {usesData ? (
+            <DataMergePanel
+              keys={keys}
+              file={mergeFile}
+              mapping={mapping}
+              check={mergeCheck}
+              previewRow={previewRow}
+              disabled={locked}
+              onLoginRequired={() => {
+                if (userId) return false;
+                stashDraftAndLogin(doc, name); // data files belong to an account
+                return true;
+              }}
+              onFile={(file) => {
+                setMergeFile(file);
+                setMapping(suggestMapping(keys, file.table.headers));
+                setPreviewRow(1);
+                setSaveState({ kind: "dirty" });
+              }}
+              onMapping={(next) => {
+                setMapping(next);
+                setSaveState({ kind: "dirty" });
+              }}
+              onPreviewRow={(row) => {
+                setPreviewRow(row);
+                setSelectedId(null);
+              }}
+            />
+          ) : null}
+
           <section
             className="bg-card grid gap-2 rounded-xl border p-4 text-sm"
             aria-label="Order summary"
@@ -678,7 +751,8 @@ export function Designer({
             </p>
             {priced.ok ? (
               <p className="num font-mono">
-                {config.quantity.toLocaleString("en-GB")} items ·{" "}
+                {orderConfig.quantity.toLocaleString("en-GB")} items
+                {usesData && mergeFile ? " (one per row)" : ""} ·{" "}
                 {formatMinor(priced.quote.totalGrossMinor, priced.quote.currency)} incl.{" "}
                 {priced.quote.taxLabel}
               </p>
@@ -697,13 +771,29 @@ export function Designer({
             <button
               type="button"
               onClick={() => void orderNow()}
-              disabled={locked || ordering.busy || errors.length > 0 || !layout}
+              disabled={
+                locked ||
+                ordering.busy ||
+                errors.length > 0 ||
+                !layout ||
+                dataBlocking ||
+                !priced.ok
+              }
               className="bg-primary text-primary-foreground mt-1 inline-flex h-11 items-center justify-center rounded-md px-4 font-medium disabled:opacity-50"
             >
               {ordering.busy ? "Opening secure payment…" : "Order now"}
             </button>
+            {!priced.ok ? (
+              <p className="text-destructive text-xs" data-testid="price-error">
+                {priced.errors[0]?.message}
+              </p>
+            ) : null}
             {errors.length > 0 ? (
               <p className="text-muted-foreground text-xs">Fix the print check above to order.</p>
+            ) : dataBlocking ? (
+              <p className="text-muted-foreground text-xs">
+                Upload your data file and fix its rows to order.
+              </p>
             ) : (
               <p className="text-muted-foreground text-xs">
                 You pay on Stripe&apos;s secure page. Nothing is printed until you approve a proof.

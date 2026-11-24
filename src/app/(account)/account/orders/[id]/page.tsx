@@ -61,7 +61,8 @@ async function OrderDetail({ params, searchParams }: Props) {
        order_items(description, quantity, design_id),
        order_status_history(to_status, note, created_at),
        proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_pdf_path, proof_png_path, created_at),
-       proof_events(id, proof_version_id, action, comment, created_at)`,
+       proof_events(id, proof_version_id, action, comment, created_at),
+       merge_jobs(row_count)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -85,6 +86,8 @@ async function OrderDetail({ params, searchParams }: Props) {
   }
   const pngUrl = latest?.proof_png_path ? signed.get(latest.proof_png_path) : undefined;
   const pdfUrl = latest?.proof_pdf_path ? signed.get(latest.proof_pdf_path) : undefined;
+  // Variable data (one merge job per order; the API may return an object or a list).
+  const dataRows = ([] as typeof order.merge_jobs).concat(order.merge_jobs ?? [])[0]?.row_count;
 
   const currency = order.currency as CurrencyCode;
   const money = (minor: number) => formatMinor(minor, currency);
@@ -228,6 +231,13 @@ async function OrderDetail({ params, searchParams }: Props) {
               </a>
             ) : null}
           </p>
+          {dataRows ? (
+            <p className="bg-muted rounded-lg px-4 py-3 text-sm" data-testid="proof-rows">
+              Personalised from your data file: {dataRows} {dataRows === 1 ? "item" : "items"}. The
+              image shows row 1; the PDF has one page per row, so please check every name and number
+              before approving.
+            </p>
+          ) : null}
 
           {order.status === "proof" && !approved && latest.status === "pending" ? (
             <ProofDecision orderId={order.id} versionId={latest.id} version={latest.version} />

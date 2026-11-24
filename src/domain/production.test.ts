@@ -55,4 +55,29 @@ describe("production file names", () => {
       }),
     ).toThrow();
   });
+
+  it("put per-row files in rows/ and refuse unknown outputs", () => {
+    const name = productionFileName({
+      orderNumber: "DH-1",
+      productSlug: "race-numbers",
+      paidAt: "2026-11-24T10:00:00Z",
+      output: "row-007.pdf",
+    });
+    expect(productionPath("DH-1", name)).toBe("DH-1/rows/DH-1_race-numbers_2026-11-24_row-007.pdf");
+    const zip = productionFileName({
+      orderNumber: "DH-1",
+      productSlug: "race-numbers",
+      paidAt: "2026-11-24T10:00:00Z",
+      output: "rows.zip",
+    });
+    expect(productionPath("DH-1", zip)).toBe("DH-1/DH-1_race-numbers_2026-11-24_rows.zip");
+    expect(() =>
+      productionFileName({
+        orderNumber: "DH-1",
+        productSlug: "a",
+        paidAt: new Date(),
+        output: "row-1/../x.pdf" as "row-001.pdf",
+      }),
+    ).toThrow();
+  });
 });

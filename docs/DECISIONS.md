@@ -181,3 +181,11 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-40 Print files are reproducible.** They are rendered from the approved snapshot (re-hashed
   first) with the paid date as their timestamp, so regenerating gives the same names and the same
   PDF bytes. Admins download through a logged, 60-second signed link.
+- **D-41 One item per CSV row.** With a data file the order quantity is the number of rows (within
+  the product's quantity limits); a revision must keep the same number of rows.
+- **D-42 Row checks:** an empty value, text that cannot fit, or a character the font cannot print
+  blocks ordering; a repeated race/plate number is a warning (it may be intentional).
+- **D-43 Variable-data proof:** the image shows row 1; the proof PDF has one page per row and is the
+  print file, so every name can be checked. The dataset hash is part of the approved snapshot.
+- **D-44 Batched production:** 10 rows (PDF + PNG each) per request keeps every call well inside
+  serverless limits; progress is stored in `merge_jobs`, so an interrupted run resumes.
