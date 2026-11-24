@@ -135,7 +135,9 @@ set local role authenticated;
 set local request.jwt.claims to '{"sub":"00000000-0000-0000-0000-0000000000ad","role":"authenticated"}';
 
 select results_eq(
-  $$ select count(*)::int from public.orders $$, array[2],
+  $$ select count(*)::int from public.orders
+     where id in ('10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-0000000000b2') $$,
+  array[2],
   'an admin sees every order'
 );
 select isnt_empty(

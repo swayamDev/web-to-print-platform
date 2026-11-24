@@ -196,4 +196,14 @@ describe("PNG preflight", () => {
     expect(plain).not.toContain('id="guides"');
     expect(proof).toContain('id="guides"');
   });
+
+  it("draws a centred, rotated proof watermark only when asked", () => {
+    const layout = layoutDocument(raceBib(), {}, lookup);
+    const plain = layoutToSvg(layout, fonts);
+    const proof = layoutToSvg(layout, fonts, {
+      watermark: { text: "PROOF", font: fonts.get("inter-semibold")! },
+    });
+    expect(plain).not.toContain('id="watermark"');
+    expect(proof).toMatch(/<path id="watermark" d="M[^"]+" [^>]*transform="rotate\(-/);
+  });
 });

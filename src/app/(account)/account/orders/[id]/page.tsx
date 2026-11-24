@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
 import { PayNowButton, PaymentConfirmationPoller } from "@/components/account/order-actions";
+import {
+  ProofDecision,
+  ProofPreparingPoller,
+  SubmitRevisionButton,
+} from "@/components/account/proof-review";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMinor, type CurrencyCode } from "@/domain/money";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/domain/order-status";
+import { orderStatusLabel, type OrderStatus } from "@/domain/order-status";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
+import { ensureFirstProof, isStalled, signProofFiles } from "@/server/proofs";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 export const metadata: Metadata = { title: "Order" };
@@ -50,13 +57,34 @@ async function OrderDetail({ params, searchParams }: Props) {
     .from("orders")
     .select(
       `id, order_number, status, currency, subtotal_net_minor, discount_minor, tax_rate, tax_minor,
-       total_gross_minor, paid_at, invoice_number, created_at, pricing_snapshot,
+       total_gross_minor, paid_at, invoice_number, created_at, pricing_snapshot, approved_proof_id,
        order_items(description, quantity, design_id),
-       order_status_history(to_status, note, created_at)`,
+       order_status_history(to_status, note, created_at),
+       proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_pdf_path, proof_png_path, created_at),
+       proof_events(id, proof_version_id, action, comment, created_at)`,
     )
     .eq("id", id)
     .maybeSingle();
   if (!order) notFound();
+
+  // Proofs: RLS has already limited the rows to this customer's order, so its files may be signed.
+  const versions = [...order.proof_versions].sort((a, b) => b.version - a.version);
+  const latest = versions[0];
+  const signed = await signProofFiles(
+    versions.flatMap((v) => [v.proof_png_path ?? "", v.proof_pdf_path ?? ""]),
+  );
+  const events = [...order.proof_events].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const lastChangeRequest = events.findLast((e) => e.action === "changes_requested");
+  const approval = events.find((e) => e.action === "approved");
+  const approved = Boolean(order.approved_proof_id);
+  const awaitingFirstProof = order.status === "artwork" && versions.length === 0;
+  // Self-healing: if proof v1 did not appear after payment (e.g. a failed background job),
+  // try again after this response. Duplicate attempts are refused by the database.
+  if (awaitingFirstProof && order.paid_at && isStalled(order.paid_at)) {
+    after(() => ensureFirstProof(order.id));
+  }
+  const pngUrl = latest?.proof_png_path ? signed.get(latest.proof_png_path) : undefined;
+  const pdfUrl = latest?.proof_pdf_path ? signed.get(latest.proof_pdf_path) : undefined;
 
   const currency = order.currency as CurrencyCode;
   const money = (minor: number) => formatMinor(minor, currency);
@@ -90,7 +118,7 @@ async function OrderDetail({ params, searchParams }: Props) {
           )}
           data-testid="order-status"
         >
-          {ORDER_STATUS_LABELS[order.status]}
+          {orderStatusLabel(order.status, approved)}
         </span>
       </div>
 
@@ -108,12 +136,7 @@ async function OrderDetail({ params, searchParams }: Props) {
         )
       ) : null}
 
-      {order.status === "artwork" ? (
-        <p className="bg-card rounded-lg border px-4 py-3 text-sm">
-          Payment received. We are preparing a proof of your artwork; you will be emailed when it is
-          ready to approve.
-        </p>
-      ) : null}
+      {awaitingFirstProof ? <ProofPreparingPoller /> : null}
 
       {/* Pipeline ------------------------------------------------------------- */}
       {order.status !== "cancelled" ? (
@@ -155,6 +178,127 @@ async function OrderDetail({ params, searchParams }: Props) {
             );
           })}
         </ol>
+      ) : null}
+
+      {/* Proof ---------------------------------------------------------------- */}
+      {latest ? (
+        <section
+          id="proof"
+          className="bg-card grid scroll-mt-24 gap-4 rounded-xl border p-5"
+          aria-labelledby="proof-heading"
+          data-testid="proof-section"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="proof-heading" className="text-base font-semibold">
+              Proof v{latest.version}
+            </h2>
+            <span className="text-muted-foreground text-sm" data-testid="proof-status">
+              {PROOF_STATUS_LABELS[latest.status]}
+            </span>
+          </div>
+
+          {pngUrl ? (
+            <a
+              href={pngUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-muted grid place-items-center rounded-lg p-3"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- private, short-lived signed proof image */}
+              <img
+                src={pngUrl}
+                alt={`Proof version ${latest.version} with trim and safe-area guides`}
+                className="h-auto max-h-[70vh] w-full max-w-lg object-contain shadow-sm"
+                data-testid="proof-image"
+              />
+            </a>
+          ) : null}
+          <p className="text-muted-foreground text-xs">
+            The black line is the trim edge; anything beyond it is bleed and is cut off. Keep text
+            inside the orange dashed safe area. Guides and the PROOF watermark are not printed.{" "}
+            {pdfUrl ? (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground underline underline-offset-4"
+                data-testid="proof-pdf"
+              >
+                Download the print-ready PDF
+              </a>
+            ) : null}
+          </p>
+
+          {order.status === "proof" && !approved && latest.status === "pending" ? (
+            <ProofDecision orderId={order.id} versionId={latest.id} version={latest.version} />
+          ) : null}
+
+          {approved && approval ? (
+            <p
+              role="status"
+              className="border-ink rounded-lg border-2 px-4 py-3 text-sm"
+              data-testid="proof-approved"
+            >
+              You approved proof v{versions.find((v) => v.id === order.approved_proof_id)?.version}{" "}
+              on {new Date(approval.created_at).toLocaleString("en-GB")}. It will be printed exactly
+              as approved, and the design is now locked.
+            </p>
+          ) : null}
+
+          {order.status === "artwork" && latest.status === "changes_requested" ? (
+            <div className="grid gap-3 rounded-lg border border-dashed p-4 text-sm">
+              <p>
+                You asked for changes
+                {lastChangeRequest?.comment ? (
+                  <>
+                    : <q className="italic">{lastChangeRequest.comment}</q>
+                  </>
+                ) : null}
+              </p>
+              <p className="text-muted-foreground">
+                Open your design, make the changes and save it, then create the next proof here. The
+                size, material and quantity must stay as ordered.
+              </p>
+              {item?.design_id ? (
+                <Link
+                  href={`/design/${item.design_id}`}
+                  className="w-fit underline underline-offset-4"
+                >
+                  Edit the design
+                </Link>
+              ) : null}
+              <SubmitRevisionButton orderId={order.id} nextVersion={latest.version + 1} />
+            </div>
+          ) : null}
+
+          {versions.length > 1 || events.length > 0 ? (
+            <details className="text-sm">
+              <summary className="cursor-pointer font-medium">Proof history</summary>
+              <ol className="mt-2 grid gap-2" data-testid="proof-history">
+                {versions.map((v) => (
+                  <li key={v.id} className="grid gap-0.5 border-l-2 pl-3">
+                    <span>
+                      v{v.version} · {PROOF_STATUS_LABELS[v.status]} ·{" "}
+                      {new Date(v.created_at).toLocaleString("en-GB")}
+                    </span>
+                    {events
+                      .filter((e) => e.proof_version_id === v.id)
+                      .map((e) => (
+                        <span key={e.id} className="text-muted-foreground">
+                          {e.action === "changes_requested" ? "Changes requested" : "Approved"} on{" "}
+                          {new Date(e.created_at).toLocaleString("en-GB")}
+                          {e.comment ? `: “${e.comment}”` : ""}
+                        </span>
+                      ))}
+                    <span className="text-muted-foreground font-mono text-xs break-all">
+                      sha256 {v.snapshot_hash.slice(0, 16)}…
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
+        </section>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -207,6 +351,13 @@ async function OrderDetail({ params, searchParams }: Props) {
     </div>
   );
 }
+
+const PROOF_STATUS_LABELS: Record<string, string> = {
+  pending: "Waiting for your approval",
+  approved: "Approved",
+  changes_requested: "Changes requested",
+  superseded: "Replaced by a newer version",
+};
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (

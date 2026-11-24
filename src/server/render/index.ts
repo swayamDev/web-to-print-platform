@@ -36,6 +36,8 @@ export type RenderRequest = {
   dpi?: number;
   /** Draw trim, bleed and safe-area guides (proofs/previews only). */
   guides?: boolean;
+  /** Diagonal watermark text (PNG proofs only). */
+  watermark?: string;
   meta: PdfMeta;
   /** Uploaded files referenced by the design (see loadAssetFiles). */
   assets?: ReadonlyMap<string, RenderAsset>;

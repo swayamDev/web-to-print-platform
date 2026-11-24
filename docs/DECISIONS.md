@@ -168,3 +168,11 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
   sent through SMTP when configured, and failures are recorded rather than ignored.
 - **D-35 Live payment keys are refused** unless `ALLOW_LIVE_PAYMENTS=true`, so a demonstration
   deployment can never take real money by mistake.
+- **D-36 The proof PDF is the print file.** Customers approve a PNG with guides and a PROOF
+  watermark, plus a PDF rendered exactly as production renders it. Both carry the sha256 of the
+  canonical snapshot (document, configuration, upload contents); production files will repeat it.
+- **D-37 Revisions keep the paid configuration.** After a change request the customer edits the same
+  saved design; a new proof is only made if size, material and quantity still match the order.
+  Anything else needs a new order (no re-pricing of paid orders).
+- **D-38 Approval stays in "proof" until an admin starts production.** Approval unlocks print files
+  and locks the design; the customer sees "Proof approved".

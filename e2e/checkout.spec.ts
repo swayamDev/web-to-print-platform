@@ -1,114 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import Stripe from "stripe";
+import { expect, test } from "@playwright/test";
+
+import { admin, createQuoteOrder, deliver, local, logIn, signedEvent } from "./support/orders";
 
 /**
  * Checkout and payment capture (PRD p5 §05, p10 §16). Stripe's hosted page is not driven here;
  * instead the webhook is exercised with events signed exactly as Stripe signs them, using the
  * local STRIPE_WEBHOOK_SECRET. Runs locally (needs the secret key for setup and Mailpit).
  */
-
-const local = !process.env.E2E_BASE_URL;
-const customer = {
-  email: process.env.TEST_CUSTOMER_EMAIL ?? "",
-  password: process.env.TEST_CUSTOMER_PASSWORD ?? "",
-};
-const admin = () =>
-  createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, {
-    auth: { persistSession: false },
-  });
-
-/** A quote order for the test customer, as checkout would leave it (£16.20 for 100 stickers). */
-async function createQuoteOrder(totalMinor = 1620) {
-  const db = admin();
-  const { data: users } = await db.auth.admin.listUsers({ perPage: 200 });
-  const user = users.users.find((u) => u.email === customer.email)!;
-  const { data: product } = await db
-    .from("products")
-    .select("id")
-    .eq("slug", "custom-stickers")
-    .single();
-  const { data: order, error } = await db
-    .from("orders")
-    .insert({
-      customer_id: user.id,
-      currency: "GBP",
-      subtotal_net_minor: 1350,
-      discount_minor: 150,
-      tax_rate: 0.2,
-      tax_minor: totalMinor - 1350,
-      total_gross_minor: totalMinor,
-      pricing_snapshot: {
-        engine: "pricing@1",
-        quote: { tier: { minQty: 100, percentOff: "10" }, setupFeeMinor: 0 },
-      },
-      payment_provider: "stripe",
-      checkout_session_id: `cs_test_${Date.now()}`,
-    })
-    .select("id, order_number, checkout_session_id")
-    .single();
-  if (error) throw error;
-  await db.from("order_items").insert({
-    order_id: order.id,
-    product_id: product!.id,
-    description: "Custom Stickers × 100 (50 × 50 mm, Gloss vinyl)",
-    config_snapshot: { widthMm: 50, heightMm: 50, materialSlug: "gloss-vinyl", quantity: 100 },
-    quantity: 100,
-    unit_net: 0.15,
-    line_net_minor: 1350,
-    line_tax_minor: totalMinor - 1350,
-    line_gross_minor: totalMinor,
-  });
-  return order;
-}
-
-function signedEvent(
-  order: { id: string; checkout_session_id: string | null },
-  amount: number,
-  eventId = `evt_test_${Date.now()}`,
-) {
-  const payload = JSON.stringify({
-    id: eventId,
-    object: "event",
-    type: "checkout.session.completed",
-    data: {
-      object: {
-        id: order.checkout_session_id,
-        object: "checkout.session",
-        payment_status: "paid",
-        amount_total: amount,
-        currency: "gbp",
-        client_reference_id: order.id,
-        metadata: { order_id: order.id },
-        payment_intent: `pi_test_${eventId}`,
-        customer_details: {
-          name: "Test Customer",
-          email: customer.email,
-          address: { country: "GB" },
-        },
-      },
-    },
-  });
-  const signature = Stripe.webhooks.generateTestHeaderString({
-    payload,
-    secret: process.env.STRIPE_WEBHOOK_SECRET!,
-  });
-  return { payload, signature };
-}
-
-const deliver = (request: APIRequestContext, payload: string, signature: string) =>
-  request.post("/api/v1/webhooks/stripe", {
-    headers: { "content-type": "application/json", "stripe-signature": signature },
-    data: payload,
-  });
-
-async function logIn(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(customer.email);
-  await page.getByLabel("Password").fill(customer.password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
-}
 
 test.describe("checkout and payment", () => {
   test.skip(({ isMobile }) => isMobile, "payment handling does not depend on the viewport");

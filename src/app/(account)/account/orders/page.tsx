@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { formatMinor, type CurrencyCode } from "@/domain/money";
-import { ORDER_STATUS_LABELS } from "@/domain/order-status";
+import { orderStatusLabel } from "@/domain/order-status";
 import { requireUser } from "@/server/auth";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
@@ -25,7 +25,7 @@ async function OrdersList() {
   const { data: orders } = await supabase
     .from("orders")
     .select(
-      "id, order_number, status, total_gross_minor, currency, created_at, order_items(description)",
+      "id, order_number, status, approved_proof_id, total_gross_minor, currency, created_at, order_items(description)",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -48,7 +48,7 @@ async function OrdersList() {
                 <span className="num font-mono text-sm">{order.order_number}</span>
                 <span className="text-sm">{order.order_items[0]?.description}</span>
                 <span className="text-muted-foreground text-sm">
-                  {ORDER_STATUS_LABELS[order.status]}
+                  {orderStatusLabel(order.status, Boolean(order.approved_proof_id))}
                 </span>
                 <span className="num font-mono text-sm">
                   {formatMinor(order.total_gross_minor, order.currency as CurrencyCode)}

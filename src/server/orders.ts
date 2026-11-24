@@ -189,6 +189,11 @@ export async function resumeCheckout(
 }
 
 export type ProcessOutcome = "processed" | "duplicate" | "ignored" | "rejected";
+export type ProcessResult = {
+  outcome: ProcessOutcome;
+  /** Set when the order is paid: the caller then makes sure proof v1 exists. */
+  paidOrderId?: string;
+};
 
 /**
  * Apply a verified payment event. Safe to receive more than once (Stripe retries webhooks):
@@ -198,7 +203,7 @@ export type ProcessOutcome = "processed" | "duplicate" | "ignored" | "rejected";
 export async function processPaymentEvent(
   event: PaymentEvent,
   eventType: string,
-): Promise<ProcessOutcome> {
+): Promise<ProcessResult> {
   const admin = createSupabaseAdminClient();
 
   await admin
@@ -213,7 +218,7 @@ export async function processPaymentEvent(
     .eq("provider", paymentProvider.name)
     .eq("event_id", event.eventId)
     .single();
-  if (seen?.processed_at) return "duplicate";
+  if (seen?.processed_at) return { outcome: "duplicate" };
 
   const markProcessed = () =>
     admin
@@ -224,7 +229,7 @@ export async function processPaymentEvent(
 
   if (event.type !== "paid") {
     await markProcessed();
-    return "ignored";
+    return { outcome: "ignored" };
   }
 
   const { data: order } = await admin
@@ -237,7 +242,7 @@ export async function processPaymentEvent(
   if (!order) {
     console.error("payment for unknown order", event.orderId);
     await markProcessed();
-    return "rejected";
+    return { outcome: "rejected" };
   }
 
   // Never trust the amount blindly: it must match the server price recorded at checkout.
@@ -262,7 +267,7 @@ export async function processPaymentEvent(
       expected: order.total_gross_minor,
     });
     await markProcessed();
-    return "rejected";
+    return { outcome: "rejected" };
   }
 
   let confirmedNow = false;
@@ -316,5 +321,5 @@ export async function processPaymentEvent(
       }),
     });
   }
-  return "processed";
+  return { outcome: "processed", paidOrderId: order.id };
 }

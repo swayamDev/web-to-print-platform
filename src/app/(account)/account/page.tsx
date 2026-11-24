@@ -7,7 +7,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMinor, type CurrencyCode } from "@/domain/money";
-import { ORDER_STATUS_LABELS } from "@/domain/order-status";
+import { orderStatusLabel } from "@/domain/order-status";
 import { requireUser } from "@/server/auth";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
@@ -27,13 +27,22 @@ async function AccountDashboard() {
   const supabase = await createSupabaseServerClient();
 
   // RLS limits both queries to this customer's own rows.
-  const [{ data: orders }, { count: designCount }] = await Promise.all([
+  const [{ data: orders }, { count: designCount }, { data: awaitingProofs }] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, order_number, status, total_gross_minor, currency, created_at")
+      .select(
+        "id, order_number, status, approved_proof_id, total_gross_minor, currency, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(5),
     supabase.from("designs").select("id", { count: "exact", head: true }),
+    // Proofs waiting for the customer's decision (PRD p9 §13: active proofs).
+    supabase
+      .from("orders")
+      .select("id, order_number, order_items(description)")
+      .eq("status", "proof")
+      .is("approved_proof_id", null)
+      .order("created_at", { ascending: false }),
   ]);
 
   const { full_name, company_name, phone } = user.profile;
@@ -49,6 +58,41 @@ async function AccountDashboard() {
         </h1>
         <p className="text-muted-foreground text-sm">{user.email}</p>
       </div>
+
+      {awaitingProofs && awaitingProofs.length > 0 ? (
+        <Card className="border-signal" data-testid="active-proofs">
+          <CardHeader>
+            <CardTitle>Proofs waiting for you</CardTitle>
+            <CardDescription>
+              Nothing is printed until you approve. Check each proof and approve it or ask for
+              changes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {awaitingProofs.map((order) => (
+                <li
+                  key={order.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-3"
+                >
+                  <span className="grid">
+                    <span className="font-mono text-sm">{order.order_number}</span>
+                    <span className="text-muted-foreground text-sm">
+                      {order.order_items[0]?.description}
+                    </span>
+                  </span>
+                  <Link
+                    href={`/account/orders/${order.id}#proof`}
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    Review proof
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -104,7 +148,7 @@ async function AccountDashboard() {
                     {order.order_number}
                   </Link>
                   <span className="text-muted-foreground text-sm">
-                    {ORDER_STATUS_LABELS[order.status]}
+                    {orderStatusLabel(order.status, Boolean(order.approved_proof_id))}
                   </span>
                   <span className="text-sm tabular-nums">
                     {formatMinor(order.total_gross_minor, order.currency as CurrencyCode)}

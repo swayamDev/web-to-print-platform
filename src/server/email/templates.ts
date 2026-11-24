@@ -50,3 +50,44 @@ export function orderConfirmedEmail(input: {
     }),
   };
 }
+
+export function proofReadyEmail(input: {
+  customerName: string | null;
+  orderNumber: string;
+  version: number;
+  orderUrl: string;
+}): EmailContent {
+  const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
+  const paragraphs = [
+    greeting,
+    `Proof version ${input.version} for order ${input.orderNumber} is ready.`,
+    "Please check every detail: spelling, numbers, colours and position. Approve it to send the job to print, or ask for changes. Nothing is printed until you approve.",
+  ];
+  const title = `Proof v${input.version} ready for order ${input.orderNumber}`;
+  return {
+    subject: title,
+    text: `${paragraphs.join("\n\n")}\n\nReview your proof: ${input.orderUrl}\n`,
+    html: layout(title, paragraphs, { label: "Review your proof", url: input.orderUrl }),
+  };
+}
+
+export function proofApprovedEmail(input: {
+  customerName: string | null;
+  orderNumber: string;
+  version: number;
+  approvedAt: string;
+  orderUrl: string;
+}): EmailContent {
+  const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
+  const paragraphs = [
+    greeting,
+    `Thank you: you approved proof version ${input.version} for order ${input.orderNumber} on ${input.approvedAt}.`,
+    "Your job now goes to production, printed exactly as approved. We will let you know when it is complete.",
+  ];
+  const title = `Proof approved for order ${input.orderNumber}`;
+  return {
+    subject: title,
+    text: `${paragraphs.join("\n\n")}\n\nView your order: ${input.orderUrl}\n`,
+    html: layout(title, paragraphs, { label: "View your order", url: input.orderUrl }),
+  };
+}

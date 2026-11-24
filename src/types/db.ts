@@ -537,18 +537,110 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "check_rate_limit":
+            "approve_proof":
+{ Args: { "p_actor_id": string,"p_ip"?: unknown,"p_order_id": string,"p_user_agent"?: string,"p_version": number,"p_version_id": string }; Returns: {
+              "config_snapshot": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"document_snapshot": Json | null,
+"id": string,
+"merge_dataset_hash": string | null,
+"order_id": string,
+"proof_pdf_path": string | null,
+"proof_png_path": string | null,
+"snapshot_hash": string,
+"source": Database["public"]['Enums']["proof_source"],
+"status": Database["public"]['Enums']["proof_status"],
+"upload_asset_id": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "proof_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"check_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
                            },
+"create_proof_version":
+{ Args: { "p_actor_id"?: string,"p_config": Json,"p_document": Json,"p_order_id": string,"p_pdf_path": string,"p_png_path": string,"p_snapshot_hash": string,"p_source": Database["public"]['Enums']["proof_source"],"p_version": number }; Returns: {
+              "config_snapshot": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"document_snapshot": Json | null,
+"id": string,
+"merge_dataset_hash": string | null,
+"order_id": string,
+"proof_pdf_path": string | null,
+"proof_png_path": string | null,
+"snapshot_hash": string,
+"source": Database["public"]['Enums']["proof_source"],
+"status": Database["public"]['Enums']["proof_status"],
+"upload_asset_id": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "proof_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"lock_open_proof":
+{ Args: { "p_actor_id": string,"p_order_id": string,"p_version": number,"p_version_id": string }; Returns: {
+              "config_snapshot": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"document_snapshot": Json | null,
+"id": string,
+"merge_dataset_hash": string | null,
+"order_id": string,
+"proof_pdf_path": string | null,
+"proof_png_path": string | null,
+"snapshot_hash": string,
+"source": Database["public"]['Enums']["proof_source"],
+"status": Database["public"]['Enums']["proof_status"],
+"upload_asset_id": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "proof_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "next_invoice_number":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "order_transition_allowed":
 { Args: { "from_status": Database["public"]['Enums']["order_status"],"to_status": Database["public"]['Enums']["order_status"] }; Returns: boolean
                            },
+"request_proof_changes":
+{ Args: { "p_actor_id": string,"p_comment": string,"p_ip"?: unknown,"p_order_id": string,"p_user_agent"?: string,"p_version": number,"p_version_id": string }; Returns: {
+              "config_snapshot": NonNullable<Json>,
+"created_at": string,
+"created_by": string | null,
+"document_snapshot": Json | null,
+"id": string,
+"merge_dataset_hash": string | null,
+"order_id": string,
+"proof_pdf_path": string | null,
+"proof_png_path": string | null,
+"snapshot_hash": string,
+"source": Database["public"]['Enums']["proof_source"],
+"status": Database["public"]['Enums']["proof_status"],
+"upload_asset_id": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "proof_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "transition_order":
 { Args: { "p_actor_id"?: string,"p_note"?: string,"p_order_id": string,"p_to_status": Database["public"]['Enums']["order_status"] }; Returns: {
               "approved_proof_id": string | null,

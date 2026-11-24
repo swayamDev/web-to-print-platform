@@ -1,6 +1,6 @@
 /**
  * Order pipeline stages (PRD p8 §11, DECISIONS D-05) and their customer-facing labels.
- * The allowed transitions are added with the state machine in Phase 10.
+ * Allowed transitions are enforced in the database (transition_order).
  */
 export const ORDER_STATUSES = [
   "quote",
@@ -23,3 +23,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+/** The label to show, which also says when a proof is approved and the job awaits production. */
+export function orderStatusLabel(status: OrderStatus, proofApproved = false): string {
+  return status === "proof" && proofApproved ? "Proof approved" : ORDER_STATUS_LABELS[status];
+}

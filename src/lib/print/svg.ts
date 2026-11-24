@@ -1,10 +1,20 @@
 import type { DesignLayout } from "@/domain/design/layout";
 
-import { textToPathData, type LoadedFont } from "./fonts";
+import { placeGlyphs, textToPathData, type LoadedFont } from "./fonts";
+
+/** Width of a line of text in mm at a size, with the same glyph placement as printing. */
+function measureWidthMm(font: LoadedFont, text: string, sizePt: number) {
+  const glyphs = placeGlyphs(font, text, sizePt, 80);
+  const last = glyphs.at(-1);
+  if (!last) return 0;
+  return last.xMm + (((last.glyph.advanceWidth ?? 0) / font.font.unitsPerEm) * sizePt * 25.4) / 72;
+}
 
 export type SvgOptions = {
   /** Draw trim, bleed and safe-area guides (proofs and previews only, never print files). */
   guides?: { safeMarginMm: number };
+  /** Diagonal "PROOF" text across the page (proof images only, never print files). */
+  watermark?: { text: string; font: LoadedFont };
   /** Image data by asset id, as data: URIs (PNG/JPEG/SVG; PDFs pre-rasterised by the caller). */
   images?: ReadonlyMap<string, string>;
 };
@@ -67,6 +77,26 @@ export function layoutToSvg(
         }/>`,
       );
     }
+  }
+
+  if (options.watermark) {
+    // Size the text to about 70% of the page diagonal, centred, at the diagonal's angle.
+    const diagonal = Math.hypot(W, H);
+    const angle = (-Math.atan2(H, W) * 180) / Math.PI;
+    const probe = measureWidthMm(options.watermark.font, options.watermark.text, 100);
+    const sizePt = Math.max(6, (100 * diagonal * 0.7) / Math.max(probe, 1));
+    const width = measureWidthMm(options.watermark.font, options.watermark.text, sizePt);
+    const d = textToPathData(
+      options.watermark.font,
+      options.watermark.text,
+      W / 2 - width / 2,
+      H / 2 + sizePt * 0.12,
+      sizePt,
+      80,
+    );
+    parts.push(
+      `<path id="watermark" d="${d}" fill="#ff4d00" fill-opacity="0.16" transform="rotate(${n(angle)} ${n(W / 2)} ${n(H / 2)})"/>`,
+    );
   }
 
   if (options.guides) {

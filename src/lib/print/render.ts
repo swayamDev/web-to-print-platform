@@ -26,6 +26,8 @@ export type RenderInput = {
   dpi?: number;
   /** Draw trim, bleed and safe-area guides (PNG proofs/previews only). */
   guides?: boolean;
+  /** Diagonal watermark text (PNG proofs only; print files never carry one). */
+  watermark?: string;
   meta: PdfMeta;
   fonts: Map<string, LoadedFont>;
   assets?: ReadonlyMap<string, RenderAsset>;
@@ -97,6 +99,9 @@ export async function renderDocument(input: RenderInput): Promise<RenderResult> 
   const svg = layoutToSvg(layout, input.fonts, {
     images,
     ...(input.guides ? { guides: { safeMarginMm: input.document.safeMargin } } : {}),
+    ...(input.watermark && input.fonts.get("inter-semibold")
+      ? { watermark: { text: input.watermark, font: input.fonts.get("inter-semibold")! } }
+      : {}),
   });
   return {
     ok: true,

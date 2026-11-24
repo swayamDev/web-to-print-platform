@@ -5,12 +5,12 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Then **Phase 10** (proofs): generate proof v1 (watermarked PNG + PDF with guides) from the order's
-  `design_snapshot`, `proof_versions` with snapshot hash, customer approve / request changes (only the
-  latest version, transactional), immutable `proof_events`, approval gate (`files_unlocked_at`),
-  proof-ready and approved emails.
-- Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
+- Phase 10 live check: apply `20261124130000_proof_workflow.sql` to the live database
+  (`pnpm exec supabase db push --remote`), push, then pay a test order and approve its proof live.
+- Then **Phase 11** (production files): admin-only render of the approved proof's
+  `document_snapshot` to PDF/PNG at output DPI, stored in `production/{order}/…` with the same
+  snapshot hash in the PDF keywords, only when `files_unlocked_at` is set; secure admin download.
+- Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
 
@@ -36,7 +36,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
 - [x] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
 - [x] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
-- [ ] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
+- [x] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
 - [ ] **Phase 11** — Production file generation, storage layout, secure admin download
 - [ ] **Phase 12** — CSV variable-data merge (mapping, preflight, batched generation, ZIP)
 - [ ] **Phase 13** — Customer dashboard, invoices, one-click reorder
@@ -261,3 +261,24 @@ next step under **Next up** so work can resume cold.
 - Verified live (2026-11-24): real Stripe test-mode payment for DH-2026-000007 (£16.20, card 4242):
   signed webhook processed once, order quote → order → artwork, INV-2026-000001, one succeeded
   payment, previous session expired by "Pay now", in-app + email notification recorded as sent.
+
+### 2026-11-24 — Phase 10
+
+- Migration `20261124130000_proof_workflow.sql`: `create_proof_version` (consecutive versions,
+  supersedes open ones, artwork → proof), `approve_proof` and `request_proof_changes` (shared
+  `lock_open_proof`: own order, status proof, latest pending version, row locks). Approval logs
+  actor, IP, user agent and snapshot hash, sets `approved_proof_id` + `files_unlocked_at` and locks
+  the design. Service role only. 17 new pgTAP tests (41 total); admin-count test made robust.
+- `src/domain/canonical.ts`: canonical JSON for the snapshot hash (sha256 of document + config +
+  upload hashes). `layoutToSvg` gained a `watermark` option (diagonal outlined text).
+- `src/server/proofs.ts`: `generateProof` renders proof.png (150 DPI, guides, PROOF watermark) and
+  proof.pdf (the print file itself, hash in keywords), uploads to `proofs/{order}/v{n}/{attempt}/`,
+  records the version, emails "proof ready". Proof v1 runs after the webhook response (`after()`);
+  the order page retries if no proof appeared 30 s after payment.
+- Actions: approve, request changes (comment required), and "create proof vN from my saved
+  design" after a change request (size/material/quantity must match what was paid for).
+- UI: proof section on the order page (image, PDF link, confirmation checkbox, change request,
+  history with hashes), "Proofs waiting for you" on the dashboard, "Proof approved" status label.
+- 3 proof e2e tests (v1 after payment + PDF hash; change request → v2 → approve, stale second tab
+  refused, audit log, design locked, emails; config change refused). 133 unit + 78 e2e pass.
+- Not yet live: the migration needs applying to the live database before this deploys.
