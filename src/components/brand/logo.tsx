@@ -1,31 +1,31 @@
+import Image from "next/image";
 import Link from "next/link";
 
-/** Registration-mark logo: the target printers use to line up colour plates. */
+/** Register is the shared four-part registration mark for DHprint. */
 export function RegistrationMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none">
-      <circle cx="12" cy="12" r="6.5" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="12" cy="12" r="2.6" fill="var(--signal)" />
-      <path d="M12 1.5v21M1.5 12h21" stroke="currentColor" strokeWidth="1.6" />
+    <svg viewBox="0 0 64 64" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M6 28.5A22.5 22.5 0 0 1 28.5 6h.5v22.5zM58 35.5A22.5 22.5 0 0 1 35.5 58H35V35.5zM36 8h19.5v20.5H36zM8.5 35.5H28V56H8.5z" />
     </svg>
   );
 }
 
-export function Logo() {
+export function Logo({ reversed = false }: { reversed?: boolean }) {
   return (
     <Link
       href="/"
-      className="group flex items-center gap-2"
-      aria-label="Digital Heroes Print, home"
+      className="flex shrink-0 items-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+      aria-label="DHprint, Digital Heroes Print home"
     >
-      <RegistrationMark className="size-6 transition-transform duration-300 group-hover:rotate-90" />
-      {/* On narrow phones with the extra Admin link, the mark alone (the link keeps its label). */}
-      <span className="font-heading text-[0.95rem] leading-none font-semibold tracking-tight whitespace-nowrap max-[400px]:group-has-[[data-admin-link]]/header:hidden">
-        Digital Heroes
-        <span className="spec-label text-muted-foreground ml-1.5 align-middle max-sm:hidden">
-          Print
-        </span>
-      </span>
+      <Image
+        src={reversed ? "/brand/register-horizontal-reverse.svg" : "/brand/register-horizontal.svg"}
+        alt=""
+        width={156}
+        height={40}
+        className="h-auto w-[106px] sm:w-[156px] max-[400px]:group-has-[[data-admin-link]]/header:hidden"
+        unoptimized
+      />
+      <RegistrationMark className="hidden size-7 max-[400px]:group-has-[[data-admin-link]]/header:block" />
     </Link>
   );
 }

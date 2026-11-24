@@ -168,7 +168,7 @@ function NextTierHint({
     >
       {cheaper ? (
         <>
-          <strong className="text-signal">
+          <strong className="text-signal-text">
             Order {more.toLocaleString("en-GB")} more and pay less:
           </strong>{" "}
           {next.minQty.toLocaleString("en-GB")} items cost {money(next.totalGrossMinor)} in total (
@@ -176,7 +176,7 @@ function NextTierHint({
         </>
       ) : (
         <>
-          <strong className="text-signal">
+          <strong className="text-signal-text">
             {formatPercent(next.percentOff)} off from {next.minQty.toLocaleString("en-GB")}:
           </strong>{" "}
           add {more.toLocaleString("en-GB")} more for {money(next.totalGrossMinor)} in total.
@@ -229,7 +229,7 @@ function TierLadder({
           {rows.map((row) => {
             const active = row.quantity === activeTierMin;
             return (
-              <tr key={row.quantity} className={cn(active && "text-signal")}>
+              <tr key={row.quantity} className={cn(active && "text-signal-text")}>
                 <td className="py-1">
                   <button
                     type="button"
@@ -266,13 +266,13 @@ function ServerStatus({ check, money }: { check: ServerCheck; money: (minor: num
     case "confirmed":
       return (
         <p className={cn(base, "text-paper/80")} data-testid="price-confirmed">
-          <Check className="text-signal size-3.5" aria-hidden="true" /> Price confirmed with current
+          <Check className="text-signal-text size-3.5" aria-hidden="true" /> Price confirmed with current
           rates
         </p>
       );
     case "changed":
       return (
-        <p className={cn(base, "text-signal")} role="alert">
+        <p className={cn(base, "text-signal-text")} role="alert">
           <TriangleAlert className="size-3.5" aria-hidden="true" /> Rates have just changed: the
           current total is {money(check.serverTotalMinor)}. Refresh to update.
         </p>

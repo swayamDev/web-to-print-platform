@@ -591,7 +591,7 @@ export function Designer({
           {!previewMode ? (
             <p className="spec-label text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
               <span>
-                <span className="bg-signal/30 mr-1.5 inline-block size-2.5 align-middle" /> Bleed
+                <span className="bg-[#ff4d00]/30 mr-1.5 inline-block size-2.5 align-middle" /> Bleed
                 (trimmed off)
               </span>
               <span>

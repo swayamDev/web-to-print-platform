@@ -1,22 +1,31 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 
-// Geometric headings, a dense-spec body face, and mono for dimensions (PRD p8 §12).
-const sora = Sora({ variable: "--font-sora", subsets: ["latin"], display: "swap" });
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
-const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  display: "swap",
+const instrument = localFont({
+  src: [
+    { path: "./web-fonts/body.ttf", weight: "400" },
+    { path: "./web-fonts/bold.ttf", weight: "700" },
+  ],
+  variable: "--font-instrument",
+});
+const display = localFont({
+  src: "./web-fonts/display.ttf",
+  variable: "--font-special",
+  preload: false,
+});
+const mono = localFont({
+  src: "./web-fonts/mono.ttf",
+  variable: "--font-plex",
+  preload: false,
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Digital Heroes Print — custom print, made to measure",
+    default: "DHprint · Digital Heroes Print",
     template: "%s · Digital Heroes Print",
   },
   description:
@@ -24,14 +33,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4f2ed",
+  themeColor: "#F3F1EC",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased`}
+      className={`${instrument.variable} ${display.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <a
