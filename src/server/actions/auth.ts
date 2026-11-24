@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/domain/auth";
 import { requireUser } from "@/server/auth";
 import { serverEnv } from "@/server/env";
+import { clientIp, rateLimit } from "@/server/rate-limit";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 /** State returned to forms by every auth action (used with React's useActionState). */
@@ -33,6 +35,20 @@ const text = (formData: FormData, name: string) => {
 
 const TOO_MANY_ATTEMPTS = "Too many attempts. Please wait a few minutes and try again.";
 
+/**
+ * Our own limits, on top of Supabase Auth's per-IP limits: they stop password guessing against
+ * one account and scripted sign-ups, while leaving room for real people (and test runs).
+ * Fails closed: if the limiter is down, auth answers "too many attempts" rather than letting
+ * unlimited guesses through.
+ */
+async function allowed(...checks: [key: string, max: number, windowSeconds: number][]) {
+  for (const [key, max, windowSeconds] of checks) {
+    if (!(await rateLimit(key, max, windowSeconds, false))) return false;
+  }
+  return true;
+}
+const ip = async () => clientIp(await headers());
+
 /** Supabase Auth rejects bursts of sign-ins and sign-ups per IP with HTTP 429. */
 function isRateLimited(error: { status?: number; code?: string }) {
   return error.status === 429 || error.code === "over_request_rate_limit";
@@ -49,6 +65,11 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   });
   if (!parsed.success) {
     return { status: "error", fieldErrors: toFieldErrors(parsed.error), values };
+  }
+
+  const email = parsed.data.email.toLowerCase();
+  if (!(await allowed([`login:email:${email}`, 50, 900], [`login:ip:${await ip()}`, 300, 900]))) {
+    return { status: "error", message: TOO_MANY_ATTEMPTS, values };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -78,6 +99,10 @@ export async function signupAction(_prev: FormState, formData: FormData): Promis
   const parsed = signupSchema.safeParse({ ...values, password: text(formData, "password") });
   if (!parsed.success) {
     return { status: "error", fieldErrors: toFieldErrors(parsed.error), values };
+  }
+
+  if (!(await allowed([`signup:ip:${await ip()}`, 30, 3600]))) {
+    return { status: "error", message: TOO_MANY_ATTEMPTS, values };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -135,10 +160,18 @@ export async function forgotPasswordAction(
     return { status: "error", fieldErrors: toFieldErrors(parsed.error), values };
   }
 
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${serverEnv().APP_URL}/auth/callback?next=/reset-password`,
-  });
+  // Quietly skip extra emails to the same address (the answer below stays the same).
+  if (
+    await allowed(
+      [`reset:email:${parsed.data.email.toLowerCase()}`, 5, 900],
+      [`reset:ip:${await ip()}`, 30, 900],
+    )
+  ) {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo: `${serverEnv().APP_URL}/auth/callback?next=/reset-password`,
+    });
+  }
 
   // Always the same answer, whether or not the account exists.
   return {
@@ -198,6 +231,10 @@ export async function updateProfileAction(
   const parsed = profileSchema.safeParse(values);
   if (!parsed.success) {
     return { status: "error", fieldErrors: toFieldErrors(parsed.error), values };
+  }
+
+  if (!(await allowed([`profile:${user.id}`, 30, 600]))) {
+    return { status: "error", message: TOO_MANY_ATTEMPTS, values };
   }
 
   // Runs as the user: RLS limits it to their own row and column grants block `role`.

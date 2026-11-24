@@ -13,6 +13,7 @@ Built for the Digital Heroes Level 2 assessment.
 - [`docs/PLAN.md`](docs/PLAN.md) — architecture, rules, pipeline, pricing and print-output design
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — how gaps and ambiguities in the brief were resolved
 - [`docs/PROGRESS.md`](docs/PROGRESS.md) — phase checklist
+- [`docs/TESTING.md`](docs/TESTING.md) — how to run the tests, and the PRD testing checklist mapped to them
 
 ## Stack
 

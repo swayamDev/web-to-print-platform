@@ -219,3 +219,9 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-54 Motion** is time-based and short (under 0.5 s), never needed to read content, and fully off
   under reduced motion. Scroll-linked animation was tried and dropped: it left content hidden in
   print and full-page captures.
+- **D-55 CSP without nonces.** Pages are prerendered and cached (Cache Components), so a per-request
+  script nonce is not possible; scripts are limited to this origin plus Next's inline bootstrap
+  ('unsafe-inline'), while eval, plugins, framing and foreign form targets stay blocked.
+- **D-56 Our own auth rate limits** sit on top of Supabase Auth's per-IP limits and fail closed. They
+  are generous per IP (shared networks, test runs) and tight per email address, which is what stops
+  password guessing against one account.

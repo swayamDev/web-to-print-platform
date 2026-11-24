@@ -9,6 +9,7 @@ import { calculatePrice } from "@/domain/pricing";
 import { getSessionUser } from "@/server/auth";
 import { designConfigSchema } from "@/server/designs";
 import { loadPricingRules } from "@/server/pricing";
+import { rateLimit } from "@/server/rate-limit";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
 const saveDesignSchema = z.object({
@@ -38,6 +39,9 @@ export type SaveDesignResult =
 export async function saveDesignAction(input: SaveDesignInput): Promise<SaveDesignResult> {
   const user = await getSessionUser();
   if (!user) return { status: "login-required" };
+  if (!(await rateLimit(`design-save:${user.id}`, 300, 600, false))) {
+    return { status: "error", message: "Too many saves. Please wait a few minutes." };
+  }
 
   const parsed = saveDesignSchema.safeParse(input);
   if (!parsed.success)

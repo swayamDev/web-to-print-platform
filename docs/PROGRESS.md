@@ -5,7 +5,9 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 17** (security hardening, RLS cross-tenant tests, full checklist E2E suite).
+- Phase 17 live: push, then run `security.spec.ts` against the live site (headers and CSP) and
+  `pnpm exec supabase test db --remote` (cross-tenant checks).
+- Then **Phase 18** (production deploy check, README, schema docs, limitations, test results).
 
 ## Live
 
@@ -38,7 +40,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 14** — Admin console: queue, filters, job detail, pipeline actions, archive, users
 - [x] **Phase 15** — Admin product/template management, reports, Xero CSV export
 - [x] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
-- [ ] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
+- [x] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
 - [ ] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
 
 ## Session log
@@ -482,3 +484,24 @@ next step under **Next up** so work can resume cold.
   The live run caught a layout shift on product pages (0.149): the template preview had no reserved
   height (`w-auto` overrode its width attribute) and the streaming placeholder was shorter than a
   screen, so the footer jumped. Fixed in aa4347d; CLS is now 0 on live.
+
+### 2026-11-25 — Phase 17
+
+- Security headers on every response (`next.config.ts`): Content-Security-Policy (self + the Supabase
+  project only; no eval, no plugins, no framing, forms to self, upgrade-insecure-requests on HTTPS),
+  HSTS, nosniff, X-Frame-Options DENY, strict referrer policy, permissions policy, COOP; no
+  `X-Powered-By`. `src/instrumentation-client.ts` makes Zod jitless so its eval probe never trips
+  the CSP.
+- Rate limits (Postgres-backed, fail closed): login 50 per email and 300 per IP per 15 min, signup
+  30 per IP per hour, password-reset emails 5 per address per 15 min (same answer either way),
+  profile 30 and design saves 300 per user per 10 min, on top of Supabase Auth's own limits.
+- `09_cross_tenant.test.sql` (49 checks): customer B cannot read, change or delete customer A's
+  orders, lines, timeline, designs, uploads, proofs, approvals, CSV rows, print files, payments,
+  notifications, audit log or profile; cannot list, plant or delete A's files in private storage;
+  cannot call server-only functions. Visitors see none of it. 148 database tests in total.
+- `security.spec.ts` (5): headers on pages and APIs; no CSP violations on the public site, in the
+  designer with a direct upload, or for private proof images; bad API input gets 4xx; forged
+  webhooks refused; private documents 404; no account probing or open redirect at login.
+- `docs/TESTING.md`: how to run each layer, and the PRD's 11-item checklist mapped to the tests.
+- Results: 187 unit, 148 database, e2e 145 passed on :3100; the password-reset test (the only
+  failure there) passes on :3000, the port Supabase redirects to. Documented in TESTING.md.
