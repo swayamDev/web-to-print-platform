@@ -5,7 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- **Phase 18** (production deploy check, README, schema docs, limitations, test results).
+- All 18 phases are done and live. Before submitting: run `pnpm test:e2e:live` once more, log in
+  to the live site with the shared test accounts, and check the Supabase project is active (the
+  daily keep-alive cron prevents pausing; confirm it under Vercel › Crons).
+- Possible follow-ups (not required by the brief, see docs/LIMITATIONS.md): in-browser template
+  layout editing, CMYK output, a cart, shipping, a live Xero API connection.
 
 ## Live
 
@@ -39,7 +43,7 @@ next step under **Next up** so work can resume cold.
 - [x] **Phase 15** — Admin product/template management, reports, Xero CSV export
 - [x] **Phase 16** — Gallery, motion, responsive and accessibility polish, performance
 - [x] **Phase 17** — Security hardening, RLS cross-tenant tests, full checklist E2E suite
-- [ ] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
+- [x] **Phase 18** — Production deploy check, README, schema docs, limitations, test results
 
 ## Session log
 
@@ -510,3 +514,18 @@ next step under **Next up** so work can resume cold.
   phone the loading placeholder still left the footer in view (CLS 0.25). The placeholder is now a
   full screen tall; security and performance specs then passed 44 of 45 over three repeats (the one
   slow login passed 8/8 on repeat). The CSP caused no violations on live.
+
+### 2026-11-25 — Phase 18
+
+- Deploy check: no secrets in the repository or its git history (only `.env.example` tracked);
+  every public page, division and product answers 200 on live, protected pages redirect, the cron
+  endpoint refuses calls without its secret, unknown pages 404, the price API works. The Vercel
+  CLI is not linked to this checkout, so environment variables were verified by behaviour
+  (database, Stripe test checkout, email and cron all working on live) rather than listed.
+- Docs: `docs/SCHEMA.md` (entity diagram, tables, pipeline, security model, functions, storage),
+  `docs/LIMITATIONS.md`, `docs/TEST-RESULTS.md`, a rewritten README (features, documentation
+  index, architecture in brief, scripts incl. `test:e2e:live`). D-01 closed: Stripe was used;
+  Razorpay is not implemented (its `.env.example` variables are marked as unused placeholders).
+- Final run: lint and types clean; 187 unit; 148 database locally and on live; e2e 147 passed
+  locally on :3000 with none failing, 109 passed on live after one fix (the designer save test now
+  accepts "All changes saved", which live shows after the login redirect reloads the design).

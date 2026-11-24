@@ -11,14 +11,16 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 
 ## Locked decisions
 
-### D-01 Payment provider — _Locked, pending signup check_
+### D-01 Payment provider — _Locked_
 
 - **PRD:** Stripe or an equivalent PCI-compliant provider via an integrated checkout (p5 §05).
 - **Decision:** Stripe in test mode, with hosted Checkout. If a Stripe account cannot be opened,
   use Razorpay in test mode instead. Both sit behind one `PaymentProvider` interface.
 - **Why:** Hosted checkout keeps card data off our servers (lowest PCI scope) and gives signed
   webhooks. Razorpay is an accepted "equivalent provider".
-- **Open:** confirm which provider before Phase 9. This also fixes D-02.
+- **Outcome:** a Stripe test account was opened, so Stripe is the provider (GBP, 20% VAT). The
+  Razorpay fallback was not needed and is not implemented; its variables in `.env.example` are
+  placeholders for that option only.
 
 ### D-02 Currency and tax — _Locked_
 

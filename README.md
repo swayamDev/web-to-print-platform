@@ -6,19 +6,65 @@ Built for the Digital Heroes Level 2 assessment.
 
 **Live site:** https://web-to-print-platform-phi.vercel.app
 
-> **Status:** in development. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for what is built so far.
+> **Status:** complete: all 18 phases are built, deployed and verified on the live site. Payments
+> run in Stripe test mode (card `4242 4242 4242 4242`). Test accounts for the live site are shared
+> privately with the submission.
+
+## What it does
+
+**Customers**
+
+- Browse six divisions and configure any product by size, material, orientation and quantity, with
+  a live price (incl. VAT), all-units volume discounts and an "order more and save" hint.
+- Design in the browser from a template or upload finished artwork (PDF, AI, SVG, PNG, JPEG).
+  Guides show trim, bleed and the safe area; artwork cannot leave the print area; text shrinks to
+  fit; uploads are checked for format and print resolution.
+- Personalise race numbers and plates from a CSV: map columns, check every row, one item per row.
+- Pay with Stripe Checkout. Prices are recalculated on the server; the browser's price is never used.
+- Approve or reject versioned proofs. Nothing is printed until a proof is approved, and the
+  approval (version, hash, time, IP, browser) is recorded.
+- Track orders, download invoices, and reorder in one click at today's price.
+
+**Staff**
+
+- Order queue with stage filters and search; complete, cancel (with a reason) and archive jobs;
+  upload corrected proofs.
+- Generate print files from the approved proof: print-ready PDF (trim and bleed boxes), 300 DPI PNG,
+  one file per CSV row plus a ZIP, named `OrderID_ProductType_Date_Output`. Admin-only, audited
+  downloads.
+- Edit products (prices, materials, sizes, discount tiers) and templates; sales reports; a Xero
+  invoice import CSV; user management with audited role changes.
 
 ## Documentation
 
-- [`docs/PLAN.md`](docs/PLAN.md) — architecture, rules, pipeline, pricing and print-output design
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — how gaps and ambiguities in the brief were resolved
-- [`docs/PROGRESS.md`](docs/PROGRESS.md) — phase checklist
-- [`docs/TESTING.md`](docs/TESTING.md) — how to run the tests, and the PRD testing checklist mapped to them
+| Document                                       | Contents                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------- |
+| [`docs/PLAN.md`](docs/PLAN.md)                 | Architecture, rules, pipeline, pricing and print-output design      |
+| [`docs/SCHEMA.md`](docs/SCHEMA.md)             | Database schema, entity diagram, security model, functions, storage |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md)       | How gaps and ambiguities in the brief were resolved (D-01 to D-56)  |
+| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)   | What is deliberately out of scope or simplified, and why            |
+| [`docs/TESTING.md`](docs/TESTING.md)           | How to run the tests; the PRD testing checklist mapped to them      |
+| [`docs/TEST-RESULTS.md`](docs/TEST-RESULTS.md) | Latest results, local and on the live site                          |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)     | Supabase, Vercel, Stripe and email setup                            |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md)         | Phase checklist and session log                                     |
 
 ## Stack
 
-Next.js (App Router) · React · TypeScript (strict) · Tailwind CSS · shadcn/ui ·
-Supabase (Postgres, Auth, Storage) · Vitest · Playwright.
+Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS 4 ·
+shadcn/ui · Supabase (Postgres with Row Level Security, Auth, Storage) · Stripe Checkout ·
+pdf-lib, resvg and pdf.js for print output · Zod · Vitest · Playwright · pgTAP.
+
+## Architecture in brief
+
+- **Pure domain logic** in `src/domain/` (pricing, design layout and validation, CSV merge,
+  invoices, reports, Xero export): no framework imports, unit-tested.
+- **One print engine** (`src/lib/print/`) lays out a design once and renders the designer preview,
+  the proof and the print files from that layout, so what is approved is what is printed.
+- **The database enforces the rules**: the order state machine, the approval gate, immutable proof
+  history and audit tables are triggers and `security definer` functions, and Row Level Security
+  isolates every customer's data (see [`docs/SCHEMA.md`](docs/SCHEMA.md)).
+- **Server-only secrets**: only `src/server/**` may use the Supabase secret key; every server action
+  and route validates input with Zod and checks the user's role itself.
 
 ## Local setup
 
@@ -86,24 +132,27 @@ end-to-end tests sign their own payment events and need none of this.
 
 ## Scripts
 
-| Command          | What it does                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| `pnpm dev`       | Start the dev server                                                                  |
-| `pnpm build`     | Production build                                                                      |
-| `pnpm lint`      | ESLint                                                                                |
-| `pnpm typecheck` | TypeScript check with no output                                                       |
-| `pnpm test`      | Unit and integration tests (Vitest)                                                   |
-| `pnpm test:e2e`  | End-to-end tests (Playwright; run `pnpm exec playwright install chromium` once first) |
-| `pnpm format`    | Format with Prettier                                                                  |
-| `pnpm db:start`  | Start local Supabase (needs Docker)                                                   |
-| `pnpm db:reset`  | Rebuild the local database from migrations and seed                                   |
-| `pnpm db:test`   | Database tests: access rules and order pipeline (pgTAP)                               |
-| `pnpm db:types`  | Regenerate `src/types/db.ts` from the local database                                  |
+| Command              | What it does                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `pnpm dev`           | Start the dev server                                                                  |
+| `pnpm build`         | Production build                                                                      |
+| `pnpm lint`          | ESLint                                                                                |
+| `pnpm typecheck`     | TypeScript check with no output                                                       |
+| `pnpm test`          | Unit and integration tests (Vitest)                                                   |
+| `pnpm test:e2e`      | End-to-end tests (Playwright; run `pnpm exec playwright install chromium` once first) |
+| `pnpm test:e2e:live` | End-to-end tests against the live site with the accounts in `.env.live`               |
+| `pnpm seed:users`    | Create the test customer and admin from the `TEST_*` values                           |
+| `pnpm format`        | Format with Prettier                                                                  |
+| `pnpm db:start`      | Start local Supabase (needs Docker)                                                   |
+| `pnpm db:reset`      | Rebuild the local database from migrations and seed                                   |
+| `pnpm db:test`       | Database tests: access rules and order pipeline (pgTAP)                               |
+| `pnpm db:types`      | Regenerate `src/types/db.ts` from the local database                                  |
 
 ## Database
 
-Schema, security rules and seed data live in [`supabase/`](supabase/). Locally, Supabase runs on
-ports 553xx (API `http://127.0.0.1:55321`, Studio `http://127.0.0.1:55323`).
+Schema, security rules and seed data live in [`supabase/`](supabase/), documented in
+[`docs/SCHEMA.md`](docs/SCHEMA.md). Locally, Supabase runs on ports 553xx (API
+`http://127.0.0.1:55321`, Studio `http://127.0.0.1:55323`).
 
 ## Environment variables
 
@@ -127,3 +176,5 @@ pnpm db:test                           # database tests (pgTAP)
 ```
 
 Against the live site, with the live test accounts from `.env.live`: `pnpm test:e2e:live`.
+Run the local suite on port 3000: the password-reset test follows an emailed link that Supabase
+only sends to `APP_URL`. Latest results: [`docs/TEST-RESULTS.md`](docs/TEST-RESULTS.md).
