@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Designer } from "@/components/designer/designer";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { buttonVariants } from "@/components/ui/button";
+import { getSessionUser } from "@/server/auth";
 import { getNewDesignContext, type DesignConfig } from "@/server/designs";
 
 export const metadata: Metadata = { title: "Design online", robots: { index: false } };
@@ -51,6 +52,7 @@ async function NewDesign({ searchParams }: Props) {
   const productSlug = one(params.product);
   if (!productSlug) notFound();
 
+  const user = await getSessionUser();
   const context = await getNewDesignContext({
     productSlug,
     templateId: one(params.template) ?? null,
@@ -94,6 +96,8 @@ async function NewDesign({ searchParams }: Props) {
         templateId={context.templateId}
         initialDocument={context.document}
         design={null}
+        userId={user?.id ?? null}
+        initialAssets={[]}
       />
     </>
   );

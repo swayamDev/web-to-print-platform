@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Redo2, Save, Shapes, Type, Undo2 } from "lucide-react";
+import { Eye, EyeOff, FileUp, ImagePlus, Redo2, Save, Shapes, Type, Undo2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +10,8 @@ import {
   addRect,
   addText,
   moveElement,
+  placeArtwork,
+  placeImage,
   removeElement,
   updateElement,
 } from "@/domain/design/document";
@@ -18,15 +20,18 @@ import { layoutDocument } from "@/domain/design/layout";
 import { designDocumentSchema, type DesignDocument } from "@/domain/design/schema";
 import { validateDocument } from "@/domain/design/validate";
 import { formatMinor } from "@/domain/money";
+import { acceptAttribute, type AssetInfo } from "@/domain/uploads";
 import { calculatePrice, type PricingRules } from "@/domain/pricing";
 import { formatMm } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { saveDesignAction } from "@/server/actions/designs";
+import type { ClientAsset } from "@/server/assets";
 
 import type { ElementChange } from "./design-canvas";
 import { ElementPanel } from "./element-panel";
 import { historyReducer, initialHistory } from "./history";
 import { usePrintFonts } from "./use-print-fonts";
+import { useUploads } from "./use-uploads";
 
 // Konva needs the browser; never render it on the server.
 const DesignCanvas = dynamic(() => import("./design-canvas").then((m) => m.DesignCanvas), {
@@ -48,6 +53,10 @@ export type DesignerProps = {
   templateId: string | null;
   initialDocument: DesignDocument;
   design: { id: string; name: string; isLocked: boolean } | null;
+  /** Signed-in customer, or null for visitors (who are asked to log in to save or upload). */
+  userId: string | null;
+  /** Uploads the design already uses, with preview URLs. */
+  initialAssets: ClientAsset[];
 };
 
 const DRAFT_KEY = "dh-design-draft";
@@ -74,6 +83,8 @@ export function Designer({
   templateId,
   initialDocument,
   design,
+  userId,
+  initialAssets,
 }: DesignerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,6 +100,12 @@ export function Designer({
   );
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const locked = design?.isLocked ?? false;
+  const [assets, setAssets] = useState(() => new Map(initialAssets.map((a) => [a.id, a])));
+  const assetInfos = new Map<string, AssetInfo>(assets);
+  const uploads = useUploads(userId);
+  const logoInput = useRef<HTMLInputElement>(null);
+  const artworkInput = useRef<HTMLInputElement>(null);
+  const [notices, setNotices] = useState<string[]>([]);
 
   const commit = useCallback(
     (next: DesignDocument, key?: string) => {
@@ -100,7 +117,9 @@ export function Designer({
 
   // Live layout and print checks, from the same code the server uses.
   const layout = fonts ? layoutDocument(doc, {}, (id) => fonts.get(id)?.metrics) : null;
-  const issues = layout ? validateDocument(doc, layout) : [];
+  const issues = layout ? validateDocument(doc, layout, assetInfos) : [];
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
   const issueIds = new Set(issues.map((i) => i.elementId));
   const selected = doc.elements.find((e) => e.id === selectedId) ?? null;
   const priced = calculatePrice(rules, { productSlug: product.slug, ...config });
@@ -108,6 +127,30 @@ export function Designer({
   // ---------------------------------------------------------------------------
   // Saving
   // ---------------------------------------------------------------------------
+  /** Keep the draft in this browser and send the visitor to log in; it is saved on return. */
+  const stashDraftAndLogin = useCallback(
+    (documentToSave: DesignDocument, nameToSave: string) => {
+      try {
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            productSlug: product.slug,
+            templateId,
+            config,
+            name: nameToSave,
+            document: documentToSave,
+          }),
+        );
+      } catch {
+        /* storage unavailable: the user can still save after logging in, from scratch */
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set("restore", "1");
+      router.push(`/login?next=${encodeURIComponent(url.pathname + url.search)}`);
+    },
+    [product.slug, templateId, config, router],
+  );
+
   const save = useCallback(
     async (documentToSave: DesignDocument, nameToSave: string) => {
       setSaveState({ kind: "saving" });
@@ -120,24 +163,7 @@ export function Designer({
         document: documentToSave,
       });
       if (result.status === "login-required") {
-        // Keep the draft so it survives signing up or logging in.
-        try {
-          localStorage.setItem(
-            DRAFT_KEY,
-            JSON.stringify({
-              productSlug: product.slug,
-              templateId,
-              config,
-              name: nameToSave,
-              document: documentToSave,
-            }),
-          );
-        } catch {
-          /* storage unavailable: the user can still save after logging in, from scratch */
-        }
-        const url = new URL(window.location.href);
-        url.searchParams.set("restore", "1");
-        router.push(`/login?next=${encodeURIComponent(url.pathname + url.search)}`);
+        stashDraftAndLogin(documentToSave, nameToSave);
         return;
       }
       if (result.status === "error") {
@@ -151,7 +177,7 @@ export function Designer({
       }
       setSaveState({ kind: "saved", at: result.savedAt });
     },
-    [designId, product.slug, product.name, templateId, config, router],
+    [designId, product.slug, product.name, templateId, config, stashDraftAndLogin],
   );
 
   // Restore a draft carried through login (?restore=1), then save it to the account.
@@ -244,6 +270,44 @@ export function Designer({
     return () => window.removeEventListener("keydown", onKey);
   }, [doc, selected, commit, change]);
 
+  // ---------------------------------------------------------------------------
+  // Uploads
+  // ---------------------------------------------------------------------------
+  const rememberAsset = (asset: ClientAsset) =>
+    setAssets((current) => new Map(current).set(asset.id, asset));
+
+  const chooseFile = (input: React.RefObject<HTMLInputElement | null>) => {
+    if (!userId) {
+      stashDraftAndLogin(doc, name); // uploads belong to an account
+      return;
+    }
+    uploads.clear();
+    input.current?.click();
+  };
+
+  const onLogoChosen = async (file: File | undefined) => {
+    if (!file) return;
+    const slotId = selected?.type === "image" && selected.role !== "artwork" ? selected.id : null;
+    const asset = await uploads.upload(file, "logo");
+    if (!asset) return;
+    rememberAsset(asset);
+    const placed = placeImage(doc, asset, slotId);
+    commit(placed.doc);
+    setSelectedId(placed.id);
+    setNotices(asset.warnings);
+  };
+
+  const onArtworkChosen = async (file: File | undefined) => {
+    if (!file) return;
+    const asset = await uploads.upload(file, "artwork");
+    if (!asset) return;
+    rememberAsset(asset);
+    const placed = placeArtwork(doc, asset);
+    commit(placed.doc);
+    setSelectedId(placed.id);
+    setNotices([...placed.notes, ...asset.warnings]);
+  };
+
   const statusText =
     saveState.kind === "saving"
       ? "Saving…"
@@ -300,6 +364,50 @@ export function Designer({
             <Shapes className="size-4" /> <span className="max-sm:sr-only">Shape</span>
           </ToolButton>
           <ToolButton
+            label={
+              selected?.type === "image" && selected.role !== "artwork"
+                ? "Replace image"
+                : "Add image"
+            }
+            disabled={locked || previewMode || uploads.state.kind === "busy"}
+            onClick={() => chooseFile(logoInput)}
+          >
+            <ImagePlus className="size-4" /> <span className="max-sm:sr-only">Image</span>
+          </ToolButton>
+          <ToolButton
+            label="Upload finished artwork"
+            disabled={locked || previewMode || uploads.state.kind === "busy"}
+            onClick={() => chooseFile(artworkInput)}
+          >
+            <FileUp className="size-4" /> <span className="max-sm:sr-only">Artwork</span>
+          </ToolButton>
+          <input
+            ref={logoInput}
+            type="file"
+            accept={acceptAttribute("logo")}
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose an image file"
+            data-testid="logo-input"
+            onChange={(e) => {
+              void onLogoChosen(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={artworkInput}
+            type="file"
+            accept={acceptAttribute("artwork")}
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose an artwork file"
+            data-testid="artwork-input"
+            onChange={(e) => {
+              void onArtworkChosen(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <ToolButton
             label="Undo"
             disabled={history.past.length === 0}
             onClick={() => dispatch({ type: "undo" })}
@@ -345,6 +453,39 @@ export function Designer({
         </p>
       </div>
 
+      {uploads.state.kind !== "idle" || notices.length > 0 ? (
+        <div
+          role={uploads.state.kind === "error" ? "alert" : "status"}
+          data-testid="upload-status"
+          className={cn(
+            "flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
+            uploads.state.kind === "error"
+              ? "border-destructive/40 bg-destructive/5 text-destructive"
+              : "bg-card",
+          )}
+        >
+          <div className="grid gap-1">
+            {uploads.state.kind !== "idle" ? <p>{uploads.state.message}</p> : null}
+            {notices.map((notice) => (
+              <p key={notice}>{notice}</p>
+            ))}
+          </div>
+          {uploads.state.kind !== "busy" ? (
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                uploads.clear();
+                setNotices([]);
+              }}
+              className="hover:bg-muted rounded p-0.5"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {locked ? (
         <p className="bg-muted rounded-lg px-4 py-3 text-sm">
           This design is locked because a proof of it was approved. It can be reordered as it is.
@@ -368,6 +509,7 @@ export function Designer({
               previewMode={previewMode || locked}
               onSelect={setSelectedId}
               onChange={change}
+              imageUrls={new Map([...assets].map(([id, a]) => [id, a.url]))}
             />
           ) : (
             <div
@@ -421,6 +563,18 @@ export function Designer({
               <ElementPanel
                 element={selected}
                 laidOut={layout?.items.find((i) => i.id === selected.id)}
+                asset={
+                  selected.type === "image" && selected.assetId
+                    ? assets.get(selected.assetId)
+                    : undefined
+                }
+                onReplaceImage={() =>
+                  chooseFile(
+                    selected.type === "image" && selected.role === "artwork"
+                      ? artworkInput
+                      : logoInput,
+                  )
+                }
                 onChange={(patch) =>
                   change(
                     selected.id,
@@ -446,7 +600,11 @@ export function Designer({
           <section
             className={cn(
               "rounded-xl border p-4",
-              issues.length ? "border-destructive/40 bg-destructive/5" : "bg-card",
+              errors.length
+                ? "border-destructive/40 bg-destructive/5"
+                : warnings.length
+                  ? "border-warning/40 bg-warning/5"
+                  : "bg-card",
             )}
             aria-label="Print check"
             data-testid="print-check"
@@ -454,18 +612,24 @@ export function Designer({
             <p className="spec-label text-muted-foreground mb-2">Print check</p>
             {!layout ? (
               <p className="text-muted-foreground text-sm">Checking…</p>
-            ) : issues.length === 0 ? (
+            ) : errors.length === 0 && warnings.length === 0 ? (
               <p className="text-success text-sm font-medium">
                 Ready to print: everything is inside the print area.
               </p>
             ) : (
               <ul className="grid gap-2 text-sm">
+                {errors.length === 0 ? (
+                  <li className="text-success font-medium">Ready to print, with a note:</li>
+                ) : null}
                 {issues.map((issue, index) => (
                   <li key={`${issue.elementId}-${issue.code}-${index}`}>
                     <button
                       type="button"
                       onClick={() => setSelectedId(issue.elementId)}
-                      className="text-destructive text-left underline-offset-4 hover:underline"
+                      className={cn(
+                        "text-left underline-offset-4 hover:underline",
+                        issue.severity === "error" ? "text-destructive" : "text-warning",
+                      )}
                     >
                       {issue.message}
                     </button>

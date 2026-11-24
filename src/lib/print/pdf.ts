@@ -24,6 +24,9 @@ export type PdfMeta = {
   date: Date;
 };
 
+/** An uploaded image ready for the PDF: the original PNG/JPEG/PDF bytes (SVGs pre-rasterised). */
+export type PdfImageSource = { format: "png" | "jpeg" | "pdf"; bytes: Uint8Array };
+
 // Shaping must match the measuring code exactly (DECISIONS D-26).
 const NO_SHAPING = { liga: false, clig: false, dlig: false, calt: false, kern: false, ccmp: false };
 
@@ -43,6 +46,7 @@ export async function renderPdf(
   layout: DesignLayout,
   fonts: Map<string, LoadedFont>,
   meta: PdfMeta,
+  images: ReadonlyMap<string, PdfImageSource> = new Map(),
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -92,6 +96,30 @@ export async function renderPdf(
         color: hex(item.fill),
         rotate: degrees(-item.rotation),
       });
+    } else if (item.kind === "image") {
+      const source = item.assetId ? images.get(item.assetId) : undefined;
+      if (!source) continue; // empty template slot
+      const cx = item.x + item.w / 2;
+      const cy = item.y + item.h / 2;
+      const corner = rotatePoint(item.x, item.y + item.h, cx, cy, item.rotation);
+      const placement = {
+        x: X(corner.x),
+        y: Y(corner.y),
+        width: mmToPt(item.w),
+        height: mmToPt(item.h),
+        rotate: degrees(-item.rotation),
+      };
+      if (source.format === "pdf") {
+        // Customer PDFs (and PDF-compatible .ai files) stay vector: the page is embedded as is.
+        const [embeddedPage] = await doc.embedPdf(source.bytes, [0]);
+        page.drawPage(embeddedPage!, placement);
+      } else {
+        const image =
+          source.format === "png"
+            ? await doc.embedPng(source.bytes)
+            : await doc.embedJpg(source.bytes);
+        page.drawImage(image, placement);
+      }
     } else if (item.kind === "text" && item.text !== "") {
       const font = await fontFor(item.fontId);
       // pdf-lib rotates text about its baseline origin; move the origin to match a rotation

@@ -153,3 +153,9 @@ Status: **Locked** = shapes the schema, seed data or checkout, so changing it me
 - **D-30 Visitors can design; saving needs an account:** on first save a visitor is sent to log in
   or sign up, the draft is kept in the browser and saved to their account automatically on return.
   Drafts may be saved with print issues; issues block proofs and checkout, not saving.
+- **D-31 Upload checks and previews run on the server**, after the browser uploads directly to the
+  customer's own storage folder (no 4.5 MB serverless body limit, no trust in browser metadata).
+  Unsafe SVGs are refused rather than "cleaned". Multi-page PDFs use page 1, with a note.
+- **D-32 Finished artwork placement:** a file the size of the page plus bleed covers the bleed box;
+  a trim-size file covers the trim and the customer is told there is no bleed; anything else is
+  fitted inside the page with a note. Customer PDFs stay vector in the print PDF.

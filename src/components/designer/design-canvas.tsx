@@ -2,7 +2,7 @@
 
 import type Konva from "konva";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Group, Layer, Path, Rect, Stage, Transformer } from "react-konva";
+import { Group, Image as KonvaImage, Layer, Path, Rect, Stage, Transformer } from "react-konva";
 
 import { clampCenter, fitsWithinLimits } from "@/domain/design/constraints";
 import type { DesignLayout } from "@/domain/design/layout";
@@ -20,6 +20,8 @@ type Props = {
   previewMode: boolean;
   onSelect: (id: string | null) => void;
   onChange: (id: string, change: ElementChange) => void;
+  /** Preview URL for each uploaded asset, by asset id. */
+  imageUrls: ReadonlyMap<string, string>;
 };
 
 const MIN_SIZE_MM = 2;
@@ -39,7 +41,9 @@ export function DesignCanvas({
   previewMode,
   onSelect,
   onChange,
+  imageUrls,
 }: Props) {
+  const images = useLoadedImages(imageUrls);
   const containerRef = useRef<HTMLDivElement>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const nodeRefs = useRef(new Map<string, Konva.Group>());
@@ -132,7 +136,18 @@ export function DesignCanvas({
                     {data ? <Path data={data} fill={item.color} listening={false} /> : null}
                   </>
                 );
+              } else if (item.kind === "image" && item.assetId && images.get(item.assetId)) {
+                content = (
+                  <KonvaImage
+                    image={images.get(item.assetId)}
+                    x={item.x}
+                    y={item.y}
+                    width={item.w}
+                    height={item.h}
+                  />
+                );
               } else if (item.kind === "image") {
+                // Empty slot ("your logo here"), or an upload whose preview is still loading.
                 content = (
                   <Rect
                     x={item.x}
@@ -255,7 +270,8 @@ export function DesignCanvas({
               anchorCornerRadius={2}
               borderStroke="#ff4d00"
               anchorStroke="#ff4d00"
-              keepRatio={false}
+              // Images keep their proportions; text boxes and shapes can be any shape.
+              keepRatio={selectedId ? elements.get(selectedId)?.type === "image" : false}
               ignoreStroke
               boundBoxFunc={(oldBox, newBox) => {
                 if (
@@ -291,4 +307,29 @@ export function DesignCanvas({
       )}
     </div>
   );
+}
+
+/** Load each preview URL into an <img> once; Konva draws the loaded images. */
+function useLoadedImages(urls: ReadonlyMap<string, string>) {
+  const [loaded, setLoaded] = useState(() => new Map<string, HTMLImageElement>());
+  const key = [...urls].map(([id, url]) => `${id}=${url}`).join("|");
+
+  useEffect(() => {
+    let active = true;
+    for (const [id, url] of urls) {
+      if (loaded.get(id)?.src === url) continue;
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        if (active) setLoaded((current) => new Map(current).set(id, img));
+      };
+      img.src = url;
+    }
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` captures the URL list
+  }, [key]);
+
+  return loaded;
 }

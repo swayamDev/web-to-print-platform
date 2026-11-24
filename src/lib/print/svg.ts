@@ -5,6 +5,8 @@ import { textToPathData, type LoadedFont } from "./fonts";
 export type SvgOptions = {
   /** Draw trim, bleed and safe-area guides (proofs and previews only, never print files). */
   guides?: { safeMarginMm: number };
+  /** Image data by asset id, as data: URIs (PNG/JPEG/SVG; PDFs pre-rasterised by the caller). */
+  images?: ReadonlyMap<string, string>;
 };
 
 const esc = (s: string) => s.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -53,8 +55,18 @@ export function layoutToSvg(
             : ""
         }/>`,
       );
+    } else if (item.kind === "image") {
+      // Empty template slots ("your logo here") draw nothing in print output.
+      const href = item.assetId ? options.images?.get(item.assetId) : undefined;
+      if (!href) continue;
+      const cx = item.x + item.w / 2;
+      const cy = item.y + item.h / 2;
+      parts.push(
+        `<image id="${esc(item.id)}" x="${n(item.x)}" y="${n(item.y)}" width="${n(item.w)}" height="${n(item.h)}" preserveAspectRatio="none" href="${href}"${
+          item.rotation ? ` transform="rotate(${n(item.rotation)} ${n(cx)} ${n(cy)})"` : ""
+        }/>`,
+      );
     }
-    // Images are added once uploads exist (Phase 8); empty template slots draw nothing.
   }
 
   if (options.guides) {

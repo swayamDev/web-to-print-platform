@@ -170,3 +170,111 @@ export function moveElement(
   [elements[index], elements[target]] = [elements[target]!, elements[index]!];
   return { ...doc, elements };
 }
+
+// ---------------------------------------------------------------------------
+// Uploaded images
+// ---------------------------------------------------------------------------
+
+/** Proportions of an uploaded file: what the drawing's width / height is. */
+type Proportions = { widthPx: number; heightPx: number };
+
+/** Largest box with the asset's proportions that fits inside (w × h), centred on (cx, cy). */
+function containBox(asset: Proportions, cx: number, cy: number, w: number, h: number) {
+  const ratio = asset.widthPx / asset.heightPx;
+  const width = Math.min(w, h * ratio);
+  const height = width / ratio;
+  return { x: round(cx - width / 2), y: round(cy - height / 2), w: round(width), h: round(height) };
+}
+
+/**
+ * Put an uploaded logo into the design: into the given image slot (fitted inside the slot,
+ * keeping its proportions), or as a new image centred in the safe area at up to half its size.
+ */
+export function placeImage(
+  doc: DesignDocument,
+  asset: Proportions & { id: string },
+  slotId?: string | null,
+): { doc: DesignDocument; id: string } {
+  const slot = slotId ? doc.elements.find((e) => e.id === slotId && e.type === "image") : undefined;
+  if (slot) {
+    const box = containBox(asset, slot.x + slot.w / 2, slot.y + slot.h / 2, slot.w, slot.h);
+    return {
+      doc: updateElement(doc, slot.id, { ...box, assetId: asset.id } as never),
+      id: slot.id,
+    };
+  }
+  const s = doc.safeMargin;
+  const box = containBox(
+    asset,
+    doc.trim.w / 2,
+    doc.trim.h / 2,
+    (doc.trim.w - 2 * s) / 2,
+    (doc.trim.h - 2 * s) / 2,
+  );
+  const id = nextElementId(doc, "image");
+  const element: DesignElement = {
+    id,
+    type: "image",
+    areaId: doc.printAreas[0]!.id,
+    ...box,
+    rotation: 0,
+    assetId: asset.id,
+  };
+  return { doc: { ...doc, elements: [...doc.elements, element] }, id };
+}
+
+const close = (a: number, b: number, tolerance: number) => Math.abs(a - b) <= tolerance;
+
+/**
+ * Place finished, full-page artwork (PDF, AI, SVG or image) behind everything else:
+ *  - if it is the size of the page including bleed, it covers the bleed box (ideal);
+ *  - if it is the trim size, it covers the trim and the customer is told there is no bleed;
+ *  - otherwise it is fitted inside the page and the customer is told the proportions differ.
+ */
+export function placeArtwork(
+  doc: DesignDocument,
+  asset: Proportions & { id: string; pageSizeMm?: { mediaW: number; mediaH: number } },
+): { doc: DesignDocument; id: string; notes: string[] } {
+  const b = doc.bleed;
+  const full = { w: doc.trim.w + 2 * b, h: doc.trim.h + 2 * b };
+  const notes: string[] = [];
+  let box: { x: number; y: number; w: number; h: number };
+
+  const fileW = asset.pageSizeMm?.mediaW;
+  const fileH = asset.pageSizeMm?.mediaH;
+  const ratio = asset.widthPx / asset.heightPx;
+  const matches = (w: number, h: number) =>
+    fileW !== undefined && fileH !== undefined
+      ? close(fileW, w, 1) && close(fileH, h, 1)
+      : close(ratio, w / h, (w / h) * 0.015);
+
+  if (matches(full.w, full.h)) {
+    box = { x: -b, y: -b, w: full.w, h: full.h };
+  } else if (matches(doc.trim.w, doc.trim.h)) {
+    box = { x: 0, y: 0, w: doc.trim.w, h: doc.trim.h };
+    if (b > 0) {
+      notes.push(
+        `Your file is the finished size with no bleed. For colour to the edge, add ${b} mm of bleed on every side (${round(full.w)} × ${round(full.h)} mm).`,
+      );
+    }
+  } else {
+    box = containBox(asset, doc.trim.w / 2, doc.trim.h / 2, full.w, full.h);
+    notes.push(
+      fileW !== undefined && fileH !== undefined
+        ? `Your file is ${round(fileW)} × ${round(fileH)} mm; this product is ${round(doc.trim.w)} × ${round(doc.trim.h)} mm (${round(full.w)} × ${round(full.h)} mm with bleed). It has been scaled to fit.`
+        : `Your file's proportions differ from this product's, so it has been scaled to fit inside the page.`,
+    );
+  }
+
+  const id = nextElementId(doc, "artwork");
+  const element: DesignElement = {
+    id,
+    type: "image",
+    areaId: doc.printAreas[0]!.id,
+    ...box,
+    rotation: 0,
+    assetId: asset.id,
+    role: "artwork",
+  };
+  return { doc: { ...doc, elements: [element, ...doc.elements] }, id, notes };
+}

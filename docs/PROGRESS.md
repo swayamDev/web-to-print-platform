@@ -6,10 +6,11 @@ next step under **Next up** so work can resume cold.
 ## Next up
 
 - Confirm the payment provider (D-01 in `DECISIONS.md`): try opening a Stripe account.
-- Start **Phase 8** (artwork uploads): signed upload URLs to the `uploads` bucket, server-side
-  validation by magic bytes (PNG/JPEG, SVG sanitised, PDF page size, `.ai` only if PDF-compatible),
-  effective-DPI warnings (D-14), `assets` rows, logos placed into image elements in the designer
-  (rendered on canvas, in PDF and PNG), and an "upload finished artwork" path for whole designs.
+- Start **Phase 9** (checkout): confirm the payment provider first (D-01). `PaymentProvider`
+  interface + Stripe hosted Checkout (test mode), checkout server action that re-prices on the
+  server and refuses designs with blocking print issues, `quote` order + order_items rows, signed
+  webhook with idempotency (`webhook_events`), `order` status + invoice number, success page that
+  polls, confirmation email via SMTP, notifications table.
 - Phase 6 must provide font ids used by seed templates: sora-bold, inter-semibold, inter-regular.
 
 ## Live
@@ -34,7 +35,7 @@ next step under **Next up** so work can resume cold.
       verified on Vercel
 - [x] **Phase 7a** — Designer: canvas, text, images, fonts, colours, save and reopen
 - [x] **Phase 7b** — Designer: print-area constraints, clipping, preview-as-printed, mobile
-- [ ] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
+- [x] **Phase 8** — Artwork uploads (PDF, SVG, AI, PNG) with validation and previews
 - [ ] **Phase 9** — Checkout, payment webhook, order capture, order numbers, first emails
 - [ ] **Phase 10** — Proof versions, approve / request changes, immutable log, approval gate
 - [ ] **Phase 11** — Production file generation, storage layout, secure admin download
@@ -210,3 +211,26 @@ next step under **Next up** so work can resume cold.
 - Designer e2e tests now also run at phone size; new tests for drag/resize clamping, one-step undo of
   typing and the bottom sheet. 93 unit and 64 e2e tests pass.
 - Not done: clipping to ellipse print areas (no ellipse templates yet; validation still covers them).
+
+### 2026-11-24 — Phase 8
+
+- Uploads go straight from the browser to the customer's own folder in the `uploads` bucket (RLS),
+  then `registerUploadAction` re-reads the stored bytes on the server and checks them
+  (`src/domain/uploads.ts` + `src/server/assets.ts`): real type from magic bytes (PNG, JPEG, PDF,
+  SVG; `.ai` only when PDF-compatible, with instructions otherwise), size limits, SVG safety
+  (scripts, event handlers, external links, entities refused), PNG/JPEG dimensions, PDF page count,
+  encryption, MediaBox/TrimBox. Rejected files are deleted. Rate limited (30 per 10 min).
+- Server-side previews: PDFs/AI rasterised with pdf.js + @napi-rs/canvas, SVGs with resvg; stored
+  next to the upload. Designer shows previews via short-lived signed URLs.
+- Designer: "Image" (fills the selected logo slot, or adds a centred image) and "Upload finished
+  artwork" (covers the bleed box when the file includes bleed; trim + note when it has none; fitted
+  - note otherwise). Images keep proportions when resized; panel shows pixel size and effective DPI
+    or "vector". Visitors are sent to log in first.
+- Print checks gained severities: images below 150 DPI warn, below 72 DPI block; missing uploads
+  block. Saving refuses images that are not the customer's own valid uploads.
+- Renderers: PDF embeds PNG/JPEG as images, customer PDFs as **vector** form XObjects, SVGs
+  rasterised at print resolution; PNG output draws all of them (PDFs rasterised server-side).
+  `renderDocument` moved to `src/lib/print/render.ts` (testable); `loadAssetFiles` for later phases.
+- Tests: 18 upload-rule tests, 4 image render tests (placement in both outputs, vector PDF, DPI
+  rules, missing upload), 6 placement tests; 7 upload e2e tests. 121 unit + 71 e2e pass.
+- Gotcha: don't use `require.resolve` in server code (Turbopack rewrites it to a module id).

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { Designer } from "@/components/designer/designer";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
+import { getOwnAssets } from "@/server/assets";
 import { requireUser } from "@/server/auth";
 import { getOwnDesign } from "@/server/designs";
 
@@ -24,11 +25,14 @@ export default function EditDesignPage({ params }: Props) {
 
 async function EditDesign({ params }: Props) {
   const { id } = await params;
-  await requireUser(`/design/${id}`);
+  const user = await requireUser(`/design/${id}`);
   // Row Level Security returns nothing for other customers' designs, so they get a 404.
   const design = await getOwnDesign(id);
   if (!design) notFound();
   const { context } = design;
+  const assets = await getOwnAssets(
+    context.document.elements.flatMap((e) => (e.type === "image" && e.assetId ? [e.assetId] : [])),
+  );
 
   return (
     <>
@@ -47,6 +51,8 @@ async function EditDesign({ params }: Props) {
         templateId={context.templateId}
         initialDocument={context.document}
         design={{ id: design.id, name: design.name, isLocked: design.isLocked }}
+        userId={user.id}
+        initialAssets={assets}
       />
     </>
   );

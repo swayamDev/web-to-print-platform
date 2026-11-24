@@ -4,6 +4,7 @@ import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Trash2 } from "
 
 import type { LaidOutItem } from "@/domain/design/layout";
 import type { DesignElement, TextElement } from "@/domain/design/schema";
+import { DPI_MINIMUM, DPI_WARNING, effectiveDpiOf, type AssetInfo } from "@/domain/uploads";
 import { FONT_IDS, FONT_LABELS } from "@/lib/print/fonts";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,21 @@ type Props = {
   onChange: (patch: Partial<TextElement> & { fill?: string }) => void;
   onDelete: () => void;
   onMove: (direction: "up" | "down") => void;
+  /** The uploaded file shown by an image element. */
+  asset?: AssetInfo;
+  onReplaceImage: () => void;
 };
 
 /** Properties of the selected element. Every change goes through the design history. */
-export function ElementPanel({ element, laidOut, onChange, onDelete, onMove }: Props) {
+export function ElementPanel({
+  element,
+  laidOut,
+  onChange,
+  onDelete,
+  onMove,
+  asset,
+  onReplaceImage,
+}: Props) {
   const fitted = laidOut?.kind === "text" ? laidOut : null;
 
   return (
@@ -151,9 +163,27 @@ export function ElementPanel({ element, laidOut, onChange, onDelete, onMove }: P
       ) : null}
 
       {element.type === "image" ? (
-        <p className="text-muted-foreground text-sm">
-          Logo slot. Uploading your own logo arrives with the artwork upload step.
-        </p>
+        <div className="grid gap-2 text-sm" data-testid="image-info">
+          {!element.assetId ? (
+            <p className="text-muted-foreground">Logo slot: add your image to fill it.</p>
+          ) : !asset ? (
+            <p className="text-muted-foreground">Loading image details…</p>
+          ) : asset.vector ? (
+            <p>
+              {asset.format === "pdf" ? "PDF artwork" : "SVG artwork"}: vector, prints sharp at any
+              size.
+            </p>
+          ) : (
+            <DpiReadout asset={asset} w={element.w} h={element.h} />
+          )}
+          <button
+            type="button"
+            onClick={onReplaceImage}
+            className="bg-background hover:border-ink w-fit rounded-md border px-3 py-1.5"
+          >
+            {element.assetId ? "Replace image" : "Add your image"}
+          </button>
+        </div>
       ) : null}
 
       <Field label="Rotation (°)" htmlFor="el-rotation">
@@ -258,5 +288,21 @@ function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+/** Effective print resolution of a raster image at its current size (DECISIONS D-14). */
+function DpiReadout({ asset, w, h }: { asset: AssetInfo; w: number; h: number }) {
+  const dpi = effectiveDpiOf(asset, w, h) ?? 0;
+  const tone =
+    dpi < DPI_MINIMUM ? "text-destructive" : dpi < DPI_WARNING ? "text-warning" : "text-success";
+  return (
+    <p>
+      {asset.widthPx} × {asset.heightPx} px ·{" "}
+      <span className={tone} data-testid="image-dpi">
+        {dpi} DPI at this size
+      </span>
+      {dpi < DPI_WARNING ? ` (aim for ${DPI_WARNING}+; make it smaller to sharpen it)` : ""}
+    </p>
   );
 }

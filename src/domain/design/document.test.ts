@@ -6,6 +6,8 @@ import {
   blankDocument,
   fitDocumentToSize,
   moveElement,
+  placeArtwork,
+  placeImage,
   removeElement,
   updateElement,
 } from "./document";
@@ -105,5 +107,74 @@ describe("element operations", () => {
     ]);
     expect(moveElement(start, "shape-1", "down")).toBe(start); // already at the bottom
     expect(removeElement(start, "shape-1").elements.map((e) => e.id)).toEqual(["text-1"]);
+  });
+});
+
+describe("placing uploads", () => {
+  const asset = (widthPx: number, heightPx: number, page?: { mediaW: number; mediaH: number }) => ({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    widthPx,
+    heightPx,
+    ...(page ? { pageSizeMm: page } : {}),
+  });
+
+  it("fits a logo inside a template's logo slot, keeping its proportions", () => {
+    const withSlot: DesignDocument = {
+      ...blankDocument(spec),
+      elements: [
+        {
+          id: "logo",
+          type: "image",
+          areaId: "main",
+          x: 10,
+          y: 10,
+          w: 40,
+          h: 20,
+          rotation: 0,
+          assetId: null,
+        },
+      ],
+    };
+    const { doc, id } = placeImage(withSlot, asset(1000, 1000), "logo");
+    expect(id).toBe("logo");
+    expect(doc.elements[0]).toMatchObject({ x: 20, y: 10, w: 20, h: 20, assetId: asset(1, 1).id });
+  });
+
+  it("adds a new logo centred at up to half the safe area", () => {
+    const { doc } = placeImage(blankDocument(spec), asset(2000, 1000));
+    // safe area 94 × 54 → half 47 × 27; a 2:1 logo fits as 47 × 23.5, centred on (50, 30)
+    expect(doc.elements[0]).toMatchObject({ x: 26.5, y: 18.25, w: 47, h: 23.5 });
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it("puts artwork that includes bleed over the whole bleed box", () => {
+    const { doc, notes } = placeArtwork(
+      blankDocument(spec),
+      asset(300, 186, { mediaW: 106, mediaH: 66 }),
+    );
+    expect(doc.elements[0]).toMatchObject({ x: -3, y: -3, w: 106, h: 66, role: "artwork" });
+    expect(notes).toEqual([]);
+  });
+
+  it("explains when artwork has no bleed", () => {
+    const { doc, notes } = placeArtwork(
+      blankDocument(spec),
+      asset(283, 170, { mediaW: 100, mediaH: 60 }),
+    );
+    expect(doc.elements[0]).toMatchObject({ x: 0, y: 0, w: 100, h: 60 });
+    expect(notes[0]).toMatch(/no bleed/);
+  });
+
+  it("scales artwork of the wrong size to fit, and says so", () => {
+    const { doc, notes } = placeArtwork(blankDocument(spec), asset(1000, 1000));
+    expect(doc.elements[0]).toMatchObject({ w: 66, h: 66 });
+    expect(notes[0]).toMatch(/proportions differ/);
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it("puts artwork underneath existing text", () => {
+    const start = addText(blankDocument(spec)).doc;
+    const { doc } = placeArtwork(start, asset(300, 186, { mediaW: 106, mediaH: 66 }));
+    expect(doc.elements.map((e) => e.type)).toEqual(["image", "text"]);
   });
 });

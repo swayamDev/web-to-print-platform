@@ -54,6 +54,28 @@ export async function saveDesignAction(input: SaveDesignInput): Promise<SaveDesi
   if (!priced.ok) return { status: "error", message: priced.errors[0]!.message };
 
   const supabase = await createSupabaseServerClient();
+
+  // Images must be this customer's own valid uploads (RLS limits the lookup to their rows), so
+  // a design can never point at someone else's file.
+  const assetIds = [
+    ...new Set(
+      document.elements.flatMap((e) => (e.type === "image" && e.assetId ? [e.assetId] : [])),
+    ),
+  ];
+  if (assetIds.length > 0) {
+    const { count } = await supabase
+      .from("assets")
+      .select("id", { count: "exact", head: true })
+      .in("id", assetIds)
+      .eq("status", "valid");
+    if (count !== assetIds.length) {
+      return {
+        status: "error",
+        message: "An image in this design is no longer available. Upload it again.",
+      };
+    }
+  }
+
   const { data: product } = await supabase
     .from("products")
     .select("id")
