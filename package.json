@@ -18,7 +18,8 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local --schema public > src/types/db.ts",
-    "seed:users": "node --env-file=.env.local scripts/seed-users.mts"
+    "seed:users": "node --env-file=.env.local scripts/seed-users.mts",
+    "test:e2e:live": "node scripts/e2e-live.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

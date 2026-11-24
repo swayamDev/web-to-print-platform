@@ -126,5 +126,4 @@ pnpm test:e2e                          # builds the app and starts it on :3000 i
 pnpm db:test                           # database tests (pgTAP)
 ```
 
-Against the live site (skips the tests that need local email or create accounts):
-`E2E_BASE_URL=https://web-to-print-platform-phi.vercel.app pnpm exec playwright test --grep-invert "sign up, lands|reset a forgotten password"`.
+Against the live site, with the live test accounts from `.env.live`: `pnpm test:e2e:live`.

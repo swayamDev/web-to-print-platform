@@ -17,10 +17,11 @@ pnpm exec playwright install chromium   # once
 pnpm test:e2e             # builds and serves the app on :3000 itself
 ```
 
-Against the live site (skips tests that need the secret key, local email or create data):
+Against the live site, with the live test accounts from `.env.live` (skips tests that need the
+secret key, local email or create accounts):
 
 ```bash
-E2E_BASE_URL=https://web-to-print-platform-phi.vercel.app pnpm exec playwright test --grep-invert "sign up, lands|reset a forgotten password"
+pnpm test:e2e:live
 ```
 
 Notes:

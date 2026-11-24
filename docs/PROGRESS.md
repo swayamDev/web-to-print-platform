@@ -5,9 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 17 live: push, then run `security.spec.ts` against the live site (headers and CSP) and
-  `pnpm exec supabase test db --remote` (cross-tenant checks).
-- Then **Phase 18** (production deploy check, README, schema docs, limitations, test results).
+- **Phase 18** (production deploy check, README, schema docs, limitations, test results).
 
 ## Live
 
@@ -505,3 +503,10 @@ next step under **Next up** so work can resume cold.
 - `docs/TESTING.md`: how to run each layer, and the PRD's 11-item checklist mapped to the tests.
 - Results: 187 unit, 148 database, e2e 145 passed on :3100; the password-reset test (the only
   failure there) passes on :3000, the port Supabase redirects to. Documented in TESTING.md.
+- Live (2026-11-25): deployed (75c7ecb, then 3360b5f). 148 pgTAP tests pass on the live database
+  (cross-tenant included). Full live browser run with the live accounts (`pnpm test:e2e:live`, new):
+  104 passed; of 5 failures, 2 were intermittent (12/12 on repeat), 2 were Vercel's edge answering a
+  path-traversal URL with 403 before the app (test now accepts 403 or 404), and 1 was real: on a tall
+  phone the loading placeholder still left the footer in view (CLS 0.25). The placeholder is now a
+  full screen tall; security and performance specs then passed 44 of 45 over three repeats (the one
+  slow login passed 8/8 on repeat). The CSP caused no violations on live.
