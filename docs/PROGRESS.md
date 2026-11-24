@@ -5,8 +5,6 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 14 live check (admin, in a browser): search the queue, open DH-2026-000023 and mark it
-  complete, check the users page.
 - Then **Phase 15** (admin product/template management, reports, Xero CSV export).
 
 ## Live
@@ -412,3 +410,7 @@ next step under **Next up** so work can resume cold.
 - Live (2026-11-24): migration applied, 83 pgTAP tests pass on the live database (the one admin is
   intact afterwards), deployed (0daa5f3). Signed-out visits to /admin/orders and /admin/users
   redirect to login; the user directory returns sign-in emails for an admin and refuses a customer.
+- Live admin check: queue search by order number and by company, stage filters and "Everything"
+  view are correct; DH-2026-000023 marked complete in the UI (timeline records the admin, audit
+  row written, completion email sent); users page lists 6 accounts with emails and order counts;
+  the admin cannot change their own role.
