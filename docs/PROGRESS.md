@@ -5,7 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Then **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
+- **Phase 14** (admin console: queue, filters, job detail, pipeline actions, archive, users).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
