@@ -5,10 +5,7 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 12 live check (customer): place a CSV race-number order on the live site (≥ 10 rows, card
-  4242), approve its all-rows proof; then generate and download its row files as admin. This also
-  exercises checkout's server-side row re-check, which local tests cannot (no Stripe key locally).
-- Then **Phase 13** (customer dashboard, invoices, one-click reorder).
+- **Phase 13** (customer dashboard, invoices, one-click reorder).
 - Admin-side proofs (admin uploads a corrected proof, `source = admin_upload`) come with Phase 14.
 
 ## Live
@@ -346,3 +343,8 @@ next step under **Next up** so work can resume cold.
   Smoke test as the demo customer: 12-row CSV uploaded, columns auto-mapped, all rows ready,
   12 items priced, row preview works (test file deleted afterwards). Live e2e: 64 passed; 3 failed
   in a slow run and passed on re-run (27/27).
+- Live paid CSV order DH-2026-000023 (12 rows, card 4242): checkout froze all 12 rows in
+  `merge_jobs` with their sha256 and priced 12 items; proof v1 PDF has 12 pages and its dataset hash
+  matches; the customer approved it. Admin "Generate print files" ran both batches: 12 row PDFs +
+  12 row PNGs in `rows/`, a 12-page combined `print.pdf` (trim 148 × 210 mm), and a ZIP with 24
+  entries; merge job `done` 12/12, order in production, `production.started` audited.
