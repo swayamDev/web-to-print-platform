@@ -5,9 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 6.7 records local performance and production readiness. Phase 6.8 awaits approval and
-  requires the complete three-engine regression, including canonical-origin verification.
-  The assessment baseline remains `a50216c`.
+- Phase 6.9 closes local handover preparation for frozen application commit
+  `0f1c7a9e0416c679b498c6acfab29e42407c5379`. Phase 6.8 was approved within local scope.
+  The local review and documentation archives are under the ignored handover references.
+- Next, await explicit approval and employer terms before any externally visible action.
+  Hosted verification, evaluator access and submission remain pending.
 - Await employer clarification on real gallery work, the generation trigger, any separate saved
   design score and source-code terms before submission. Live evaluator verification requires approval.
 - Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow

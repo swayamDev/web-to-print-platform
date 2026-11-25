@@ -1,5 +1,7 @@
 # Deployment
 
+This runbook is for a future authorized release. The frozen application's approval covers local verification. Confirm employer and source-sharing terms, deployment and evaluator authorization, and dedicated service configuration before executing these steps. The local Phase 6.9 hosted verification checklist defines the acceptance evidence.
+
 The PRD requires a **new Vercel account** and a **new Supabase project**, not personal or existing
 ones, with environment variables configured in the host and never committed (p10 §15).
 
@@ -42,7 +44,7 @@ git push -u origin main
 
 ## 3. Vercel project (new account)
 
-1. Sign up at vercel.com with a fresh account (Hobby plan is enough).
+1. Sign up at vercel.com with a fresh account (confirm plan and function limits against the documented maximum-capacity print workload).
 2. **Add New → Project**, import the GitHub repository. Framework preset: Next.js (detected).
 3. Add these **Environment Variables** (Production and Preview):
 
