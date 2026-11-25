@@ -9,7 +9,7 @@ import { DivisionHub } from "@/components/home/division-hub";
 import { QuickPrice, type QuickPriceProduct } from "@/components/home/quick-price";
 import { SampleProof } from "@/components/home/sample-proof";
 import { buttonVariants } from "@/components/ui/button";
-import { getDivisions, getDivisionWithProducts, getProductDetail } from "@/server/catalogue";
+import { getDivisions, getQuickPriceCatalogue } from "@/server/catalogue";
 import { getGallery } from "@/server/gallery";
 import { loadPricingRules } from "@/server/pricing";
 
@@ -45,25 +45,12 @@ const STEPS = [
 
 /** Load catalogue presets and the same pricing rules used by the product configurator. */
 async function loadQuickPriceProducts(): Promise<QuickPriceProduct[]> {
-  const divisions = await getDivisions();
-  const withProducts = await Promise.all(divisions.map((d) => getDivisionWithProducts(d.slug)));
+  const catalogue = await getQuickPriceCatalogue();
   const entries = await Promise.all(
-    withProducts.flatMap((division) =>
-      (division?.products ?? []).map(async (p) => {
-        const [detail, rules] = await Promise.all([
-          getProductDetail(p.slug),
-          loadPricingRules(p.slug),
-        ]);
-        if (!detail || !rules) return null;
-        return {
-          rules,
-          divisionName: division!.name,
-          presets: detail.sizePresets,
-          defaultWidthMm: detail.defaultWidthMm,
-          defaultHeightMm: detail.defaultHeightMm,
-        } satisfies QuickPriceProduct;
-      }),
-    ),
+    catalogue.map(async ({ slug, ...presets }) => {
+      const rules = await loadPricingRules(slug);
+      return rules ? { ...presets, rules } : null;
+    }),
   );
   return entries.filter((e): e is QuickPriceProduct => e !== null);
 }

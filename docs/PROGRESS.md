@@ -5,9 +5,9 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 6.2 covers documentation, copy, indexing and focused navigation accessibility.
-  Phase 6.3 imagery needs explicit approval. The complete three-engine regression is required
-  after all changes in Phase 6.8. The assessment baseline remains `a50216c`.
+- Phase 6.7 records local performance and production readiness. Phase 6.8 awaits approval and
+  requires the complete three-engine regression, including canonical-origin verification.
+  The assessment baseline remains `a50216c`.
 - Await employer clarification on real gallery work, the generation trigger, any separate saved
   design score and source-code terms before submission. Live evaluator verification requires approval.
 - Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow
@@ -583,3 +583,9 @@ next step under **Next up** so work can resume cold.
 - Reproduced duplicate canonical links by starting a prerendered release with an APP_URL different from the build-time value. Strengthened the exact-count and independent-origin regression and documented the build/start configuration invariant.
 - Verified the 30-per-minute template preview quota, normal browser-cache reuse and fixed-window recovery locally. HTTP 429 now includes retry guidance and no-store.
 - Preserved the independent hosted-origin and complete cross-browser checks for Phase 6.8. Phase 6.7 and employer submission await approval.
+
+### 2026-11-25 — Phase 6.7 performance and production readiness
+
+- Batched the homepage calculator's public catalogue inputs. The isolated six-product fixture replay reduced the calculator-specific catalogue reads from 12 requests to one. Shared pricing, VAT, presets and catalogue invalidation retain their existing contracts.
+- Recorded cold and warm local profiles across public, customer and staff routes, plus a signed-in editor and CSV workflow, representative database plans, and release limitations. Full prerender and client timing results are reported independently of the catalogue replay.
+- Phase 6.8, hosted verification and employer submission await approval.

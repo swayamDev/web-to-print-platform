@@ -56,6 +56,36 @@ export async function getDivisions(): Promise<DivisionSummary[]> {
   });
 }
 
+/** Public catalogue inputs for quick pricing, without the full product or template payload. */
+export async function getQuickPriceCatalogue() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("catalogue");
+
+  const supabase = createSupabasePublicClient();
+  const { data, error } = await supabase
+    .from("divisions")
+    .select(
+      "name, products(slug, default_width_mm, default_height_mm, size_presets, sort_order, is_active)",
+    )
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw new Error(`Could not load quick pricing catalogue: ${error.message}`);
+
+  return data.flatMap(({ name, products }) =>
+    products
+      .filter((product) => product.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((product) => ({
+        slug: product.slug,
+        divisionName: name,
+        presets: product.size_presets as { label: string; width_mm: number; height_mm: number }[],
+        defaultWidthMm: Number(product.default_width_mm),
+        defaultHeightMm: Number(product.default_height_mm),
+      })),
+  );
+}
+
 export type ProductSummary = {
   id: string;
   slug: string;

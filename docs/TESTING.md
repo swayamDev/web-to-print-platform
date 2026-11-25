@@ -101,3 +101,7 @@ The Phase 6.5 targeted Playwright run reported 88 passes, 24 skips and two canon
 ## Phase 6.6 audit checks
 
 The SEO suite compares canonical origins to the independent browser test configuration. It checks server HTML, hydrated exact-count, client navigation and public sitemap paths. Use the same APP_URL for build and start. Set E2E_CANONICAL_ORIGIN for an authorized external test if its request origin and canonical origin differ. The Phase 6.6 review archive preserves the deliberate configuration mismatch evidence and the template-preview window rollover observation.
+
+## Phase 6.7 performance evidence
+
+The local review package reports 15 representative routes and states on each side of the catalogue change, across two independent contexts with cold and warm browser visits. It records Chromium navigation/paint timings, observed layout and task timings, transfer sizes, request counts, and separate editor and CSV timings. A read-only local query replay measures the narrower catalogue projection. Use the existing Playwright performance, canonical and pricing assertions for regression, with complete cross-browser verification in Phase 6.8. Local laboratory metrics do not establish production Core Web Vitals.
