@@ -14,15 +14,15 @@ The frozen application is `0f1c7a9e0416c679b498c6acfab29e42407c5379`. Phase 6.8 
 
 Next.js 16 App Router with Cache Components, React 19, TypeScript, Tailwind CSS and shadcn/ui power the application. Supabase provides PostgreSQL, Auth and private Storage. The editor uses React Konva. Print rendering uses pdf-lib and resvg, with PDF.js for supported PDF workflows. Verification uses Vitest, pgTAP and Playwright.
 
-| Location | Responsibility |
-| --- | --- |
-| `src/app` and `src/components` | Storefront, account, editor, staff and API surfaces |
-| `src/domain` | Pricing, layout, print constraints, CSV validation and other pure business rules |
-| `src/server` and `src/proxy.ts` | Privileged services, boundary validation and auth session refresh |
-| `src/lib/print` | PDF and PNG rendering from the shared layout |
-| `supabase/migrations`, `supabase/seed.sql`, `supabase/tests` | Schema, policies, sample catalogue and database tests |
-| `e2e` and `scripts` | Browser cases and local fixture runners |
-| `docs` | Architecture, schema, decisions, operation and verification |
+| Location                                                     | Responsibility                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `src/app` and `src/components`                               | Storefront, account, editor, staff and API surfaces                              |
+| `src/domain`                                                 | Pricing, layout, print constraints, CSV validation and other pure business rules |
+| `src/server` and `src/proxy.ts`                              | Privileged services, boundary validation and auth session refresh                |
+| `src/lib/print`                                              | PDF and PNG rendering from the shared layout                                     |
+| `supabase/migrations`, `supabase/seed.sql`, `supabase/tests` | Schema, policies, sample catalogue and database tests                            |
+| `e2e` and `scripts`                                          | Browser cases and local fixture runners                                          |
+| `docs`                                                       | Architecture, schema, decisions, operation and verification                      |
 
 The server recalculates prices in integer minor units using decimal rates. Print geometry uses millimetres. Staff operations check roles, customer reads are scoped by RLS, and private files use scoped signed access. Proof approval binds the version and hash to the production snapshot.
 
@@ -34,14 +34,14 @@ Install Node.js 22 or later, pnpm and Docker. The frozen verification used Node 
 2. Copy `.env.example` to `.env.local` (PowerShell: `Copy-Item .env.example .env.local`). Set `APP_URL` to `http://localhost:3000`. Obtain local Supabase keys from `pnpm exec supabase status` and keep them private.
 3. Set the local customer and admin fixture variables, then run `pnpm seed:users`. Start the app with `pnpm dev`, or use `pnpm build` followed by `pnpm start` for production mode.
 
-| Variables | Configuration |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Local API at `http://127.0.0.1:55321` and its publishable key |
-| `SUPABASE_SECRET_KEY` | Server-only local secret |
-| `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM` | Local Mailpit SMTP at `127.0.0.1:55325`, with inbox UI on port 55324. Set `SMTP_USER` and `SMTP_PASS` only if the SMTP service requires them. |
-| `TEST_CUSTOMER_EMAIL`, `TEST_CUSTOMER_PASSWORD`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` | Distinct disposable local fixture accounts |
-| `PAYMENT_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Default provider is Stripe. Supply a private local signing value for signed fixture events. Leave the Stripe API key empty during offline regression. |
-| `CRON_SECRET` | Private random value if exercising the cron guard |
+| Variables                                                                                  | Configuration                                                                                                                                         |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`                         | Local API at `http://127.0.0.1:55321` and its publishable key                                                                                         |
+| `SUPABASE_SECRET_KEY`                                                                      | Server-only local secret                                                                                                                              |
+| `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM`                                                     | Local Mailpit SMTP at `127.0.0.1:55325`, with inbox UI on port 55324. Set `SMTP_USER` and `SMTP_PASS` only if the SMTP service requires them.         |
+| `TEST_CUSTOMER_EMAIL`, `TEST_CUSTOMER_PASSWORD`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD` | Distinct disposable local fixture accounts                                                                                                            |
+| `PAYMENT_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                           | Default provider is Stripe. Supply a private local signing value for signed fixture events. Leave the Stripe API key empty during offline regression. |
+| `CRON_SECRET`                                                                              | Private random value if exercising the cron guard                                                                                                     |
 
 Keep private values in ignored local environment files or an authorized host's secret store. The template includes unused Razorpay placeholders. For a disposable local rebuild, `pnpm db:reset` reapplies migrations and seed and removes local account data. Reseed users and rebuild against the new dataset afterward. Supabase Studio is on port 55323.
 

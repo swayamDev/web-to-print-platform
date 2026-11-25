@@ -14,7 +14,7 @@ export function Logo({ reversed = false }: { reversed?: boolean }) {
   return (
     <Link
       href="/"
-      className="flex shrink-0 items-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+      className="focus-visible:outline-ring flex shrink-0 items-center focus-visible:outline-2 focus-visible:outline-offset-4"
       aria-label="DHprint, Digital Heroes Print home"
     >
       <Image
@@ -22,7 +22,7 @@ export function Logo({ reversed = false }: { reversed?: boolean }) {
         alt=""
         width={156}
         height={40}
-        className="h-auto w-[106px] sm:w-[156px] max-[400px]:group-has-[[data-admin-link]]/header:hidden"
+        className="h-auto w-[106px] max-[400px]:group-has-[[data-admin-link]]/header:hidden sm:w-[156px]"
         unoptimized
       />
       <RegistrationMark className="hidden size-7 max-[400px]:group-has-[[data-admin-link]]/header:block" />

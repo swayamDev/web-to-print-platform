@@ -131,7 +131,10 @@ test.describe("uploads", () => {
       await expect(reopened.getByTestId("print-check")).toContainText("Ready to print");
       const reopenedCanvas = reopened.getByTestId("design-canvas").locator("canvas").first();
       const after = (await reopenedCanvas.boundingBox())!;
-      await reopened.mouse.click(after.x + (27 / 54) * after.width, after.y + (21 / 54) * after.height);
+      await reopened.mouse.click(
+        after.x + (27 / 54) * after.width,
+        after.y + (21 / 54) * after.height,
+      );
       await expect(reopened.getByTestId("image-info")).toContainText("800 × 800 px");
     } finally {
       await reopened.close();

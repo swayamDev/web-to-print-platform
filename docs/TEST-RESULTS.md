@@ -72,15 +72,15 @@
 
 ## Handover baseline, 25 November 2026
 
-| Check | Fresh result |
-| --- | --- |
-| `pnpm lint` | Passed |
-| `pnpm exec tsc --noEmit --incremental false` | Passed |
-| `pnpm test` | 187 passed across 20 files under the default configuration |
-| Mirrored artwork test in isolation | Passed |
-| `pnpm db:test` | 148 passed across 9 files against local Supabase |
-| `pnpm test:e2e` | 147 passed, 59 skipped, 0 failed across desktop and mobile on a local production build |
-| Live checks | Historical results below. Fresh verification remains pending. |
+| Check                                        | Fresh result                                                                           |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm lint`                                  | Passed                                                                                 |
+| `pnpm exec tsc --noEmit --incremental false` | Passed                                                                                 |
+| `pnpm test`                                  | 187 passed across 20 files under the default configuration                             |
+| Mirrored artwork test in isolation           | Passed                                                                                 |
+| `pnpm db:test`                               | 148 passed across 9 files against local Supabase                                       |
+| `pnpm test:e2e`                              | 147 passed, 59 skipped, 0 failed across desktop and mobile on a local production build |
+| Live checks                                  | Historical results below. Fresh verification remains pending.                          |
 
 The initial audit's default Vitest run timed out in the mirrored artwork test at five seconds.
 The audit's serial rerun passed, and the Phase 1 default and focused runs both passed.
