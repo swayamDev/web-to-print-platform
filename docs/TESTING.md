@@ -10,6 +10,17 @@ Three layers, all run locally and (where safe) against the live site.
 
 ## Running them
 
+Use `pnpm test:e2e:local` for repeatable offline payment regression against the local Supabase
+stack. The runner seeds a new customer and administrator for each run, starts a production build
+on port 3915 by default and clears the Stripe API key for that process only. The webhook
+signature secret is retained for local signed payment fixtures. The hosted Checkout case
+requires its own approved test-mode run.
+
+The separate accounts avoid carrying the per-email login counter into the next run. The
+application's per-IP limit still applies, so run suites sequentially and allow its 15-minute
+window to roll over if it is exhausted. Keep the disposable accounts in the local fixture
+database.
+
 ```bash
 pnpm test                 # unit
 pnpm db:test              # database (local Supabase; add --remote to run against the linked project, rolled back)
