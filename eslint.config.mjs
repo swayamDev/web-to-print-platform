@@ -13,7 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Local design exports and generated browser test artifacts.
-    "handover/references/**",
+    "handover/**",
     "playwright-report/**",
     "test-results/**",
     "blob-report/**",

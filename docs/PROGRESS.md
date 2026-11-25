@@ -79,10 +79,9 @@ next step under **Next up** so work can resume cold.
 
 ### 2026-11-25 — Handover baseline
 
-- Preserved the source materials in a local ignored directory and indexed the design decisions
-  and PRD discrepancies. Made the root instructions eligible for Git tracking, retaining the
-  Next.js-managed block.
-- - Lint and types passed. Default Vitest passed 187 tests, and the mirrored artwork test passed
+- Preserved the design source materials in a local ignored directory and indexed the design
+  decisions and PRD discrepancies.
+- Lint and types passed. Default Vitest passed 187 tests, and the mirrored artwork test passed
   in isolation. Local pgTAP passed 148 checks after scoped access to the running Docker engine.
   Local Playwright passed 147 tests with 59 configured skips. See [test results](TEST-RESULTS.md)
   for the timing investigation.
