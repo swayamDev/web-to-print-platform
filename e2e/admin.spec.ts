@@ -231,7 +231,7 @@ test.describe("admin console", () => {
     await expect(page.getByTestId("admin-proof-history")).toContainText("v2");
     await expect(page.getByTestId("admin-proof-history")).toContainText("uploaded by staff");
     await expect(page.getByTestId("admin-audit")).toContainText(
-      "Corrected proof uploaded — Moved the logo inside the safe area",
+      "Corrected proof uploaded: Moved the logo inside the safe area",
     );
 
     const { data: versions } = await db

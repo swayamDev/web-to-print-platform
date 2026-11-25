@@ -5,9 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 6 is on hold. Assessment closure adds the required date and product filters to the
-  staff queue. Await employer clarification on real gallery work, the generation trigger,
-  and source-code terms before submission. Live evaluator verification requires approval.
+- Phase 6.2 covers documentation, copy, indexing and focused navigation accessibility.
+  Phase 6.3 imagery needs explicit approval. The complete three-engine regression is required
+  after all changes in Phase 6.8. The assessment baseline remains `a50216c`.
+- Await employer clarification on real gallery work, the generation trigger, any separate saved
+  design score and source-code terms before submission. Live evaluator verification requires approval.
 - Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow
   and checkout in the existing Next.js application and received visual approval.
 - The editor keeps the mouse-only mobile resize skip and adds a Chromium touch interaction
@@ -21,7 +23,7 @@ next step under **Next up** so work can resume cold.
 - Possible follow-ups (not required by the brief, see docs/LIMITATIONS.md): in-browser template
   layout editing, CMYK output, a cart, shipping, a live Xero API connection.
 
-## Live
+## Historical deployment record
 
 - Site: https://web-to-print-platform-phi.vercel.app (Vercel Hobby, functions in `bom1`)
 - Database: Supabase project `yxnqzqrcjwxunwxuivqm` (`ap-south-1`, free tier)

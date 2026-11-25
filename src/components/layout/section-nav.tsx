@@ -22,8 +22,15 @@ export function SectionNav({ items, label }: { items: NavItem[]; label: string }
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                onFocus={(event) =>
+                  event.currentTarget.scrollIntoView({
+                    behavior: "instant",
+                    block: "nearest",
+                    inline: "nearest",
+                  })
+                }
                 className={cn(
-                  "inline-block border-b-2 px-3 py-2 whitespace-nowrap transition-colors",
+                  "inline-flex min-h-11 items-center border-b-2 px-3 py-2 whitespace-nowrap transition-colors focus-visible:-outline-offset-2",
                   active
                     ? "border-foreground text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground border-transparent",

@@ -8,13 +8,14 @@ Page and section references below look like `p5 §06`. Decisions on gaps in the 
 
 A web-to-print platform for a print house with six divisions: labels & stickers, race & event
 numbers, MTB boards, stamps, trophies, laser-cut work (p4 §04). Customers configure a product,
-get an instant price, design in the browser or upload artwork, approve a versioned proof, pay,
-track and reorder. Staff run every job through a production pipeline and download print-ready
-files that the server generates (p6 §07).
+get an instant price, design in the browser or upload artwork, pay, then approve a versioned proof.
+Customers can track and reorder. Staff initiate server-side print-file generation from the approved
+proof (p6 §§07–08). Acceptance of that trigger remains an employer decision.
 
 ## Architecture
 
-- **One Next.js app** (App Router) on Vercel, with **Supabase** for Postgres, Auth and Storage.
+- **One Next.js app** (App Router and Cache Components), with **Supabase** for Postgres, Auth and
+  Storage. Vercel is the target host. The historical deployment does not verify a newer revision.
 - **`src/domain`** — pure TypeScript shared by browser and server: pricing, text fitting,
   design layout, order state machine, file naming.
 - **`src/server`** — server-only services: auth guards, pricing/order/proof services, renderers,
@@ -37,8 +38,15 @@ files that the server generates (p6 §07).
 ## Order pipeline (p8 §11)
 
 `quote → order → artwork → proof → production → completed`, plus admin-only `cancelled`.
-Archive is a flag. Valid transitions live in `src/domain/orderStateMachine.ts` and are
-enforced again by a database trigger.
+Archive is a flag. Database functions and triggers enforce transitions, while
+`src/domain/order-status.ts` defines presentation status and labels.
+
+## Search indexing
+
+Public home, gallery, division and product pages have canonical URLs based on `APP_URL`.
+The sitemap lists those public paths. Private and authentication workflows carry response-level
+indexing directives, and account and staff layouts also declare them in page metadata.
+Authentication, ownership and role checks remain the access controls.
 
 ## Pricing formula
 

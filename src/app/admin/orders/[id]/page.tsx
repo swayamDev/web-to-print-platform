@@ -29,7 +29,7 @@ export default function AdminOrderPage(props: Props) {
 
 const sizeLabel = (bytes: number | null) =>
   bytes == null
-    ? "—"
+    ? "Not recorded"
     : bytes > 1024 * 1024
       ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
       : `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -126,10 +126,10 @@ async function AdminOrder({ params }: Props) {
             Customer
           </h2>
           <dl className="grid gap-1.5 text-sm">
-            <Row label="Name" value={order.customer?.full_name ?? "—"} />
-            <Row label="Company" value={order.customer?.company_name ?? "—"} />
-            <Row label="Email" value={authUser.user?.email ?? "—"} />
-            <Row label="Phone" value={order.customer?.phone ?? "—"} />
+            <Row label="Name" value={order.customer?.full_name ?? "Not provided"} />
+            <Row label="Company" value={order.customer?.company_name ?? "Not provided"} />
+            <Row label="Email" value={authUser.user?.email ?? "Not provided"} />
+            <Row label="Phone" value={order.customer?.phone ?? "Not provided"} />
             <Row label="Ordered" value={new Date(order.created_at).toLocaleString("en-GB")} />
             <Row
               label="Paid"
@@ -198,7 +198,7 @@ async function AdminOrder({ params }: Props) {
             <dl className="grid content-start gap-1.5 text-sm">
               <Row label="Version" value={`v${approved.version}`} />
               <Row label="Approved" value={new Date(approval.created_at).toLocaleString("en-GB")} />
-              <Row label="From IP" value={approval.ip ? String(approval.ip) : "—"} />
+              <Row label="From IP" value={approval.ip ? String(approval.ip) : "Not recorded"} />
               {approval.action === "approved_via_reorder" ? (
                 <Row label="Approval" value={approval.comment ?? "Via reorder"} />
               ) : null}
@@ -286,7 +286,7 @@ async function AdminOrder({ params }: Props) {
                 </span>
                 <span className="text-muted-foreground">
                   {h.actor?.full_name ?? "System"}
-                  {h.note ? ` — ${h.note}` : ""}
+                  {h.note ? `: ${h.note}` : ""}
                 </span>
               </li>
             ))}
@@ -337,7 +337,7 @@ async function AdminOrder({ params }: Props) {
               <li key={a.id} className="flex flex-wrap justify-between gap-x-4">
                 <span>
                   {AUDIT_LABEL[a.action] ?? a.action}
-                  {auditNote(a.diff) ? ` — ${auditNote(a.diff)}` : ""}
+                  {auditNote(a.diff) ? `: ${auditNote(a.diff)}` : ""}
                 </span>
                 <span className="text-muted-foreground">
                   {a.actor?.full_name ?? "Admin"} · {new Date(a.created_at).toLocaleString("en-GB")}

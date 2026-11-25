@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { PageSkeleton } from "@/components/layout/page-skeleton";
 import { SectionNav } from "@/components/layout/section-nav";
 import { requireUser } from "@/server/auth";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 const NAV = [
   { href: "/account", label: "Dashboard", exact: true },

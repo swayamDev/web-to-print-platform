@@ -131,7 +131,6 @@ export function PricePanel({
         </div>
       ) : (
         <div className="mt-3 grid gap-2">
-          <p className="font-heading text-paper/40 text-4xl font-semibold">—</p>
           <p className="text-paper/70 text-sm" role="status">
             {hasErrors ? "Fix the highlighted fields to see your price." : "Calculating…"}
           </p>
@@ -250,7 +249,9 @@ function TierLadder({
                   </button>
                 </td>
                 <td className="py-1">
-                  {row.quote.tier ? `${formatPercent(row.quote.tier.percentOff)} off` : "—"}
+                  {row.quote.tier
+                    ? `${formatPercent(row.quote.tier.percentOff)} off`
+                    : "No discount"}
                 </td>
                 <td className="num py-1 text-right font-mono">
                   {formatMajor(row.quote.unitGrossDisplay, currency)}

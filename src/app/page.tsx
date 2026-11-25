@@ -1,4 +1,5 @@
 import { ArrowRight, CheckCheck, FilePenLine, Printer, Ruler, WalletCards } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { RegistrationMark } from "@/components/brand/logo";
@@ -11,6 +12,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { getDivisions, getDivisionWithProducts, getProductDetail } from "@/server/catalogue";
 import { getGallery } from "@/server/gallery";
 import { loadPricingRules } from "@/server/pricing";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const STEPS = [
   {
@@ -77,8 +82,8 @@ export default async function HomePage() {
             Print it.
           </h1>
           <p className="text-paper max-w-[39ch] lg:text-xl">
-            Custom print across {divisions.length} divisions. See the price before you order and
-            approve a proof before production.
+            Configure custom print, see the price including VAT and approve a proof before
+            production.
           </p>
           <Link href="#quote" className={buttonVariants({ size: "lg", className: "h-11 px-4" })}>
             Get a price <ArrowRight aria-hidden="true" />
@@ -102,7 +107,7 @@ export default async function HomePage() {
             <h2 id="price-heading" className="text-3xl font-bold md:text-5xl">
               Price your print.
             </h2>
-            <p className="text-ink/85">See the total with VAT and any volume discount.</p>
+            <p className="text-ink/85">Includes VAT and quantity discounts.</p>
           </div>
           {quickPriceProducts.length ? (
             <QuickPrice products={quickPriceProducts} />

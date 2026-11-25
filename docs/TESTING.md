@@ -10,6 +10,11 @@ Three layers, all run locally and (where safe) against the live site.
 
 ## Running them
 
+Run `pnpm copy:check` to check authored JSX, TypeScript messages and catalogue seed for
+prohibited em-dash punctuation, including common encoded variants. Data entered by users and
+historical orders are outside this source check. `e2e/seo.spec.ts` checks public canonical URLs,
+the sitemap, private indexing directives, role guards and narrow-screen staff keyboard focus.
+
 Use `pnpm test:e2e:local` for repeatable offline payment regression against the local Supabase
 stack. The runner seeds a new customer and administrator for each run, starts a production build
 on port 3000, which the local Supabase stack allows for auth redirects, and clears the Stripe API

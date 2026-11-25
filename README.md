@@ -4,11 +4,10 @@ A web-to-print storefront and production console for a print house with six divi
 labels & stickers, race & event numbers, MTB boards, stamps, trophies and laser-cut work.
 Built for the Digital Heroes Level 2 assessment.
 
-**Live site:** https://web-to-print-platform-phi.vercel.app
-
-> **Status:** complete: all 18 phases are built, deployed and verified on the live site. Payments
-> run in Stripe test mode (card `4242 4242 4242 4242`). Test accounts for the live site are shared
-> privately with the submission.
+**Assessment status:** Phase 6.2 updates the locally verified assessment baseline (`a50216c`).
+The [verification record](docs/TEST-RESULTS.md) distinguishes local checks from the historical
+deployment. Hosted Stripe Checkout, email delivery and evaluator access for this revision
+await separate approval and verification.
 
 ## What it does
 
@@ -16,7 +15,7 @@ Built for the Digital Heroes Level 2 assessment.
 
 - Browse six divisions and configure any product by size, material, orientation and quantity, with
   a live price (incl. VAT), all-units volume discounts and an "order more and save" hint.
-- Design in the browser from a template or upload finished artwork (PDF, AI, SVG, PNG, JPEG).
+- Design in the browser from a template or upload PDF, PDF-compatible AI, SVG, PNG or JPEG.
   Guides show trim, bleed and the safe area; artwork cannot leave the print area; text shrinks to
   fit; uploads are checked for format and print resolution.
 - Personalise race numbers and plates from a CSV: map columns, check every row, one item per row.
@@ -27,9 +26,9 @@ Built for the Digital Heroes Level 2 assessment.
 
 **Staff**
 
-- Order queue with stage filters and search; complete, cancel (with a reason) and archive jobs;
-  upload corrected proofs.
-- Generate print files from the approved proof: print-ready PDF (trim and bleed boxes), 300 DPI PNG,
+- Order queue with stage, UTC date and product filters and order/customer search. Complete, cancel
+  (with a reason) and archive jobs, or upload corrected proofs.
+- Generate PDF with trim and bleed boxes and PNG at the product’s configured DPI,
   one file per CSV row plus a ZIP, named `OrderID_ProductType_Date_Output`. Admin-only, audited
   downloads.
 - Edit products (prices, materials, sizes, discount tiers) and templates; sales reports; a Xero
@@ -44,7 +43,7 @@ Built for the Digital Heroes Level 2 assessment.
 | [`docs/DECISIONS.md`](docs/DECISIONS.md)       | How gaps and ambiguities in the brief were resolved (D-01 to D-56)  |
 | [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)   | What is deliberately out of scope or simplified, and why            |
 | [`docs/TESTING.md`](docs/TESTING.md)           | How to run the tests; the PRD testing checklist mapped to them      |
-| [`docs/TEST-RESULTS.md`](docs/TEST-RESULTS.md) | Latest results, local and on the live site                          |
+| [`docs/TEST-RESULTS.md`](docs/TEST-RESULTS.md) | Current local results and historical hosted evidence                |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)     | Supabase, Vercel, Stripe and email setup                            |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md)         | Phase checklist and session log                                     |
 
@@ -120,7 +119,8 @@ Local addresses: app `http://localhost:3000`, Supabase Studio `http://127.0.0.1:
 that payment is not configured). To pay locally, set `STRIPE_SECRET_KEY` to a **test** key
 (`sk_test_…`), run `stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe` and put the
 `whsec_…` it prints in `STRIPE_WEBHOOK_SECRET`. Pay with card `4242 4242 4242 4242`. The
-end-to-end tests sign their own payment events and need none of this.
+offline browser suite signs local payment fixtures and clears the Stripe API key for its process.
+A private local webhook signing value is required for those fixtures.
 
 **Troubleshooting**
 
@@ -138,6 +138,7 @@ end-to-end tests sign their own payment events and need none of this.
 | `pnpm build`         | Production build                                                                      |
 | `pnpm lint`          | ESLint                                                                                |
 | `pnpm typecheck`     | TypeScript check with no output                                                       |
+| `pnpm copy:check`    | Scan authored UI, messages and catalogue seed for prohibited dash punctuation         |
 | `pnpm test`          | Unit and integration tests (Vitest)                                                   |
 | `pnpm test:e2e`      | End-to-end tests (Playwright; run `pnpm exec playwright install chromium` once first) |
 | `pnpm test:e2e:live` | End-to-end tests against the live site with the accounts in `.env.live`               |

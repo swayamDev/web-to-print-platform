@@ -20,9 +20,14 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const division = await getDivisionWithProducts((await params).division);
+  const { division: slug } = await params;
+  const division = await getDivisionWithProducts(slug);
   return division
-    ? { title: division.name, description: division.description ?? division.tagline ?? undefined }
+    ? {
+        title: division.name,
+        description: division.description ?? division.tagline ?? undefined,
+        alternates: { canonical: `/d/${encodeURIComponent(slug)}` },
+      }
     : { title: "Not found" };
 }
 

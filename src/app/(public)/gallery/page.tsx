@@ -11,6 +11,7 @@ import { getGallery } from "@/server/gallery";
 export const metadata: Metadata = {
   title: "Gallery",
   description: "Sample work from every division, rendered by our print engine.",
+  alternates: { canonical: "/gallery" },
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -22,8 +23,7 @@ export default function GalleryPage(props: Props) {
       <header className="grid gap-3 border-b pb-6">
         <h1 className="text-4xl font-bold md:text-5xl">Made on this platform</h1>
         <p className="text-muted-foreground max-w-2xl">
-          Explore sample designs rendered by the print engine. Filter by division to see how each
-          product’s artwork can look.
+          Browse sample designs rendered by the print engine. Filter by product division.
         </p>
       </header>
       <Suspense fallback={<PageSkeleton />}>

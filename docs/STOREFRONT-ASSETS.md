@@ -12,4 +12,7 @@ The local Phase 3 handover is the source of the approved Register geometry and A
 
 WebPs come from 1536 × 1024 PNG masters and ship as 480 × 320, 960 × 640 and 1440 × 960 derivatives. The app uses browser source selection and reserved aspect ratios. The dedicated hero is prioritised and catalogue tiles are lazy-loaded. Product photos are labelled illustrations. The gallery still uses the existing print-engine image routes and sample labels. No customer or production photography was added.
 
-Register was selected in Phase 3 after a preliminary visual comparison. Trademark clearance and physical reproduction testing remain pending. Physical touch verification and the mobile transformer resize test skip remain open. Real production gallery examples and a fresh live deployment and evaluator-account check remain open for submission.
+Register was selected in Phase 3 after a preliminary visual comparison. Trademark clearance and
+physical reproduction testing remain pending. Chromium emulated touch resize passed in Phase 5.
+The original mouse-only mobile skip remains, and physical touch is unverified. The imagery pilot
+requires approval. Real gallery examples or a waiver and fresh hosted verification remain open.

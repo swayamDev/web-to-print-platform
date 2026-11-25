@@ -70,8 +70,8 @@ async function AdminUser({ params }: Props) {
         <section className="bg-card grid content-start gap-2 rounded-xl border p-5 text-sm">
           <h2 className="text-base font-semibold">Details</h2>
           <dl className="grid gap-1.5">
-            <Row label="Company" value={profile.company_name ?? "—"} />
-            <Row label="Phone" value={profile.phone ?? "—"} />
+            <Row label="Company" value={profile.company_name ?? "Not provided"} />
+            <Row label="Phone" value={profile.phone ?? "Not provided"} />
             <Row label="Joined" value={new Date(profile.created_at).toLocaleDateString("en-GB")} />
             <Row label="Marketing" value={profile.marketing_opt_in ? "Opted in" : "No"} />
           </dl>

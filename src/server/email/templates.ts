@@ -18,7 +18,7 @@ function layout(title: string, paragraphs: string[], action?: { label: string; u
   const button = action
     ? `<p style="margin:20px 0"><a href="${esc(action.url)}" style="background:#ff4d00;color:#121212;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600">${esc(action.label)}</a></p>`
     : "";
-  return `<!doctype html><html><body style="margin:0;background:#f4f2ed;font-family:Inter,Arial,sans-serif;color:#121212">
+  return `<!doctype html><html lang="en-GB"><body style="margin:0;background:#f4f2ed;font-family:Inter,Arial,sans-serif;color:#121212">
 <div style="max-width:560px;margin:0 auto;padding:24px">
 <p style="font:600 12px/1 monospace;letter-spacing:.14em;text-transform:uppercase;color:#5c5a55">Digital Heroes Print</p>
 <h1 style="font-size:22px;margin:12px 0 16px">${esc(title)}</h1>${body}${button}
@@ -37,9 +37,9 @@ export function orderConfirmedEmail(input: {
   const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
   const paragraphs = [
     greeting,
-    `Thank you: we have received your payment for order ${input.orderNumber}.`,
+    `Payment for order ${input.orderNumber} is confirmed.`,
     `${input.summary}. Total paid ${input.total} (invoice ${input.invoiceNumber}).`,
-    "Next, we prepare a proof of your artwork. We will email you when it is ready to approve; nothing is printed until you approve it.",
+    "We will email you when your artwork proof is ready to review.",
   ];
   return {
     subject: `Order ${input.orderNumber} confirmed`,
@@ -61,7 +61,7 @@ export function proofReadyEmail(input: {
   const paragraphs = [
     greeting,
     `Proof version ${input.version} for order ${input.orderNumber} is ready.`,
-    "Please check every detail: spelling, numbers, colours and position. Approve it to send the job to print, or ask for changes. Nothing is printed until you approve.",
+    "Check spelling, numbers, colours and position. Approve the proof or request changes.",
   ];
   const title = `Proof v${input.version} ready for order ${input.orderNumber}`;
   return {
@@ -81,8 +81,8 @@ export function proofApprovedEmail(input: {
   const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
   const paragraphs = [
     greeting,
-    `Thank you: you approved proof version ${input.version} for order ${input.orderNumber} on ${input.approvedAt}.`,
-    "Your job now goes to production, printed exactly as approved. We will let you know when it is complete.",
+    `You approved proof version ${input.version} for order ${input.orderNumber} on ${input.approvedAt}.`,
+    "The approved proof is ready for staff to generate the production files.",
   ];
   const title = `Proof approved for order ${input.orderNumber}`;
   return {
@@ -100,7 +100,7 @@ export function orderInProductionEmail(input: {
   const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
   const paragraphs = [
     greeting,
-    `Order ${input.orderNumber} is now in production, printed from the proof you approved.`,
+    `Order ${input.orderNumber} has moved to production. Its print files are based on the approved proof.`,
     "We will let you know when it is complete.",
   ];
   const title = `Order ${input.orderNumber} is in production`;
@@ -119,8 +119,8 @@ export function orderCompletedEmail(input: {
   const greeting = input.customerName ? `Hi ${input.customerName.split(" ")[0]},` : "Hi,";
   const paragraphs = [
     greeting,
-    `Order ${input.orderNumber} is complete: it has been printed exactly as you approved it.`,
-    "Your invoice is on the order page, and you can reorder it there in one click.",
+    `Order ${input.orderNumber} has been marked complete.`,
+    "You can download the invoice or reorder from the order page.",
   ];
   const title = `Order ${input.orderNumber} is complete`;
   return {
@@ -142,7 +142,7 @@ export function orderCancelledEmail(input: {
     greeting,
     `Order ${input.orderNumber} has been cancelled. Reason: ${input.reason}`,
     input.paid
-      ? "If you paid for it, we will refund the payment to your card; please allow a few days for it to appear."
+      ? "A refund requires staff review. Contact us if you need help with your payment."
       : "Nothing was charged for this order.",
     "Reply to this email if you have any questions.",
   ];

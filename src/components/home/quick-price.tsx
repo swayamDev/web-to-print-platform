@@ -90,7 +90,7 @@ export function QuickPrice({ products }: { products: QuickPriceProduct[] }) {
           >
             {products.map((p) => (
               <option key={p.rules.product.slug} value={p.rules.product.slug}>
-                {p.rules.product.name} — {p.divisionName}
+                {p.rules.product.name} ({p.divisionName})
               </option>
             ))}
           </select>

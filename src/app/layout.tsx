@@ -25,6 +25,7 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: process.env.APP_URL ? new URL(process.env.APP_URL) : undefined,
   title: {
     default: "DHprint · Digital Heroes Print",
     template: "%s · Digital Heroes Print",

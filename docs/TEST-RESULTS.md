@@ -1,5 +1,21 @@
 # Test results
 
+## Phase 6.2 documentation, copy, indexing and accessibility
+
+- The local production build, TypeScript, ESLint and `pnpm copy:check` passed. Four focused
+  Vitest files passed 51 tests covering pricing, queue filters, invoices and the Xero export.
+- The initial targeted Playwright run recorded 54 passes, two viewport skips and two failures
+  from the homepage canonical assertion treating a trailing slash as significant.
+- The expanded run recorded 67 passes, 16 viewport skips and three assertion failures.
+  The metadata assertions were corrected to compare URLs and browser titles, and the proof
+  audit assertion was aligned with the approved punctuation change. The two metadata cases
+  and the staff proof upload case all passed on separate focused reruns.
+- Desktop and mobile Chromium covered public metadata, private indexing headers and role
+  guards, local checkout and email, proof and storefront flows, and the existing axe scans.
+  Keyboard measurements found all seven staff links fully visible on focus at 320, 390, 430 and
+  1440 px after the change. Hosted verification, physical-device touch and the full
+  Chromium/Firefox/WebKit regression are pending. The full suite is required in Phase 6.8.
+
 ## Assessment closure
 
 - Production build, ESLint and TypeScript passed. The focused Vitest queue suite passed seven tests.
