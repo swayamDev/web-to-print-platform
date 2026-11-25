@@ -5,10 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Precision Commerce and Register were approved, and Phase 4 implements the production storefront
-  in the existing Next.js application. Phase 5 needs separate approval.
-- Phase 5 focuses on the configurator, editor and checkout. Preserve the pricing and print
-  contracts, and verify actual touch handling before changing the existing resize-test skip.
+- Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow
+  and checkout in the existing Next.js application. Review the local Phase 5 captures and
+  verification notes before approving Phase 6.
+- The editor keeps the mouse-only mobile resize skip and adds a Chromium touch interaction
+  check. Physical-device verification remains pending.
 - Review the [CI proposal](TESTING.md) independently of design approval. Review the suggested
   mirrored-test improvement separately from application changes.
 

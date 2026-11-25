@@ -1,5 +1,24 @@
 # Test results
 
+## Phase 5 configurator, editor and checkout
+
+- The local production build, ESLint and TypeScript passed. Local pgTAP passed all 148 checks.
+  The final standard Vitest run passed all 187 tests. Two existing PNG tests timed out while
+  other checks were running, and both also passed in the extended-timeout run.
+- The full local Playwright run recorded 141 passes, 61 skips and six desktop timeouts. The
+  focused rerun recorded 16 passes and 10 skips. It passed all six timed-out cases, including
+  password reset on the local Supabase redirect port, and reran checkout and proofs after the
+  confirmation layout fix. The Chromium touch resize case passed in the full run and in isolation.
+  The existing mouse-only mobile resize skip remains in place.
+- The local runner creates a fresh customer and admin per run and uses signed Stripe webhook
+  fixtures. The hosted Checkout case requires separate test-mode verification. The recorded
+  skips include this case and the desktop project skip for the new emulated touch test.
+- The local Phase 5 export records 34 Chromium viewport and state checks. There were no reported
+  axe violations, horizontal overflow or failed image loads in those checks. The maximum
+  observed CLS was 0.009449. At 768 px, confirmation improved from 0.169553 to 0.000332.
+  Firefox and WebKit passed focused mobile smoke checks. Physical-device touch and live
+  verification remain pending.
+
 ## Phase 4 production storefront
 
 - ESLint and TypeScript passed. Default Vitest passed 187 tests and the loopback pgTAP suite
