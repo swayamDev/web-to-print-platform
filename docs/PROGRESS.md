@@ -8,8 +8,8 @@ next step under **Next up** so work can resume cold.
 - 2026-11-25: all Phase 6 work plus a formatting and asset clean-up and a test-isolation fix
   were pushed to `main` (`2d42488`) and deployed by Vercel. A read-only smoke test of the live
   site passed (see [test results](TEST-RESULTS.md)).
-- Before submitting: with approval, run `pnpm test:e2e:live` (it creates test orders on the
-  live database) and log in to both evaluator accounts on the deployed revision.
+- The live authenticated suite ran on 25 November 2026 (see test results). Before submitting,
+  log in to both evaluator accounts yourself on the deployed revision.
 - Phase 6.9 closed local handover preparation for frozen application commit
   `0f1c7a9e0416c679b498c6acfab29e42407c5379`. Phase 6.8 was approved within local scope.
   The local review and documentation archives are under the ignored handover references.

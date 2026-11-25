@@ -12,7 +12,12 @@
   `X-Robots-Tag: noindex, nofollow`; security headers and CSP present; the cron endpoint refuses
   calls without its secret (401); removed illustration files answer 404; unknown divisions and
   products show the in-page not-found view; the price API quotes 100 stickers at £16.20 with the
-  10% tier. The authenticated live suite (`pnpm test:e2e:live`) was not run.
+  10% tier.
+- Live authenticated suite (`pnpm test:e2e:live`, live test accounts): 107 passed, 100 skipped
+  (tests that need the secret key, local email or new accounts), 5 failed. All 5 were timeouts or
+  an aborted request on first contact (template PNG render, two upload checks after a slow login,
+  and two phone page loads) and all 5 passed on an immediate `--last-failed` rerun. The run
+  created test orders and designs under the two live test accounts.
 
 ## Frozen Phase 6.8 application
 
