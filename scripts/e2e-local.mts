@@ -16,7 +16,7 @@ if (
 }
 
 const runId = randomUUID();
-const port = process.env.PORT ?? "3915";
+const port = process.env.PORT ?? "3000";
 const env = {
   ...process.env,
   CI: "true",

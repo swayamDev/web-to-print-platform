@@ -12,7 +12,8 @@ Three layers, all run locally and (where safe) against the live site.
 
 Use `pnpm test:e2e:local` for repeatable offline payment regression against the local Supabase
 stack. The runner seeds a new customer and administrator for each run, starts a production build
-on port 3915 by default and clears the Stripe API key for that process only. The webhook
+on port 3000, which the local Supabase stack allows for auth redirects, and clears the Stripe API
+key for that process only. The webhook
 signature secret is retained for local signed payment fixtures. The hosted Checkout case
 requires its own approved test-mode run.
 
