@@ -90,15 +90,24 @@ test.describe("admin console", () => {
       .single();
     if (productError) throw productError;
 
+    // A random past day per run, so orders left by earlier local runs cannot fill the first
+    // page of results for the same date.
+    const dayMs = 86_400_000;
+    const base = Date.UTC(2001, 0, 2) + Math.floor(Math.random() * 9000) * dayMs;
+    const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    const day = isoDay(base);
+    const dayBefore = isoDay(base - dayMs);
+    const dayAfter = isoDay(base + dayMs);
+
     const start = await createQuoteOrder();
     const end = await createQuoteOrder();
     const nextDay = await createQuoteOrder();
     const otherProduct = await createQuoteOrder();
     for (const [order, created_at] of [
-      [start, "2026-10-07T00:00:00.000000Z"],
-      [end, "2026-10-07T23:59:59.999999Z"],
-      [nextDay, "2026-10-08T00:00:00.000000Z"],
-      [otherProduct, "2026-10-07T12:00:00.000000Z"],
+      [start, `${day}T00:00:00.000000Z`],
+      [end, `${day}T23:59:59.999999Z`],
+      [nextDay, `${dayAfter}T00:00:00.000000Z`],
+      [otherProduct, `${day}T12:00:00.000000Z`],
     ] as const) {
       const { error } = await db.from("orders").update({ created_at }).eq("id", order.id);
       if (error) throw error;
@@ -112,8 +121,8 @@ test.describe("admin console", () => {
     await logIn(page, adminUser);
     await page.goto("/admin/orders");
     const list = page.getByTestId("admin-order-list");
-    await page.getByLabel("From date (UTC)").fill("2026-10-07");
-    await page.getByLabel("To date (UTC)").fill("2026-10-07");
+    await page.getByLabel("From date (UTC)").fill(day);
+    await page.getByLabel("To date (UTC)").fill(day);
     await page.getByRole("button", { name: "Search" }).click();
     await expect(list).toContainText(start.order_number);
     await expect(list).toContainText(end.order_number);
@@ -132,7 +141,7 @@ test.describe("admin console", () => {
       .getByRole("link", { name: "Awaiting payment" });
     await quoteStage.click();
     await expect(quoteStage).toHaveAttribute("aria-current", "page");
-    await expect(page.getByLabel("From date (UTC)")).toHaveValue("2026-10-07");
+    await expect(page.getByLabel("From date (UTC)")).toHaveValue(day);
     await expect(page.getByLabel("Product type")).not.toHaveValue("");
     await expect(list).not.toContainText(otherProduct.order_number);
 
@@ -142,9 +151,9 @@ test.describe("admin console", () => {
       360,
     );
 
-    await page.getByLabel("To date (UTC)").fill("2026-10-06");
+    await page.getByLabel("To date (UTC)").fill(dayBefore);
     await page.getByRole("button", { name: "Search" }).click();
-    await expect(page).toHaveURL(/to=2026-10-06/);
+    await expect(page).toHaveURL(new RegExp(`to=${dayBefore}`));
     await expect(
       page.getByRole("alert").filter({ hasText: "Choose a From date on or before the To date." }),
     ).toBeVisible();
