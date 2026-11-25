@@ -5,11 +5,15 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
-- Phase 6.9 closes local handover preparation for frozen application commit
+- 2026-11-25: all Phase 6 work plus a formatting and asset clean-up and a test-isolation fix
+  were pushed to `main` (`2d42488`) and deployed by Vercel. A read-only smoke test of the live
+  site passed (see [test results](TEST-RESULTS.md)).
+- Before submitting: with approval, run `pnpm test:e2e:live` (it creates test orders on the
+  live database) and log in to both evaluator accounts on the deployed revision.
+- Phase 6.9 closed local handover preparation for frozen application commit
   `0f1c7a9e0416c679b498c6acfab29e42407c5379`. Phase 6.8 was approved within local scope.
   The local review and documentation archives are under the ignored handover references.
-- Next, await explicit approval and employer terms before any externally visible action.
-  Hosted verification, evaluator access and submission remain pending.
+- Submission itself and evaluator access remain the owner's actions.
 - Await employer clarification on real gallery work, the generation trigger, any separate saved
   design score and source-code terms before submission. Live evaluator verification requires approval.
 - Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow

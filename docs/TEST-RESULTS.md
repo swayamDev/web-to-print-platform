@@ -1,5 +1,19 @@
 # Test results
 
+## Release check, 25 November 2026 (`2d42488`, deployed)
+
+- Local: ESLint, TypeScript, Prettier and `pnpm copy:check` clean. Vitest 189 passed. pgTAP
+  148 passed. Full local Playwright run (desktop and phone): 153 passed, 62 skipped by design,
+  1 failed. The failure was the admin date-filter test colliding with orders left by earlier
+  local runs on its fixed date; the test now uses a random past date and passed 3 of 3 repeats.
+- Live, read-only smoke test after the Vercel deployment: home, gallery, all six divisions and
+  all six products answer 200; robots.txt, sitemap.xml (14 URLs) and icons answer 200; account,
+  admin and order pages redirect signed-out visitors to login; private sections send
+  `X-Robots-Tag: noindex, nofollow`; security headers and CSP present; the cron endpoint refuses
+  calls without its secret (401); removed illustration files answer 404; unknown divisions and
+  products show the in-page not-found view; the price API quotes 100 stickers at £16.20 with the
+  10% tier. The authenticated live suite (`pnpm test:e2e:live`) was not run.
+
 ## Frozen Phase 6.8 application
 
 - Application commit `0f1c7a9e0416c679b498c6acfab29e42407c5379`. The production build, TypeScript, ESLint and copy checks passed. The isolated Vitest repeat passed 189 tests after one concurrent timeout. Local pgTAP passed 148 assertions.
