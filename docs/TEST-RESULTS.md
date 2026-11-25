@@ -1,6 +1,6 @@
 # Test results
 
-## Release check, 25 November 2026 (`2d42488`, deployed)
+## Release check, 25 November 2026 (`5718f4b`, deployed)
 
 - Local: ESLint, TypeScript, Prettier and `pnpm copy:check` clean. Vitest 189 passed. pgTAP
   148 passed. Full local Playwright run (desktop and phone): 153 passed, 62 skipped by design,
@@ -21,7 +21,7 @@
 
 ## Frozen Phase 6.8 application
 
-- Application commit `0f1c7a9e0416c679b498c6acfab29e42407c5379`. The production build, TypeScript, ESLint and copy checks passed. The isolated Vitest repeat passed 189 tests after one concurrent timeout. Local pgTAP passed 148 assertions.
+- Application commit `a58fbeecc14c467fea0138b1a00fb4ae279b7219`. The production build, TypeScript, ESLint and copy checks passed. The isolated Vitest repeat passed 189 tests after one concurrent timeout. Local pgTAP passed 148 assertions.
 - Initial Playwright matrix across five profiles recorded 378 passes, 28 failures, 132 conditional skips and two unexecuted cases. The original results and scoped reruns reconcile to 408 passes, 132 conditional skips and zero unresolved failures.
 - The locally approved 100-row fixture generated 100-page proof and combined production PDFs plus 200 individual files. Early WebKit canonical duplication, the concurrent Node listener warning and hosted verification are open.
 - The ignored Phase 6.8 and 6.9 archives retain the evidence and the final verification report. Historical runs below describe their respective revisions.
