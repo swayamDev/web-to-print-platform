@@ -42,7 +42,9 @@ async function openRaceTemplate(page: Page) {
 /** The NAME placeholder box centre: x 8 + 132/2 + bleed 3, y 145 + 22/2 + bleed 3. */
 async function selectName(page: Page) {
   const point = await canvasPoint(page, 77, 159);
-  await page.mouse.click(point.x, point.y);
+  await page.evaluate((y) => window.scrollBy(0, Math.max(0, y - 200)), point.y);
+  const visible = await canvasPoint(page, 77, 159);
+  await page.mouse.click(visible.x, visible.y);
   await expect(page.getByTestId("element-panel")).toContainText("{NAME}");
 }
 

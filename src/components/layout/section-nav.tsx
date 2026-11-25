@@ -21,6 +21,7 @@ export function SectionNav({ items, label }: { items: NavItem[]; label: string }
             <li key={item.href}>
               <Link
                 href={item.href}
+                tabIndex={0}
                 aria-current={active ? "page" : undefined}
                 onFocus={(event) =>
                   event.currentTarget.scrollIntoView({

@@ -106,6 +106,8 @@ test.describe("authentication", () => {
     await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/$/);
 
+    await expect(page.getByRole("link", { name: "Log in", exact: true })).toBeVisible();
+
     await page.goto("/forgot-password");
     await page.getByLabel("Email").fill(email);
     await page.getByRole("button", { name: "Send reset link" }).click();
@@ -140,6 +142,8 @@ test.describe("authentication", () => {
     await expect(page.getByRole("status")).toHaveText("Your password has been updated.");
 
     await page.getByRole("button", { name: "Log out" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("link", { name: "Log in", exact: true })).toBeVisible();
     await logIn(page, email, "brand-new-pass-2");
     await expect(page).toHaveURL(/\/account$/);
   });

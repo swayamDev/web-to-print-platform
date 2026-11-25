@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { expect, test, type Page } from "@playwright/test";
 import { unzipSync } from "fflate";
@@ -143,7 +143,7 @@ test.describe("CSV merge", () => {
         total_gross_minor: 1200,
         pricing_snapshot: {},
         payment_provider: "stripe",
-        checkout_session_id: `cs_test_${Date.now()}`,
+        checkout_session_id: `cs_test_${randomUUID()}`,
       })
       .select("id, order_number, checkout_session_id")
       .single();

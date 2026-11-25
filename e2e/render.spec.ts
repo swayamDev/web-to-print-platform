@@ -13,6 +13,9 @@ test.describe("server-rendered templates", () => {
     const preview = page.getByRole("img", { name: "Classic Bib template preview" });
     await preview.scrollIntoViewIfNeeded();
     await expect(preview).toBeVisible();
+    await expect
+      .poll(() => preview.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(400);
     // Loaded (not a broken image), at the template's real proportions (154 × 216 mm with bleed).
     const size = await preview.evaluate((img: HTMLImageElement) => ({
       w: img.naturalWidth,

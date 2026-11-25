@@ -22,6 +22,7 @@ test("99 items cost more than 100, and the hint takes you to the cheaper order",
   page,
 }) => {
   await page.goto("/p/custom-stickers");
+  await expect(page.getByTestId("price-confirmed")).toBeVisible();
   await page.getByLabel("How many?").fill("99");
   await expect(total(page)).toHaveText("£17.82");
 
@@ -34,6 +35,7 @@ test("99 items cost more than 100, and the hint takes you to the cheaper order",
 
 test("sizes outside the product's limits are explained instead of priced", async ({ page }) => {
   await page.goto("/p/custom-stickers");
+  await expect(page.getByTestId("price-confirmed")).toBeVisible();
   await page.getByLabel("Width (mm)").fill("10");
   await expect(page.getByText("Width must be between 20 and 300 mm.")).toBeVisible();
   await expect(page.getByText("Fix the highlighted fields to see your price.")).toBeVisible();

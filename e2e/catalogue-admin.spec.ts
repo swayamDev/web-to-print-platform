@@ -90,7 +90,7 @@ test.describe("catalogue admin", () => {
     }
   });
 
-  test("hiding a template removes it from the shop", async ({ page }) => {
+  test("hiding a template removes it from the shop", async ({ page, browser, baseURL }) => {
     const { restore } = await snapshotProduct();
     try {
       await logIn(page, adminUser);
@@ -105,9 +105,14 @@ test.describe("catalogue admin", () => {
       await row.getByRole("button", { name: "Save" }).click();
       await expect(row.getByTestId("save-result")).toContainText("Customers no longer see it");
 
-      await page.goto(`/p/${SLUG}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByText("House Sign")).toHaveCount(0);
+      const storefront = await browser.newPage({ baseURL });
+      try {
+        await storefront.goto(`/p/${SLUG}`);
+        await expect(storefront.getByRole("heading", { level: 1 })).toBeVisible();
+        await expect(storefront.getByText("House Sign")).toHaveCount(0);
+      } finally {
+        await storefront.close();
+      }
     } finally {
       await restore();
     }

@@ -47,10 +47,18 @@ test("public canonicals and sitemap omit configuration parameters and private ro
     expect(entries.some((entry) => entry.pathname === canonical)).toBe(true);
   }
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("Product", { exact: true }).selectOption("race-numbers");
+  await expect(page.getByRole("button", { name: "A6", exact: true })).toBeVisible();
   await page.locator('#products a[href="/d/labels-stickers"]').click();
   await page.waitForURL("**/d/labels-stickers");
   await expect(page.getByRole("heading", { level: 1, name: "Labels & Stickers" })).toBeVisible();
   const clientCanonical = page.locator('link[rel="canonical"]');
+  await expect
+    .poll(() =>
+      clientCanonical.evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
+    )
+    .toEqual([`${origin}/d/labels-stickers`]);
   await expect(clientCanonical).toHaveCount(1);
   await expect(clientCanonical).toHaveAttribute("href", `${origin}/d/labels-stickers`);
 });

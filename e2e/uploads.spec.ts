@@ -124,11 +124,18 @@ test.describe("uploads", () => {
     await expect(page).toHaveURL(/\/design\/[0-9a-f-]{36}$/);
     await expect(page.getByTestId("save-status")).toContainText("Saved");
 
-    await page.reload();
-    await expect(page.getByTestId("print-check")).toContainText("Ready to print");
-    const after = (await canvas.boundingBox())!;
-    await page.mouse.click(after.x + (27 / 54) * after.width, after.y + (21 / 54) * after.height);
-    await expect(page.getByTestId("image-info")).toContainText("800 × 800 px");
+    // Load the saved URL in a fresh document with the same signed-in session.
+    const reopened = await page.context().newPage();
+    try {
+      await reopened.goto(page.url());
+      await expect(reopened.getByTestId("print-check")).toContainText("Ready to print");
+      const reopenedCanvas = reopened.getByTestId("design-canvas").locator("canvas").first();
+      const after = (await reopenedCanvas.boundingBox())!;
+      await reopened.mouse.click(after.x + (27 / 54) * after.width, after.y + (21 / 54) * after.height);
+      await expect(reopened.getByTestId("image-info")).toContainText("800 × 800 px");
+    } finally {
+      await reopened.close();
+    }
   });
 
   test("a tiny image is blocked as too low-resolution to print", async ({ page }) => {

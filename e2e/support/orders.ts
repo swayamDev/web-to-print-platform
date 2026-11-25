@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { createClient } from "@supabase/supabase-js";
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import Stripe from "stripe";
@@ -51,7 +53,7 @@ export async function createQuoteOrder(
         quote: { tier: { minQty: 100, percentOff: "10" }, setupFeeMinor: 0 },
       },
       payment_provider: "stripe",
-      checkout_session_id: `cs_test_${Date.now()}`,
+      checkout_session_id: `cs_test_${randomUUID()}`,
     })
     .select("id, order_number, checkout_session_id")
     .single();
@@ -75,7 +77,7 @@ export async function createQuoteOrder(
 export function signedEvent(
   order: { id: string; checkout_session_id: string | null },
   amount: number,
-  eventId = `evt_test_${Date.now()}`,
+  eventId = `evt_test_${randomUUID()}`,
 ) {
   const payload = JSON.stringify({
     id: eventId,
