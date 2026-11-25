@@ -5,6 +5,7 @@ import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Trash2 } from "
 import type { LaidOutItem } from "@/domain/design/layout";
 import type { DesignElement, TextElement } from "@/domain/design/schema";
 import { DPI_MINIMUM, DPI_WARNING, effectiveDpiOf, type AssetInfo } from "@/domain/uploads";
+import { formatMm } from "@/lib/format";
 import { FONT_IDS, FONT_LABELS } from "@/lib/print/fonts";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ export function ElementPanel({
   const fitted = laidOut?.kind === "text" ? laidOut : null;
 
   return (
-    <div className="grid gap-4" data-testid="element-panel">
+    <div className="grid min-w-0 gap-3" data-testid="element-panel">
       <div className="flex items-center justify-between">
         <p className="spec-label text-muted-foreground">
           {element.type === "text" ? "Text" : element.type === "rect" ? "Shape" : "Image"}
@@ -63,6 +64,25 @@ export function ElementPanel({
           </IconButton>
         </div>
       </div>
+
+      <dl className="bg-muted grid grid-cols-2 gap-x-2 gap-y-1 border px-2.5 py-2 font-mono text-[0.6875rem]">
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">X position</dt>
+          <dd data-testid="element-x">{formatMm(element.x)} mm</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Y position</dt>
+          <dd>{formatMm(element.y)} mm</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Width</dt>
+          <dd data-testid="element-width">{formatMm(element.w)} mm</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Height</dt>
+          <dd>{formatMm(element.h)} mm</dd>
+        </div>
+      </dl>
 
       {element.type === "text" ? (
         <>

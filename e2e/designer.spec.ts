@@ -94,6 +94,55 @@ test.describe("designer", () => {
     await expect(page.getByTestId("print-check")).toContainText("Ready to print");
   });
 
+  test("touch can resize text inward and respects the safe area", async ({
+    page,
+    context,
+    browserName,
+    isMobile,
+  }) => {
+    test.skip(!isMobile || browserName !== "chromium", "Uses Chromium touch emulation");
+    await openRaceTemplate(page);
+    const name = await canvasPoint(page, 77, 159);
+    await page.evaluate((y) => window.scrollBy(0, Math.max(0, y - 220)), name.y);
+    const center = await canvasPoint(page, 77, 159);
+    await page.touchscreen.tap(center.x, center.y);
+    const field = page.getByTestId("element-width");
+    await expect(field).toBeVisible();
+    const dimension = async (key: string) =>
+      Number.parseFloat(await page.getByTestId(key).innerText());
+    const x = await dimension("element-x");
+    const initial = await dimension("element-width");
+    const session = await context.newCDPSession(page);
+    const resize = async (target: number) => {
+      const handle = x + (await dimension("element-width")) + 3;
+      const from = await canvasPoint(page, handle, 159);
+      const to = await canvasPoint(page, target, 159);
+      expect(
+        await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, from),
+      ).toBe("CANVAS");
+      await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+      for (let step = 1; step <= 12; step++) {
+        await session.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: from.x + ((to.x - from.x) * step) / 12, y: from.y }],
+        });
+      }
+      await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    try {
+      await resize(110);
+      await expect.poll(() => dimension("element-width")).toBeLessThan(initial - 10);
+      const narrowed = await dimension("element-width");
+      await resize(175);
+      await expect.poll(() => dimension("element-width")).toBeGreaterThan(narrowed + 10);
+      // The template's A5 trim is 148 mm wide and has a 3 mm text safety margin.
+      expect(x + (await dimension("element-width"))).toBeLessThanOrEqual(145.01);
+      await expect(page.getByTestId("print-check")).toContainText("Ready to print");
+    } finally {
+      await session.detach();
+    }
+  });
+
   test("a burst of typing is undone in one step", async ({ page }) => {
     await openRaceTemplate(page);
     await selectName(page);

@@ -69,12 +69,13 @@ export function DataMergePanel({
 
   return (
     <section
+      id="personalisation"
       aria-labelledby={`${ids}-heading`}
-      className="bg-card grid gap-3 rounded-xl border p-4 text-sm"
+      className="bg-card grid min-w-0 scroll-mt-20 gap-3 border p-3 text-sm sm:p-4"
       data-testid="data-merge"
     >
-      <div className="flex items-center justify-between gap-2">
-        <h2 id={`${ids}-heading`} className="spec-label text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+        <h2 id={`${ids}-heading`} className="text-sm font-semibold">
           Personalise from a file
         </h2>
         <a href={sample} download="template.csv" className="text-xs underline underline-offset-4">
@@ -88,11 +89,13 @@ export function DataMergePanel({
         </p>
       ) : (
         <p className="text-muted-foreground">
-          One item is printed per row. Fields: {keys.map((k) => `{${k}}`).join(", ")}.
+          Save your spreadsheet as CSV with column names in the first row. Each entry below it
+          becomes one printed item.
         </p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
+        <h3 className="w-full text-sm font-semibold">1. Upload a file</h3>
         <button
           type="button"
           disabled={disabled || state.busy}
@@ -119,7 +122,7 @@ export function DataMergePanel({
           }}
         />
         {file ? (
-          <span className="text-muted-foreground min-w-0 truncate" data-testid="csv-summary">
+          <span className="text-muted-foreground basis-full break-all" data-testid="csv-summary">
             {file.filename} · {rows} {rows === 1 ? "row" : "rows"}
           </span>
         ) : null}
@@ -133,7 +136,10 @@ export function DataMergePanel({
       {file && keys.length > 0 ? (
         <>
           <fieldset className="grid gap-2" disabled={disabled}>
-            <legend className="mb-1 font-medium">Columns</legend>
+            <legend className="mb-1 text-sm font-semibold">2. Match spreadsheet columns</legend>
+            <p className="text-muted-foreground text-xs">
+              Choose the column that fills each field in the artwork.
+            </p>
             {keys.map((key) => (
               <label key={key} className="grid grid-cols-[6rem_1fr] items-center gap-2">
                 <span className="font-mono text-xs">{`{${key}}`}</span>
@@ -161,7 +167,11 @@ export function DataMergePanel({
             ))}
           </fieldset>
 
-          <div className="flex items-center justify-between gap-2" aria-label="Preview a row">
+          <h3 className="border-t pt-3 text-sm font-semibold">3. Preview and check rows</h3>
+          <div
+            className="bg-muted flex items-center justify-between gap-2 p-1"
+            aria-label="Preview a row"
+          >
             <button
               type="button"
               aria-label="Previous row"

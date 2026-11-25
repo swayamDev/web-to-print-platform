@@ -1,6 +1,19 @@
 "use client";
 
-import { Eye, EyeOff, FileUp, ImagePlus, Redo2, Save, Shapes, Type, Undo2, X } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  FileUp,
+  ImagePlus,
+  Layers,
+  LockKeyhole,
+  Redo2,
+  Save,
+  Shapes,
+  Type,
+  Undo2,
+  X,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -395,63 +408,80 @@ export function Designer({
               : "Not saved yet";
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-3">
       {/* Toolbar ------------------------------------------------------------- */}
-      <div className="bg-card flex flex-wrap items-center gap-2 rounded-xl border p-2">
-        <label htmlFor="design-name" className="sr-only">
-          Design name
-        </label>
-        <input
-          id="design-name"
-          value={name}
-          maxLength={120}
-          onChange={(e) => {
-            setName(e.target.value);
-            setSaveState({ kind: "dirty" });
-          }}
-          className="hover:border-border focus-visible:border-ring focus-visible:ring-ring/50 h-9 min-w-0 flex-1 basis-48 rounded-md border-transparent bg-transparent px-2 font-medium outline-none focus-visible:ring-3"
-        />
-        <div className="flex flex-wrap items-center gap-1">
-          <ToolButton
-            label="Add text"
-            disabled={locked || previewMode}
-            onClick={() => {
-              const result = addText(doc);
-              commit(result.doc);
-              setSelectedId(result.id);
+      <div className="bg-card grid min-w-0 border">
+        <div className="bg-ink text-paper grid min-w-0 items-center gap-2 px-3 py-2 sm:flex sm:px-4">
+          <span className="text-paper/75 text-xs font-semibold">Artwork workspace</span>
+          <label htmlFor="design-name" className="sr-only">
+            Design name
+          </label>
+          <input
+            id="design-name"
+            value={name}
+            readOnly={locked}
+            maxLength={120}
+            onChange={(e) => {
+              setName(e.target.value);
+              setSaveState({ kind: "dirty" });
             }}
+            className="border-paper/30 h-9 min-w-0 flex-1 rounded-sm border bg-white/5 px-2 font-semibold outline-none focus-visible:border-white focus-visible:ring-2 focus-visible:ring-white/60"
+          />
+          <p
+            className={cn("text-xs", saveState.kind === "error" ? "text-red-200" : "text-paper/75")}
+            role="status"
+            data-testid="save-status"
           >
-            <Type className="size-4" /> <span className="max-sm:sr-only">Text</span>
-          </ToolButton>
-          <ToolButton
-            label="Add shape"
-            disabled={locked || previewMode}
-            onClick={() => {
-              const result = addRect(doc);
-              commit(result.doc);
-              setSelectedId(result.id);
-            }}
+            {statusText}
+          </p>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 px-2 py-2 sm:gap-x-3 sm:px-3">
+          <div
+            role="group"
+            aria-label="Add artwork elements"
+            className="flex flex-wrap items-center gap-1"
           >
-            <Shapes className="size-4" /> <span className="max-sm:sr-only">Shape</span>
-          </ToolButton>
-          <ToolButton
-            label={
-              selected?.type === "image" && selected.role !== "artwork"
-                ? "Replace image"
-                : "Add image"
-            }
-            disabled={locked || previewMode || uploads.state.kind === "busy"}
-            onClick={() => chooseFile(logoInput)}
-          >
-            <ImagePlus className="size-4" /> <span className="max-sm:sr-only">Image</span>
-          </ToolButton>
-          <ToolButton
-            label="Upload finished artwork"
-            disabled={locked || previewMode || uploads.state.kind === "busy"}
-            onClick={() => chooseFile(artworkInput)}
-          >
-            <FileUp className="size-4" /> <span className="max-sm:sr-only">Artwork</span>
-          </ToolButton>
+            <ToolButton
+              label="Add text"
+              disabled={locked || previewMode}
+              onClick={() => {
+                const result = addText(doc);
+                commit(result.doc);
+                setSelectedId(result.id);
+              }}
+            >
+              <Type className="size-4" /> <span className="max-sm:sr-only">Text</span>
+            </ToolButton>
+            <ToolButton
+              label="Add shape"
+              disabled={locked || previewMode}
+              onClick={() => {
+                const result = addRect(doc);
+                commit(result.doc);
+                setSelectedId(result.id);
+              }}
+            >
+              <Shapes className="size-4" /> <span className="max-sm:sr-only">Shape</span>
+            </ToolButton>
+            <ToolButton
+              label={
+                selected?.type === "image" && selected.role !== "artwork"
+                  ? "Replace image"
+                  : "Add image"
+              }
+              disabled={locked || previewMode || uploads.state.kind === "busy"}
+              onClick={() => chooseFile(logoInput)}
+            >
+              <ImagePlus className="size-4" /> <span className="max-sm:sr-only">Image</span>
+            </ToolButton>
+            <ToolButton
+              label="Upload finished artwork"
+              disabled={locked || previewMode || uploads.state.kind === "busy"}
+              onClick={() => chooseFile(artworkInput)}
+            >
+              <FileUp className="size-4" /> <span className="max-sm:sr-only">Artwork</span>
+            </ToolButton>
+          </div>
           <input
             ref={logoInput}
             type="file"
@@ -478,50 +508,50 @@ export function Designer({
               e.target.value = "";
             }}
           />
-          <ToolButton
-            label="Undo"
-            disabled={history.past.length === 0}
-            onClick={() => dispatch({ type: "undo" })}
-          >
-            <Undo2 className="size-4" />
-          </ToolButton>
-          <ToolButton
-            label="Redo"
-            disabled={history.future.length === 0}
-            onClick={() => dispatch({ type: "redo" })}
-          >
-            <Redo2 className="size-4" />
-          </ToolButton>
-          <ToolButton
-            label={previewMode ? "Show guides" : "Preview as printed"}
-            pressed={previewMode}
-            onClick={() => {
-              setPreviewMode((v) => !v);
-              setSelectedId(null);
-            }}
-          >
-            {previewMode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            <span className="max-sm:sr-only">{previewMode ? "Guides" : "Preview"}</span>
-          </ToolButton>
+          <div role="group" aria-label="History and preview" className="flex items-center gap-1">
+            <ToolButton
+              label="Undo"
+              disabled={history.past.length === 0}
+              onClick={() => dispatch({ type: "undo" })}
+            >
+              <Undo2 className="size-4" />
+            </ToolButton>
+            <ToolButton
+              label="Redo"
+              disabled={history.future.length === 0}
+              onClick={() => dispatch({ type: "redo" })}
+            >
+              <Redo2 className="size-4" />
+            </ToolButton>
+            <ToolButton
+              label={previewMode ? "Show guides" : "Preview as printed"}
+              pressed={previewMode}
+              onClick={() => {
+                setPreviewMode((v) => !v);
+                setSelectedId(null);
+              }}
+            >
+              {previewMode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              <span className="max-sm:sr-only">{previewMode ? "Guides" : "Preview"}</span>
+            </ToolButton>
+          </div>
+          {usesData ? (
+            <a
+              href="#personalisation"
+              className="hover:bg-muted inline-flex min-h-9 items-center rounded-sm border px-2 text-xs font-medium"
+            >
+              CSV data
+            </a>
+          ) : null}
           <button
             type="button"
             onClick={() => void save(doc, name)}
             disabled={locked || saveState.kind === "saving"}
-            className="bg-primary text-primary-foreground inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium disabled:opacity-50"
+            className="bg-primary text-primary-foreground border-ink/15 ml-auto inline-flex h-9 items-center gap-1.5 rounded-sm border px-3 text-sm font-semibold disabled:opacity-50"
           >
             <Save className="size-4" aria-hidden="true" /> Save
           </button>
         </div>
-        <p
-          className={cn(
-            "w-full px-2 text-xs sm:w-auto",
-            saveState.kind === "error" ? "text-destructive" : "text-muted-foreground",
-          )}
-          role="status"
-          data-testid="save-status"
-        >
-          {statusText}
-        </p>
       </div>
 
       {uploads.state.kind !== "idle" || notices.length > 0 ? (
@@ -563,35 +593,59 @@ export function Designer({
         </p>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      {searchParams.get("checkout") === "cancelled" ? (
+        <div role="status" className="bg-signal/15 grid gap-1 border px-3 py-2 text-sm">
+          <p className="font-semibold">You returned from checkout</p>
+          <p>
+            Your saved artwork is still here. Check your orders for the current payment status
+            before trying again.
+          </p>
+          <Link href="/account/orders" className="w-fit underline underline-offset-4">
+            View my orders
+          </Link>
+        </div>
+      ) : null}
+
+      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start xl:grid-cols-[11rem_minmax(0,1fr)_19rem]">
         {/* Canvas --------------------------------------------------------------- */}
-        <div className="bg-mm-grid grid min-w-0 gap-3 rounded-xl border p-4">
-          {fontError ? (
-            <p className="text-destructive text-sm">
-              The design fonts could not load. Please reload the page.
+        <section
+          aria-label="Canvas workspace"
+          className="bg-card grid min-w-0 overflow-hidden border xl:col-start-2 xl:row-start-1"
+        >
+          <div className="bg-muted flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
+            <h2 className="text-sm font-semibold">Canvas</h2>
+            <p className="text-muted-foreground font-mono text-xs">
+              {previewMode ? "Print preview" : "Editing view"}
             </p>
-          ) : fonts && layout ? (
-            <DesignCanvas
-              doc={doc}
-              layout={layout}
-              fonts={fonts}
-              selectedId={selectedId}
-              issueIds={issueIds}
-              previewMode={previewMode || locked}
-              onSelect={setSelectedId}
-              onChange={change}
-              imageUrls={new Map([...assets].map(([id, a]) => [id, a.url]))}
-            />
-          ) : (
-            <div
-              className="bg-muted aspect-[3/4] w-full animate-pulse rounded-md"
-              aria-label="Loading fonts"
-            />
-          )}
+          </div>
+          <div className="bg-mm-grid bg-muted/70 min-w-0 p-2 sm:p-4">
+            {fontError ? (
+              <p className="text-destructive text-sm">
+                The design fonts could not load. Please reload the page.
+              </p>
+            ) : fonts && layout ? (
+              <DesignCanvas
+                doc={doc}
+                layout={layout}
+                fonts={fonts}
+                selectedId={selectedId}
+                issueIds={issueIds}
+                previewMode={previewMode || locked}
+                onSelect={setSelectedId}
+                onChange={change}
+                imageUrls={new Map([...assets].map(([id, a]) => [id, a.url]))}
+              />
+            ) : (
+              <div
+                className="bg-muted aspect-[3/4] w-full animate-pulse rounded-md"
+                aria-label="Loading fonts"
+              />
+            )}
+          </div>
           {!previewMode ? (
-            <p className="spec-label text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+            <p className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 border-t px-3 py-2 font-mono text-[0.6875rem]">
               <span>
-                <span className="bg-[#ff4d00]/30 mr-1.5 inline-block size-2.5 align-middle" /> Bleed
+                <span className="mr-1.5 inline-block size-2.5 bg-[#ff4d00]/30 align-middle" /> Bleed
                 (trimmed off)
               </span>
               <span>
@@ -599,28 +653,73 @@ export function Designer({
                 Trim {formatMm(doc.trim.w)} × {formatMm(doc.trim.h)} mm
               </span>
               <span>
-                <span className="border-signal mr-1.5 inline-block size-2.5 border border-dashed align-middle" />{" "}
+                <span className="mr-1.5 inline-block size-2.5 border border-dashed border-[#b83600] align-middle" />{" "}
                 Safe area
               </span>
             </p>
           ) : null}
-        </div>
+        </section>
+
+        <section
+          aria-labelledby="layers-heading"
+          className="bg-card hidden min-w-0 border xl:col-start-1 xl:row-start-1 xl:block"
+        >
+          <h2
+            id="layers-heading"
+            className="flex items-center gap-2 border-b px-3 py-2 text-sm font-semibold"
+          >
+            <Layers className="size-4" aria-hidden="true" /> Layers
+          </h2>
+          {doc.elements.length ? (
+            <ul className="max-h-[65vh] divide-y overflow-auto">
+              {[...doc.elements].reverse().map((element) => (
+                <li key={element.id}>
+                  <button
+                    type="button"
+                    aria-pressed={selectedId === element.id}
+                    disabled={locked || previewMode || element.locked}
+                    onClick={() => setSelectedId(element.id)}
+                    className="hover:bg-muted aria-pressed:bg-signal/25 aria-pressed:border-l-signal disabled:text-muted-foreground flex min-h-10 w-full min-w-0 items-center gap-2 border-l-2 border-transparent px-2 py-2 text-left text-xs"
+                  >
+                    {element.locked ? (
+                      <LockKeyhole className="size-3 shrink-0" aria-label="Locked" />
+                    ) : null}
+                    <span className="min-w-0 truncate">
+                      {element.type === "text"
+                        ? element.text || "Text"
+                        : element.type === "rect"
+                          ? "Shape"
+                          : element.role === "artwork"
+                            ? "Artwork"
+                            : "Image"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground px-3 py-3 text-xs">
+              Add text, a shape or an image.
+            </p>
+          )}
+        </section>
 
         {/* Phones: room to scroll the canvas up above the bottom sheet while it is open. */}
         {selected ? <div aria-hidden="true" className="h-[45vh] lg:hidden" /> : null}
 
         {/* Side panel ------------------------------------------------------------ */}
-        <aside className="grid content-start gap-4">
+        <aside className="grid min-w-0 content-start gap-3 xl:col-start-3 xl:row-start-1">
           <section
             aria-label="Selected element"
             data-testid="selected-panel"
             className={cn(
-              "bg-card rounded-xl border p-4",
+              "bg-card min-w-0 border p-3 sm:p-4",
               // Phones: the panel becomes a bottom sheet so the canvas stays visible above it.
               selected &&
                 "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:max-h-[45vh] max-lg:overflow-y-auto max-lg:rounded-b-none max-lg:pb-[max(1rem,env(safe-area-inset-bottom))] max-lg:shadow-[0_-16px_40px_-20px_rgb(18_18_18/0.45)]",
             )}
           >
+            <h2 className="mb-2 text-sm font-semibold">Properties</h2>
             {selected ? (
               <button
                 type="button"
@@ -670,7 +769,7 @@ export function Designer({
 
           <section
             className={cn(
-              "rounded-xl border p-4",
+              "border p-3 sm:p-4",
               errors.length
                 ? "border-destructive/40 bg-destructive/5"
                 : warnings.length
@@ -680,7 +779,7 @@ export function Designer({
             aria-label="Print check"
             data-testid="print-check"
           >
-            <p className="spec-label text-muted-foreground mb-2">Print check</p>
+            <h2 className="mb-2 text-sm font-semibold">Print check</h2>
             {!layout ? (
               <p className="text-muted-foreground text-sm">Checking…</p>
             ) : errors.length === 0 && warnings.length === 0 ? (
@@ -741,10 +840,10 @@ export function Designer({
           ) : null}
 
           <section
-            className="bg-card grid gap-2 rounded-xl border p-4 text-sm"
+            className="bg-card grid min-w-0 gap-2 border p-3 text-sm sm:p-4"
             aria-label="Order summary"
           >
-            <p className="spec-label text-muted-foreground">Your order</p>
+            <h2 className="text-sm font-semibold">Order setup</h2>
             <p>
               {product.name} · {formatMm(config.widthMm)} × {formatMm(config.heightMm)} mm ·{" "}
               {rules.materials.find((m) => m.slug === config.materialSlug)?.name}
@@ -796,7 +895,7 @@ export function Designer({
               </p>
             ) : (
               <p className="text-muted-foreground text-xs">
-                You pay on Stripe&apos;s secure page. Nothing is printed until you approve a proof.
+                Payment is handled by Stripe. Production starts only after you approve a proof.
               </p>
             )}
             {ordering.error ? (
@@ -833,7 +932,7 @@ function ToolButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm disabled:opacity-40",
+        "inline-flex h-9 w-9 items-center justify-center gap-1.5 rounded-sm border text-sm disabled:opacity-40 sm:w-auto sm:px-2.5",
         pressed ? "border-ink bg-ink text-paper" : "bg-background hover:border-ink",
       )}
     >
