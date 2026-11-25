@@ -11,6 +11,7 @@ const querySchema = z.object({
   dpi: z.coerce.number().int().min(36).max(300).default(150),
   guides: z.enum(["0", "1"]).default("1"),
 });
+const previewWindowSeconds = 60;
 
 /**
  * GET /api/v1/templates/:id/preview?format=png|pdf&dpi=150&guides=1
@@ -27,8 +28,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!query.success) {
     return NextResponse.json({ error: "Invalid preview options." }, { status: 400 });
   }
-  if (!(await rateLimit(`preview:${clientIp(request.headers)}`, 30, 60))) {
-    return NextResponse.json({ error: "Too many previews. Please slow down." }, { status: 429 });
+  if (!(await rateLimit(`preview:${clientIp(request.headers)}`, 30, previewWindowSeconds))) {
+    return NextResponse.json(
+      { error: "Too many previews. Try again in a minute." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(previewWindowSeconds), "Cache-Control": "no-store" },
+      },
+    );
   }
 
   const supabase = createSupabasePublicClient();

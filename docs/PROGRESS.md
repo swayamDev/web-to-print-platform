@@ -577,3 +577,9 @@ next step under **Next up** so work can resume cold.
 - Allowed long values to wrap in the staff order detail so contact information does not widen the page on phones.
 - Reproduced template preview rejection at the existing burst limit on the local fixture server. Phase 6.8 retains normal-navigation template monitoring and independent canonical-origin verification.
 - Phase 6.6 and employer submission await approval.
+
+### 2026-11-25 — Phase 6.6 functional and security audit
+
+- Reproduced duplicate canonical links by starting a prerendered release with an APP_URL different from the build-time value. Strengthened the exact-count and independent-origin regression and documented the build/start configuration invariant.
+- Verified the 30-per-minute template preview quota, normal browser-cache reuse and fixed-window recovery locally. HTTP 429 now includes retry guidance and no-store.
+- Preserved the independent hosted-origin and complete cross-browser checks for Phase 6.8. Phase 6.7 and employer submission await approval.

@@ -6,6 +6,7 @@ test("public canonicals and sitemap omit configuration parameters and private ro
   page,
   request,
 }) => {
+  test.slow();
   const urls = await request.get("/sitemap.xml");
   expect(urls.ok()).toBe(true);
   const sitemap = await urls.text();
@@ -14,7 +15,10 @@ test("public canonicals and sitemap omit configuration parameters and private ro
   const robotsText = await robots.text();
   const sitemapUrl = robotsText.match(/^Sitemap: (\S+)$/m)?.[1];
   expect(sitemapUrl).toBeTruthy();
-  const origin = new URL(sitemapUrl!).origin;
+  const configuredUrl =
+    process.env.E2E_CANONICAL_ORIGIN ?? (local ? process.env.APP_URL : process.env.E2E_BASE_URL);
+  expect(configuredUrl, "expected canonical origin from test configuration").toBeTruthy();
+  const origin = new URL(configuredUrl!).origin;
   expect(sitemapUrl).toBe(`${origin}/sitemap.xml`);
   const entries = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((entry) => new URL(entry[1]!));
   expect(entries.length).toBeGreaterThanOrEqual(14);
@@ -24,14 +28,17 @@ test("public canonicals and sitemap omit configuration parameters and private ro
     expect(url.pathname).toMatch(/^\/(?:gallery|(?:d|p)\/[^/]+)?$/);
   }
   for (const [route, canonical] of [
-    ["/", "/"],
+    ...entries.map(({ pathname }) => [pathname, pathname]),
     ["/gallery?division=labels-stickers", "/gallery"],
-    ["/d/labels-stickers", "/d/labels-stickers"],
     ["/p/custom-stickers?q=100", "/p/custom-stickers"],
   ]) {
-    await page.goto(route!);
+    const response = await page.goto(route!);
+    const html = await response!.text();
+    const serverCanonicals = html.match(/<link\b[^>]*\brel="canonical"[^>]*>/g) ?? [];
+    expect(serverCanonicals, `server canonicals on ${route}`).toHaveLength(1);
+    await page.waitForLoadState("networkidle");
     const canonicalLink = page.locator('link[rel="canonical"]');
-    await expect(canonicalLink).toHaveCount(1);
+    await expect(canonicalLink, `hydrated canonical on ${route}`).toHaveCount(1);
     expect(new URL((await canonicalLink.getAttribute("href"))!).href).toBe(
       new URL(canonical!, origin).href,
     );
@@ -39,6 +46,13 @@ test("public canonicals and sitemap omit configuration parameters and private ro
     await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /\S/);
     expect(entries.some((entry) => entry.pathname === canonical)).toBe(true);
   }
+  await page.goto("/");
+  await page.locator('#products a[href="/d/labels-stickers"]').click();
+  await page.waitForURL("**/d/labels-stickers");
+  await expect(page.getByRole("heading", { level: 1, name: "Labels & Stickers" })).toBeVisible();
+  const clientCanonical = page.locator('link[rel="canonical"]');
+  await expect(clientCanonical).toHaveCount(1);
+  await expect(clientCanonical).toHaveAttribute("href", `${origin}/d/labels-stickers`);
 });
 
 test("private workflows send noindex and keep sign-in and staff guards", async ({

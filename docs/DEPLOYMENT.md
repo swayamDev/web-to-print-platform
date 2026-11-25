@@ -54,7 +54,10 @@ git push -u origin main
    | `SUPABASE_SECRET_KEY`                  | secret key from step 1.5 — mark as **Sensitive**      |
    | `CRON_SECRET`                          | a long random string (e.g. `openssl rand -base64 32`) |
 
-4. Deploy. If `APP_URL` was a guess, correct it after the first deploy and redeploy, then finish
+4. Deploy. Use the same canonical `APP_URL` when building and serving the release. The
+   prerendered HTML contains the build-time origin, and hydration uses the runtime origin
+   when Next.js resolves metadata again. If `APP_URL` changes, rebuild and redeploy before
+   testing the new origin. If `APP_URL` was a guess, correct it after the first deploy, then finish
    Supabase step 1.4.
 
 `vercel.json` pins serverless functions to `bom1` (Mumbai), the same region as the Supabase

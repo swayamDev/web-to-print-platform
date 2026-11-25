@@ -97,3 +97,7 @@ The local production build, TypeScript, ESLint, copy check and 189 Vitest tests 
 The visual review covers public, signed-in customer and staff fixture routes at 320, 360, 375, 390, 430, 768, 1024, 1280, 1440 and 1920 px. The local review archive preserves both the initial and post-fix staff order overflow results. The template-preview probe recorded HTTP 200 image responses and HTTP 429 after the fixed-window quota was reached. Phase 6.8 should record actual preview statuses alongside the full regression and verify the canonical origin independently against the configured value.
 
 The Phase 6.5 targeted Playwright run reported 88 passes, 24 skips and two canonical-count failures. The canonical failures reproduced in isolation. The exact-count assertion remains in place.
+
+## Phase 6.6 audit checks
+
+The SEO suite compares canonical origins to the independent browser test configuration. It checks server HTML, hydrated exact-count, client navigation and public sitemap paths. Use the same APP_URL for build and start. Set E2E_CANONICAL_ORIGIN for an authorized external test if its request origin and canonical origin differ. The Phase 6.6 review archive preserves the deliberate configuration mismatch evidence and the template-preview window rollover observation.
