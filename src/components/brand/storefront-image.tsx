@@ -106,8 +106,8 @@ export function StorefrontImage({
       </picture>
       <figcaption
         className={cn(
-          "text-muted-foreground pt-1 text-xs",
-          hero && "text-paper/80 px-4 pb-2 md:px-0",
+          "text-muted-foreground pt-1.5 text-sm leading-tight",
+          hero && "text-paper px-4 pb-2 md:px-0",
         )}
       >
         AI-generated sample

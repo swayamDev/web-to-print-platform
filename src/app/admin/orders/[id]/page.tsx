@@ -98,9 +98,9 @@ async function AdminOrder({ params }: Props) {
     Boolean(approved) && (order.status === "proof" || order.status === "production");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="grid gap-1">
+        <div className="grid min-w-0 gap-1">
           <p className="spec-label text-muted-foreground">Order</p>
           <h1 className="num font-mono text-2xl font-semibold">{order.order_number}</h1>
           <p className="text-muted-foreground text-sm">
@@ -424,7 +424,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   return (
     <div className="grid gap-0.5 sm:grid-cols-[9rem_1fr] sm:gap-3">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={mono ? "font-mono text-xs break-all" : undefined}>{value}</dd>
+      <dd className={mono ? "font-mono text-xs break-all" : "wrap-anywhere"}>{value}</dd>
     </div>
   );
 }

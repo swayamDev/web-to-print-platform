@@ -91,3 +91,9 @@ Use read-only repository permissions and vetted actions pinned to commit SHAs. K
 ## Phase 6.4 imagery checks
 
 The local production build, TypeScript, ESLint, copy check and 189 Vitest tests passed. Targeted public Chromium and Pixel 7 emulation ran the home, gallery, configurator, responsive, axe and performance specs on the local fixture stack. The local Phase 6.4 review package records test counts, skipped fixtures and a 130-case sweep of the homepage and all six division and configurator pages at 320, 360, 375, 390, 430, 768, 1024, 1280, 1440 and 1920 px. The sweep checks decoded images, horizontal overflow, layout shift, responsive sources and image bytes. It includes 26 WCAG 2.1 A/AA axe scans at the smallest and representative desktop widths.
+
+## Phase 6.5 visual checks
+
+The visual review covers public, signed-in customer and staff fixture routes at 320, 360, 375, 390, 430, 768, 1024, 1280, 1440 and 1920 px. The local review archive preserves both the initial and post-fix staff order overflow results. The template-preview probe recorded HTTP 200 image responses and HTTP 429 after the fixed-window quota was reached. Phase 6.8 should record actual preview statuses alongside the full regression and verify the canonical origin independently against the configured value.
+
+The Phase 6.5 targeted Playwright run reported 88 passes, 24 skips and two canonical-count failures. The canonical failures reproduced in isolation. The exact-count assertion remains in place.

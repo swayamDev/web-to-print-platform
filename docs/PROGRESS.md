@@ -570,3 +570,10 @@ next step under **Next up** so work can resume cold.
 - Replaced public storefront illustrations with labelled generated samples for the homepage, six division cards, division pages and configurator marketing headers. Race uses tighter Editorial Studio framing at the product, Graphic-led on its card, and material and sporting views below the product links. Added homepage social imagery.
 - Kept proof diagrams, editor assets, gallery demonstrations and customer artwork in their existing pipelines. See [storefront asset provenance](STOREFRONT-ASSETS.md).
 - Local review package includes full-width evidence, comparisons, exact image inventory and verification. Phase 6.5 and employer submission await approval.
+
+### 2026-11-25 — Phase 6.5 visual polish
+
+- Made generated-image captions easier to read and tightened the approved trophy-card crop around the complete engraved plate. The seeded product is Engraved Trophy Plates.
+- Allowed long values to wrap in the staff order detail so contact information does not widen the page on phones.
+- Reproduced template preview rejection at the existing burst limit on the local fixture server. Phase 6.8 retains normal-navigation template monitoring and independent canonical-origin verification.
+- Phase 6.6 and employer submission await approval.

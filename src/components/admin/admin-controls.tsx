@@ -169,7 +169,7 @@ export function AdminProofUpload({ orderId }: { orderId: string }) {
         type="file"
         accept={acceptAttribute("artwork")}
         ref={fileInput}
-        className="text-sm"
+        className="w-full min-w-0 text-sm"
       />
       <label htmlFor={noteId} className="text-sm font-medium">
         Note for the audit log (optional)
@@ -179,7 +179,7 @@ export function AdminProofUpload({ orderId }: { orderId: string }) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         maxLength={500}
-        className="bg-background rounded-md border px-3 py-2 text-sm"
+        className="bg-background w-full min-w-0 rounded-md border px-3 py-2 text-sm"
       />
       <Button className="w-fit" disabled={pending} onClick={submit}>
         {pending ? "Creating proof…" : "Create proof from this file"}
