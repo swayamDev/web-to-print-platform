@@ -17,12 +17,13 @@ import {
   SubmitRevisionButton,
 } from "@/components/account/proof-review";
 import { PageSkeleton } from "@/components/layout/page-skeleton";
+import { mmToPx } from "@/domain/design/units";
 import { formatMinor, type CurrencyCode } from "@/domain/money";
 import { orderStatusLabel, type OrderStatus } from "@/domain/order-status";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
-import { ensureFirstProof, isStalled, signProofFiles } from "@/server/proofs";
+import { ensureFirstProof, isStalled, PROOF_PNG_DPI, signProofFiles } from "@/server/proofs";
 import { quoteReorder } from "@/server/reorders";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
@@ -42,6 +43,11 @@ const PIPELINE: { status: OrderStatus; label: string }[] = [
   { status: "production", label: "Production" },
   { status: "completed", label: "Completed" },
 ];
+
+const proofGeometry = z.object({
+  trim: z.object({ w: z.number().positive(), h: z.number().positive() }),
+  bleed: z.number().nonnegative(),
+});
 
 export default function OrderPage(props: Props) {
   return (
@@ -66,7 +72,10 @@ async function OrderDetail({ params, searchParams }: Props) {
        total_gross_minor, paid_at, invoice_number, created_at, pricing_snapshot, approved_proof_id,
        order_items(description, quantity, design_id),
        order_status_history(to_status, note, created_at),
-       proof_versions!proof_versions_order_id_fkey(id, version, status, snapshot_hash, proof_pdf_path, proof_png_path, created_at),
+       proof_versions!proof_versions_order_id_fkey(
+         id, version, status, snapshot_hash, proof_pdf_path, proof_png_path, created_at,
+         trim:document_snapshot->trim, bleed:document_snapshot->bleed
+       ),
        proof_events(id, proof_version_id, action, comment, created_at),
        merge_jobs(row_count),
        reorder_of:reorder_of_order_id(id, order_number)`,
@@ -104,6 +113,13 @@ async function OrderDetail({ params, searchParams }: Props) {
   }
   const pngUrl = latest?.proof_png_path ? signed.get(latest.proof_png_path) : undefined;
   const pdfUrl = latest?.proof_pdf_path ? signed.get(latest.proof_pdf_path) : undefined;
+  const geometry = proofGeometry.safeParse(latest);
+  const proofSize = geometry.success
+    ? {
+        width: mmToPx(geometry.data.trim.w + 2 * geometry.data.bleed, PROOF_PNG_DPI),
+        height: mmToPx(geometry.data.trim.h + 2 * geometry.data.bleed, PROOF_PNG_DPI),
+      }
+    : undefined;
   // Variable data (one merge job per order; the API may return an object or a list).
   const dataRows = ([] as typeof order.merge_jobs).concat(order.merge_jobs ?? [])[0]?.row_count;
 
@@ -336,6 +352,7 @@ async function OrderDetail({ params, searchParams }: Props) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- private, short-lived signed proof image */}
               <img
+                {...proofSize}
                 src={pngUrl}
                 alt={`Proof version ${latest.version} with trim and safe-area guides`}
                 className="h-auto max-h-[70vh] w-full max-w-lg object-contain shadow-sm"
