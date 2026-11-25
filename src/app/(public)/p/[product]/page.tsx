@@ -109,7 +109,8 @@ async function ProductContent({ params }: Props) {
         <StorefrontImage
           slug={product.division.slug}
           sizes="(max-width: 767px) 100vw, 46vw"
-          className="aspect-[2.3] self-stretch md:aspect-auto md:min-h-52"
+          placement="product"
+          className="self-center"
         />
       </header>
 

@@ -64,11 +64,7 @@ async function DivisionContent({ params }: Props) {
             <p className="text-muted-foreground max-w-2xl text-lg">{division.description}</p>
           ) : null}
         </div>
-        <StorefrontImage
-          slug={division.slug}
-          className="aspect-[16/9] max-h-80"
-          sizes="(max-width: 767px) 100vw, 50vw"
-        />
+        <StorefrontImage slug={division.slug} sizes="(max-width: 767px) 100vw, 50vw" />
       </header>
 
       {division.products.length === 0 ? (
@@ -123,6 +119,18 @@ async function DivisionContent({ params }: Props) {
           ))}
         </ul>
       )}
+
+      {division.slug === "race-event-numbers" ? (
+        <section aria-labelledby="race-samples" className="grid gap-4">
+          <h2 id="race-samples" className="text-2xl font-semibold">
+            Race bib details
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StorefrontImage slug="race-material" placement="support" />
+            <StorefrontImage slug="race-context" placement="support" />
+          </div>
+        </section>
+      ) : null}
 
       {gallery.length > 0 ? (
         <section aria-labelledby="division-gallery" className="grid gap-4">

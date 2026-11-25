@@ -16,10 +16,16 @@ export function DivisionHub({ divisions }: { divisions: DivisionSummary[] }) {
             href={`/d/${division.slug}`}
             className="group hover:border-ink focus-visible:outline-ring flex h-full flex-col border-b focus-visible:outline-2 focus-visible:outline-offset-4"
           >
-            <div className="bg-card relative grid aspect-[4/3] place-items-center overflow-hidden">
-              <DivisionIcon slug={division.slug} className="size-12" />
-              <StorefrontImage slug={division.slug} className="absolute inset-0" />
-            </div>
+            <StorefrontImage
+              slug={division.slug}
+              placement="tile"
+              sizes="(max-width: 767px) 50vw, 33vw"
+              fallback={
+                <div className="bg-card grid aspect-[4/3] place-items-center">
+                  <DivisionIcon slug={division.slug} className="size-12" />
+                </div>
+              }
+            />
             <div className="flex flex-1 items-start gap-2 py-3">
               <DivisionIcon
                 slug={division.slug}

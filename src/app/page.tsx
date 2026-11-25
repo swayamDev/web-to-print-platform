@@ -15,6 +15,16 @@ import { loadPricingRules } from "@/server/pricing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
+  openGraph: {
+    images: [
+      {
+        url: "/storefront/photos/share.jpg",
+        width: 1200,
+        height: 630,
+        alt: "AI-generated DHprint sample products on a graphite worktop",
+      },
+    ],
+  },
 };
 
 const STEPS = [
@@ -89,13 +99,9 @@ export default async function HomePage() {
             Get a price <ArrowRight aria-hidden="true" />
           </Link>
         </div>
-        <div className="relative min-w-0">
-          <StorefrontImage
-            hero
-            sizes="(max-width: 767px) 100vw, 55vw"
-            className="aspect-[1.85] md:aspect-auto md:h-full md:min-h-[22rem] lg:min-h-[32rem]"
-          />
-          <RegistrationMark className="motion-reveal text-signal pointer-events-none absolute top-[7%] right-[7%] size-10 sm:size-14 lg:size-20" />
+        <div className="relative min-w-0 md:self-center">
+          <StorefrontImage slug="hero" placement="hero" sizes="(max-width: 767px) 100vw, 55vw" />
+          <RegistrationMark className="motion-reveal text-signal pointer-events-none absolute top-[7%] right-[7%] size-10 lg:size-12 xl:size-16" />
         </div>
       </section>
 

@@ -564,3 +564,9 @@ next step under **Next up** so work can resume cold.
 - Final run: lint and types clean; 187 unit; 148 database locally and on live; e2e 147 passed
   locally on :3000 with none failing, 109 passed on live after one fix (the designer save test now
   accepts "All changes saved", which live shows after the login redirect reloads the design).
+
+### 2026-11-25 — Phase 6.4 controlled imagery rollout
+
+- Replaced public storefront illustrations with labelled generated samples for the homepage, six division cards, division pages and configurator marketing headers. Race uses tighter Editorial Studio framing at the product, Graphic-led on its card, and material and sporting views below the product links. Added homepage social imagery.
+- Kept proof diagrams, editor assets, gallery demonstrations and customer artwork in their existing pipelines. See [storefront asset provenance](STOREFRONT-ASSETS.md).
+- Local review package includes full-width evidence, comparisons, exact image inventory and verification. Phase 6.5 and employer submission await approval.
