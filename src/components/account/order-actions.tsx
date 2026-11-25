@@ -30,11 +30,11 @@ export function PaymentConfirmationPoller() {
   return (
     <p
       role="status"
-      className="bg-card rounded-lg border px-4 py-3 text-sm"
+      className="bg-card border-l-signal border border-l-4 px-4 py-3 text-sm"
       data-testid="payment-pending"
     >
       {timedOut
-        ? "We have not heard from the payment provider yet. If you completed payment, this page will update shortly; you will also get an email."
+        ? "Payment confirmation is taking longer than expected. If you paid, wait for your confirmation email or refresh this order before paying again."
         : "Confirming your payment…"}
     </p>
   );
@@ -51,6 +51,7 @@ export function PayNowButton({ orderId }: { orderId: string }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
+            setError(null);
             const result = await resumeCheckoutAction(orderId);
             if (result.ok) window.location.assign(result.url);
             else setError(result.message);
@@ -61,7 +62,10 @@ export function PayNowButton({ orderId }: { orderId: string }) {
         {pending ? "Opening payment…" : "Pay now"}
       </button>
       {error ? (
-        <p role="alert" className="text-destructive text-sm">
+        <p
+          role="alert"
+          className="border-destructive/40 bg-destructive/5 text-destructive border p-2 text-sm"
+        >
           {error}
         </p>
       ) : null}

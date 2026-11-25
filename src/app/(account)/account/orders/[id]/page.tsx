@@ -1,3 +1,4 @@
+import { CheckCircle2, CreditCard, FileImage, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -118,16 +119,53 @@ async function OrderDetail({ params, searchParams }: Props) {
       quote?: { tier?: { percentOff: string } | null; setupFeeMinor?: number };
     }
   ).quote;
+  const awaitingPayment = order.status === "quote";
+  const summary = (
+    <section
+      className={cn(
+        "grid min-w-0 content-start gap-3 border p-4 text-sm sm:p-5",
+        awaitingPayment ? "bg-ink text-paper" : "bg-card rounded-xl",
+      )}
+      aria-labelledby="summary-heading"
+    >
+      <h2 id="summary-heading" className="text-base font-semibold">
+        {awaitingPayment ? "Order total" : "Summary"}
+      </h2>
+      <dl className={cn("grid gap-1.5", awaitingPayment && "[&_dt]:text-paper/80")}>
+        <Row label="Quantity" value={item?.quantity.toLocaleString("en-GB") ?? "Unavailable"} />
+        {order.discount_minor > 0 ? (
+          <Row
+            label={`Volume discount${quote?.tier ? ` (${formatPercent(quote.tier.percentOff)})` : ""}`}
+            value={`−${money(order.discount_minor)}`}
+          />
+        ) : null}
+        {quote?.setupFeeMinor ? <Row label="Setup" value={money(quote.setupFeeMinor)} /> : null}
+        <Row label="Subtotal (excl. tax)" value={money(order.subtotal_net_minor)} />
+        <Row
+          label={`VAT (${formatPercent(String(Number(order.tax_rate) * 100))})`}
+          value={money(order.tax_minor)}
+        />
+        <Row label="Total" value={money(order.total_gross_minor)} strong />
+      </dl>
+      {awaitingPayment ? (
+        <p className="text-paper/80 text-xs">Total includes VAT. One order covers one print job.</p>
+      ) : null}
+    </section>
+  );
 
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="grid gap-1">
-          <p className="spec-label text-muted-foreground">Order</p>
+          <p className="spec-label text-muted-foreground">
+            {awaitingPayment ? "Checkout" : "Order"}
+          </p>
           <h1 className="num font-mono text-2xl font-semibold" data-testid="order-number">
             {order.order_number}
           </h1>
-          <p className="text-muted-foreground text-sm">{item?.description}</p>
+          {!awaitingPayment ? (
+            <p className="text-muted-foreground text-sm">{item?.description}</p>
+          ) : null}
           {originalOrder ? (
             <p className="text-muted-foreground text-sm" data-testid="reorder-of">
               Reorder of{" "}
@@ -155,18 +193,77 @@ async function OrderDetail({ params, searchParams }: Props) {
         </span>
       </div>
 
-      {order.status === "quote" ? (
-        query.checkout === "success" ? (
-          <PaymentConfirmationPoller />
-        ) : (
-          <div className="bg-card grid gap-3 rounded-xl border p-5">
-            <p className="text-sm">
-              This order is waiting for payment. Nothing is printed until it is paid and you approve
-              a proof.
-            </p>
-            <PayNowButton orderId={order.id} />
+      {awaitingPayment ? (
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <div className="grid min-w-0 content-start gap-3">
+            <section
+              className="bg-card grid gap-2 border p-4 sm:p-5"
+              aria-labelledby="artwork-heading"
+            >
+              <div className="flex items-center gap-2">
+                <FileImage className="size-4" aria-hidden="true" />
+                <h2 id="artwork-heading" className="font-semibold">
+                  Product and artwork
+                </h2>
+              </div>
+              <p className="text-sm">{item?.description}</p>
+              {dataRows ? (
+                <p className="text-muted-foreground text-sm">
+                  {dataRows.toLocaleString("en-GB")} personalised items from your data file.
+                </p>
+              ) : null}
+              {item?.design_id ? (
+                <Link
+                  href={`/design/${item.design_id}`}
+                  className="w-fit text-sm underline underline-offset-4"
+                >
+                  Review saved artwork
+                </Link>
+              ) : null}
+            </section>
+            {query.checkout === "success" ? (
+              <PaymentConfirmationPoller />
+            ) : (
+              <section
+                className="bg-card grid gap-3 border p-4 sm:p-5"
+                aria-labelledby="payment-heading"
+              >
+                <div className="flex items-center gap-2">
+                  <CreditCard className="size-4" aria-hidden="true" />
+                  <h2 id="payment-heading" className="font-semibold">
+                    Payment
+                  </h2>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Pay on Stripe’s secure page. After payment, you still need to approve the proof
+                  before production starts.
+                </p>
+                <PayNowButton orderId={order.id} />
+                <p className="text-muted-foreground flex items-center gap-2 text-xs">
+                  <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
+                  If payment doesn’t complete, you can return to this order and try again.
+                </p>
+              </section>
+            )}
           </div>
-        )
+          {summary}
+        </div>
+      ) : null}
+
+      {order.paid_at && query.checkout === "success" ? (
+        <div
+          role="status"
+          className="bg-card border-success/40 flex items-start gap-3 border p-4 text-sm"
+        >
+          <CheckCircle2 className="text-success size-5 shrink-0" aria-hidden="true" />
+          <div className="grid gap-1">
+            <p className="font-semibold">Payment confirmed</p>
+            <p className="text-muted-foreground">
+              Track your order here. Check the proof section when artwork is ready for your
+              approval.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {awaitingFirstProof ? <ProofPreparingPoller /> : null}
@@ -174,7 +271,7 @@ async function OrderDetail({ params, searchParams }: Props) {
       {/* Pipeline ------------------------------------------------------------- */}
       {order.status !== "cancelled" ? (
         <ol
-          className="grid gap-2 sm:grid-cols-6"
+          className={cn("grid gap-2 sm:grid-cols-6", awaitingPayment && "grid-cols-2")}
           aria-label="Order progress"
           data-testid="order-timeline"
         >
@@ -353,30 +450,7 @@ async function OrderDetail({ params, searchParams }: Props) {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section
-          className="bg-card grid content-start gap-2 rounded-xl border p-5 text-sm"
-          aria-labelledby="summary-heading"
-        >
-          <h2 id="summary-heading" className="text-base font-semibold">
-            Summary
-          </h2>
-          <dl className="grid gap-1.5">
-            <Row label="Quantity" value={item?.quantity.toLocaleString("en-GB") ?? "—"} />
-            {order.discount_minor > 0 ? (
-              <Row
-                label={`Volume discount${quote?.tier ? ` (${formatPercent(quote.tier.percentOff)})` : ""}`}
-                value={`−${money(order.discount_minor)}`}
-              />
-            ) : null}
-            {quote?.setupFeeMinor ? <Row label="Setup" value={money(quote.setupFeeMinor)} /> : null}
-            <Row label="Subtotal (excl. tax)" value={money(order.subtotal_net_minor)} />
-            <Row
-              label={`VAT (${formatPercent(String(Number(order.tax_rate) * 100))})`}
-              value={money(order.tax_minor)}
-            />
-            <Row label="Total" value={money(order.total_gross_minor)} strong />
-          </dl>
-        </section>
+        {!awaitingPayment ? summary : null}
         <section
           className="bg-card grid content-start gap-2 rounded-xl border p-5 text-sm"
           aria-labelledby="details-heading"
