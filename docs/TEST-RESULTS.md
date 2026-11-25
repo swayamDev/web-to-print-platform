@@ -1,5 +1,14 @@
 # Test results
 
+## Assessment closure
+
+- Production build, ESLint and TypeScript passed. The focused Vitest queue suite passed seven tests.
+- Four Playwright cases passed on the local production build. They covered inclusive UTC date
+  boundaries, product/date combinations, retained stage filters, a reversed date range, the queue
+  at 360 px, the existing search and role guard, and the admin axe scan.
+- Hosted Stripe test checkout, email delivery, evaluator roles and production downloads remain
+  pending on the submission revision. The checks in this run used local fixtures only.
+
 ## Phase 5 configurator, editor and checkout
 
 - The local production build, ESLint and TypeScript passed. Local pgTAP passed all 148 checks.

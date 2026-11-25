@@ -35,6 +35,7 @@ async function AdminOrders({ searchParams }: Props) {
   const admin = await requireAdmin("/admin/orders");
   const params = parseQueueParams(await searchParams);
   const supabase = await createSupabaseServerClient(); // RLS: admins read every order
+  const invalidRange = Boolean(params.from && params.to && params.from > params.to);
 
   let request = supabase
     .from("orders")
@@ -42,10 +43,12 @@ async function AdminOrders({ searchParams }: Props) {
       `id, order_number, status, approved_proof_id, total_gross_minor, currency, created_at, paid_at,
        archived_at, reorder_of_order_id,
        customer:profiles!orders_customer_id_fkey(full_name, company_name),
-       order_items(description, is_variable_data)`,
+       order_items(description, is_variable_data),
+       matching_items:order_items()`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range((params.page - 1) * QUEUE_PAGE_SIZE, params.page * QUEUE_PAGE_SIZE - 1);
 
   if (params.view === "active") request = request.is("archived_at", null);
@@ -55,9 +58,16 @@ async function AdminOrders({ searchParams }: Props) {
   } else if (params.status) {
     request = request.eq("status", params.status);
   }
+  if (params.from) request = request.gte("created_at", `${params.from}T00:00:00Z`);
+  if (params.to) request = request.lte("created_at", `${params.to}T23:59:59.999999Z`);
+  if (params.product) {
+    request = request
+      .eq("matching_items.product_id", params.product)
+      .not("matching_items", "is", null);
+  }
 
   let noMatches = false;
-  if (params.query) {
+  if (params.query && !invalidRange) {
     if (looksLikeOrderNumber(params.query)) {
       request = request.ilike("order_number", `%${sanitizeSearch(params.query)}%`);
     } else {
@@ -72,7 +82,10 @@ async function AdminOrders({ searchParams }: Props) {
         );
     }
   }
-  const { data, count } = noMatches ? { data: [], count: 0 } : await request;
+  const [{ data, count }, { data: products }] = await Promise.all([
+    noMatches || invalidRange ? { data: [], count: 0 } : request,
+    supabase.from("products").select("id, name").order("name"),
+  ]);
   const orders = data ?? [];
   const pages = Math.max(1, Math.ceil((count ?? 0) / QUEUE_PAGE_SIZE));
 
@@ -90,23 +103,67 @@ async function AdminOrders({ searchParams }: Props) {
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="grid gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-        <form action="/admin/orders" className="flex w-full gap-2 sm:w-auto" role="search">
+        <form
+          key={queueHref(params)}
+          action="/admin/orders"
+          className="flex flex-wrap items-end gap-3"
+          role="search"
+        >
           {params.status ? <input type="hidden" name="status" value={params.status} /> : null}
+          {params.awaitingFiles ? <input type="hidden" name="ready" value="1" /> : null}
           {params.view !== "active" ? (
             <input type="hidden" name="view" value={params.view} />
           ) : null}
-          <label htmlFor="order-search" className="sr-only">
+          <label className="grid w-full gap-1 text-sm sm:w-64">
             Search orders
+            <input
+              name="q"
+              defaultValue={params.query}
+              placeholder="Order number, customer, company or email"
+              className="bg-background h-10 w-full min-w-0 rounded-md border px-3"
+            />
           </label>
-          <input
-            id="order-search"
-            name="q"
-            defaultValue={params.query}
-            placeholder="Order number, customer, company or email"
-            className="bg-background h-10 w-full min-w-0 rounded-md border px-3 text-sm sm:w-80"
-          />
+          <fieldset className="flex min-w-0 flex-wrap gap-2">
+            <legend className="sr-only">Order date range (UTC)</legend>
+            <label className="grid gap-1 text-sm">
+              From date (UTC)
+              <input
+                type="date"
+                name="from"
+                defaultValue={params.from ?? ""}
+                className="bg-background h-10 rounded-md border px-2"
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              To date (UTC)
+              <input
+                type="date"
+                name="to"
+                defaultValue={params.to ?? ""}
+                className="bg-background h-10 rounded-md border px-2"
+              />
+            </label>
+          </fieldset>
+          <label className="grid max-w-full min-w-0 gap-1 text-sm">
+            Product type
+            <select
+              name="product"
+              defaultValue={params.product ?? ""}
+              className="bg-background h-10 min-w-0 rounded-md border px-2"
+            >
+              <option value="">All products</option>
+              {params.product && !products?.some((product) => product.id === params.product) ? (
+                <option value={params.product}>Unavailable product</option>
+              ) : null}
+              {products?.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" className="bg-ink text-paper h-10 rounded-md px-4 text-sm">
             Search
           </button>
@@ -117,7 +174,13 @@ async function AdminOrders({ searchParams }: Props) {
         {tabs.map((tab) => (
           <Link
             key={tab.label}
-            href={queueHref({ ...tab.params, view: params.view, query: params.query })}
+            href={queueHref({
+              ...params,
+              page: 1,
+              status: null,
+              awaitingFiles: false,
+              ...tab.params,
+            })}
             aria-current={isCurrent(tab.params) ? "page" : undefined}
             className={cn(
               "rounded-full border px-3 py-1 text-sm transition-colors",
@@ -151,7 +214,11 @@ async function AdminOrders({ searchParams }: Props) {
         </nav>
       </div>
 
-      {orders.length === 0 ? (
+      {invalidRange ? (
+        <p role="alert" className="text-destructive text-sm">
+          Choose a From date on or before the To date.
+        </p>
+      ) : orders.length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed p-8 text-center">
           No orders match these filters.
         </p>
@@ -180,7 +247,7 @@ async function AdminOrders({ searchParams }: Props) {
                     {order.archived_at ? " · archived" : ""}
                   </span>
                   <span className="text-muted-foreground text-sm">
-                    {new Date(order.created_at).toLocaleDateString("en-GB")}
+                    {new Date(order.created_at).toLocaleDateString("en-GB", { timeZone: "UTC" })}
                   </span>
                   <span className="num font-mono text-sm md:text-right">
                     {formatMinor(order.total_gross_minor, order.currency as CurrencyCode)}

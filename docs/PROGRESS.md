@@ -5,9 +5,11 @@ next step under **Next up** so work can resume cold.
 
 ## Next up
 
+- Phase 6 is on hold. Assessment closure adds the required date and product filters to the
+  staff queue. Await employer clarification on real gallery work, the generation trigger,
+  and source-code terms before submission. Live evaluator verification requires approval.
 - Phase 4 received visual approval. Phase 5 implements the configurator, editor, CSV workflow
-  and checkout in the existing Next.js application. Review the local Phase 5 captures and
-  verification notes before approving Phase 6.
+  and checkout in the existing Next.js application and received visual approval.
 - The editor keeps the mouse-only mobile resize skip and adds a Chromium touch interaction
   check. Physical-device verification remains pending.
 - Review the [CI proposal](TESTING.md) independently of design approval. Review the suggested

@@ -72,10 +72,82 @@ test.describe("admin console", () => {
 
   test("customers cannot open the admin console", async ({ page }) => {
     await logIn(page);
-    for (const path of ["/admin/orders", "/admin/users"]) {
+    for (const path of [
+      "/admin/orders?from=2026-10-07&product=1ef104cb-07d6-4269-b8c1-3d3e3a6dd583",
+      "/admin/users",
+    ]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
     }
+  });
+
+  test("the queue combines inclusive UTC order dates with product type", async ({ page }) => {
+    const db = admin();
+    const { data: race, error: productError } = await db
+      .from("products")
+      .select("id")
+      .eq("slug", "race-numbers")
+      .single();
+    if (productError) throw productError;
+
+    const start = await createQuoteOrder();
+    const end = await createQuoteOrder();
+    const nextDay = await createQuoteOrder();
+    const otherProduct = await createQuoteOrder();
+    for (const [order, created_at] of [
+      [start, "2026-10-07T00:00:00.000000Z"],
+      [end, "2026-10-07T23:59:59.999999Z"],
+      [nextDay, "2026-10-08T00:00:00.000000Z"],
+      [otherProduct, "2026-10-07T12:00:00.000000Z"],
+    ] as const) {
+      const { error } = await db.from("orders").update({ created_at }).eq("id", order.id);
+      if (error) throw error;
+    }
+    const { error } = await db
+      .from("order_items")
+      .update({ product_id: race.id, description: "Race Numbers fixture" })
+      .eq("order_id", otherProduct.id);
+    if (error) throw error;
+
+    await logIn(page, adminUser);
+    await page.goto("/admin/orders");
+    const list = page.getByTestId("admin-order-list");
+    await page.getByLabel("From date (UTC)").fill("2026-10-07");
+    await page.getByLabel("To date (UTC)").fill("2026-10-07");
+    await page.getByRole("button", { name: "Search" }).click();
+    await expect(list).toContainText(start.order_number);
+    await expect(list).toContainText(end.order_number);
+    await expect(list).toContainText(otherProduct.order_number);
+    await expect(list).not.toContainText(nextDay.order_number);
+
+    await page.getByLabel("Product type").selectOption({ label: "Custom Stickers" });
+    await page.getByRole("button", { name: "Search" }).click();
+    await expect(page).toHaveURL(/product=/);
+    await expect(list).toContainText(start.order_number);
+    await expect(list).toContainText(end.order_number);
+    await expect(list).not.toContainText(otherProduct.order_number);
+
+    const quoteStage = page
+      .getByRole("navigation", { name: "Filter by stage" })
+      .getByRole("link", { name: "Awaiting payment" });
+    await quoteStage.click();
+    await expect(quoteStage).toHaveAttribute("aria-current", "page");
+    await expect(page.getByLabel("From date (UTC)")).toHaveValue("2026-10-07");
+    await expect(page.getByLabel("Product type")).not.toHaveValue("");
+    await expect(list).not.toContainText(otherProduct.order_number);
+
+    await page.setViewportSize({ width: 360, height: 800 });
+    await expect(page.getByLabel("Product type")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      360,
+    );
+
+    await page.getByLabel("To date (UTC)").fill("2026-10-06");
+    await page.getByRole("button", { name: "Search" }).click();
+    await expect(page).toHaveURL(/to=2026-10-06/);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Choose a From date on or before the To date." }),
+    ).toBeVisible();
   });
 
   test("an admin completes a job, the customer is told, and it can be archived", async ({

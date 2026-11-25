@@ -1,7 +1,9 @@
+import { z } from "zod";
+
 import { ORDER_STATUSES, type OrderStatus } from "./order-status";
 
 /**
- * Admin order queue filters (PRD p8 §12: filter jobs by stage, find an order quickly), read
+ * Admin order queue filters (PRD p8 §11), read
  * from the URL so every view can be bookmarked and shared.
  */
 
@@ -15,6 +17,9 @@ export type QueueParams = {
   awaitingFiles: boolean;
   view: QueueView;
   query: string;
+  from: string | null;
+  to: string | null;
+  product: string | null;
   page: number;
 };
 
@@ -27,6 +32,7 @@ export function parseQueueParams(raw: Raw): QueueParams {
   const view = first(raw.view);
   const page = Number.parseInt(first(raw.page) ?? "1", 10);
   const query = (first(raw.q) ?? "").trim().slice(0, 100);
+  const date = z.iso.date().refine((value) => !value.startsWith("0000-"));
   return {
     status: (ORDER_STATUSES as readonly string[]).includes(status ?? "")
       ? (status as OrderStatus)
@@ -34,6 +40,9 @@ export function parseQueueParams(raw: Raw): QueueParams {
     awaitingFiles: first(raw.ready) === "1",
     view: view === "archived" || view === "all" ? view : "active",
     query,
+    from: date.safeParse(first(raw.from)).data ?? null,
+    to: date.safeParse(first(raw.to)).data ?? null,
+    product: z.uuid().safeParse(first(raw.product)).data ?? null,
     page: Number.isFinite(page) && page > 0 ? Math.min(page, 1000) : 1,
   };
 }
@@ -45,6 +54,9 @@ export function queueHref(params: Partial<QueueParams>): string {
   if (params.awaitingFiles) search.set("ready", "1");
   if (params.view && params.view !== "active") search.set("view", params.view);
   if (params.query) search.set("q", params.query);
+  if (params.from) search.set("from", params.from);
+  if (params.to) search.set("to", params.to);
+  if (params.product) search.set("product", params.product);
   if (params.page && params.page > 1) search.set("page", String(params.page));
   const qs = search.toString();
   return qs ? `/admin/orders?${qs}` : "/admin/orders";
